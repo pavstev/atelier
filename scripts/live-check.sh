@@ -30,4 +30,13 @@ check /favicon.svg image/svg
 check /og.png image/png
 check /og-square.png image/png
 
+# The wasm name has a content hash. The home page names the main script, the main script names
+# the layers worker, and the worker (or the main script) names the wasm.
+first() { grep -o "$1" | head -1 || true; }
+main=$(get "$SITE/" | first 'assets/index-[A-Za-z0-9_-]*\.js')
+worker=""
+[ -n "$main" ] && worker=$(get "$SITE/$main" | first 'worker-[A-Za-z0-9_-]*\.js')
+wasm=$({ if [ -n "$main" ]; then get "$SITE/$main"; fi; if [ -n "$worker" ]; then get "$SITE/assets/$worker"; fi; } | first 'atelier_wasm_bg-[A-Za-z0-9_-]*\.wasm')
+if [ -n "$wasm" ]; then check "/assets/$wasm" application/wasm; else echo "FAIL wasm name not found (main '$main', worker '$worker')"; fail=1; fi
+
 exit "$fail"
