@@ -1,0 +1,19 @@
+[package]
+name = "oil-core"
+description = "The pixel work of Atelier. Study a photo like a painter. Same bytes on every platform."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+publish.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[dependencies]
+libm.workspace = true
+thiserror.workspace = true
+
+[dev-dependencies]
+png.workspace = true
+
+[lints]
+workspace = true

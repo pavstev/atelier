@@ -1,0 +1,16 @@
+{
+  // The web app is static files in app/web/dist, served by a Worker with static assets.
+  // Deploy only through `mise run deploy` (it checks the account first). The account is pinned:
+  // never another account.
+  "$schema": "https://unpkg.com/wrangler/config-schema.json",
+  "name": "atelier",
+  "compatibility_date": "2026-10-01",
+  "account_id": "69c9873da4df01aef631792032a43539",
+  "workers_dev": false,
+  "preview_urls": false,
+  "assets": {
+    "directory": "app/web/dist",
+    "not_found_handling": "single-page-application",
+  },
+  "routes": [{ "pattern": "atelier.stevanpavlovic.com", "custom_domain": true }],
+}

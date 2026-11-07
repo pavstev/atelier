@@ -1,0 +1,28 @@
+name: Bug report
+description: Something looks wrong or does not work
+labels: [bug]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+      description: What did you expect, and what did you see? A screenshot helps. Please do not post a private photo.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to repeat it
+      placeholder: "1. Open a photo\n2. Press Edges in the bottom bar\n3. ..."
+    validations:
+      required: true
+  - type: input
+    id: browser
+    attributes:
+      label: Browser and system
+      placeholder: Chrome 140 on macOS 15
+  - type: input
+    id: photo
+    attributes:
+      label: Photo size
+      description: Pixel size and type (JPEG, PNG, ...). Do not attach a private photo.

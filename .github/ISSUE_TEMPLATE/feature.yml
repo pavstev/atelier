@@ -1,0 +1,16 @@
+name: Feature request
+description: Suggest a change or a new option
+labels: [enhancement]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: What do you want to do as a painter?
+      description: Describe the job, not the button. Check "Dropped for good" in AGENTS.md first.
+    validations:
+      required: true
+  - type: textarea
+    id: idea
+    attributes:
+      label: Your idea
+      description: Optional. How could the app help?

@@ -1,0 +1,79 @@
+# --- Private: photos and anything made from them ---
+/in
+/out
+/bench-out/
+# Old experiment folders: models, landmarks and their own build output (GBs; local only).
+/bench/landmarks/
+/bench/models/
+/docs/research/local-ai/
+# No photo goes into git, whatever the folder. (PNG is not listed: reference pictures, icons and
+# share images are PNG. They are drawn from synthetic scenes. A rare photo-like asset in these
+# formats needs `git add -f`.)
+*.jpg
+*.jpeg
+*.heic
+*.heif
+*.tif
+*.tiff
+*.cr2
+*.cr3
+*.nef
+*.arw
+*.dng
+*.raw
+
+# --- Private: secrets and local config ---
+.env
+.env.*
+!.env.example
+.dev.vars
+.wrangler/
+*.pem
+*.key
+*.p12
+*.log
+
+# --- Models: the web app ships `.pNN` parts (scripts/models-pack.sh), never a whole file ---
+*.onnx
+
+# --- Build output and caches ---
+target/
+build/
+dist/
+node_modules/
+coverage/
+*.tsbuildinfo
+app/web/test-results/
+app/web/playwright-report/
+# the wasm glue is committed in app/web/wasm/ (made at release); this older path is not
+app/web/src/wasm/
+.venv/
+venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+*.egg-info/
+
+# --- Agent tools and the local autopilot ledger ---
+# The shared Claude setup is committed: settings.json, rules, skills and agents.
+# Worktrees and settings.local.json stay out.
+.claude/*
+!.claude/settings.json
+!.claude/rules/
+!.claude/skills/
+!.claude/agents/
+!.claude/AGENT-MAP.md
+!.claude/launch.json
+.agents/
+.superlite/
+/PROGRESS.md
+# superlite writes probe scripts here after each run. Never commit them.
+/tests/regression/
+
+# --- Editors and operating systems ---
+.DS_Store
+Thumbs.db
+.idea/
+*.swp

@@ -1,0 +1,344 @@
+/* Atelier theme for Hero UI v3 (@heroui/styles 3.2.x). Palette "Graphite indigo": gray with a small
+ * blue tint (hue 260, chroma 0.008), an indigo accent (hue 272), 8 px buttons and fields.
+ * It overrides Hero's own light and dark blocks, so the usual `class="dark"` switch keeps working.
+ * Import it AFTER @heroui/styles, in the theme layer:
+ *   @layer theme, base, components, utilities;
+ *   @import "tailwindcss";
+ *   @import "@heroui/styles";
+ *   @import "./atelier-theme.css" layer(theme);
+ * The file has four blocks, in this order:
+ *   1. Constants and design sizes (radius, icon buttons, z-index, tooltip delay). Same in both themes.
+ *   2. Light colors.
+ *   3. Colors that are calculated from other colors. They sit in one rule for both themes, so a
+ *      scoped theme (a nested [data-theme]) calculates them again from its own colors. Hero resolves
+ *      them once at :root otherwise, and a nested box would keep the root values.
+ *   4. Dark colors: only the values that differ from light.
+ * Notes: docs/design/2026-11-01-heroui-color-system.md
+ */
+/* atelier */
+@layer base {
+	/* 1. Constants and design sizes */
+	:root {
+		--white: oklch(100% 0 0);
+		--black: oklch(0% 0 0);
+		--snow: oklch(0.99 0.002 260);
+		--eclipse: oklch(0.215 0.008 260);
+		--spacing: 0.25rem;
+		--border-width: 1px;
+		--field-border-width: 0px;
+		--disabled-opacity: 0.5;
+		--ring-offset-width: 2px;
+		--cursor-interactive: pointer;
+		--cursor-disabled: not-allowed;
+		--skeleton-animation: shimmer;
+		--scrollbar-track: transparent;
+		--scrollbar-gutter: auto;
+		--scrollbar-width: thin;
+		--field-border: transparent;
+		--warning-foreground: var(--eclipse);
+		--danger-foreground: var(--snow);
+
+		/* Radius scale. Four corners, nothing else:
+		 *   chip   small bits: swatches, thumbnails, highlights (rounded-(--radius-chip))
+		 *   field  buttons, fields, rows (rounded-field)
+		 *   card   cards and pop-ups (rounded-(--radius-card))
+		 *   pill   round ends: switches, sliders, the bar (rounded-full)
+		 * --radius and the Hero steps below it are Hero's own scale, for Hero's parts. */
+		--radius: 0.1667rem;
+		--field-radius: calc(var(--radius) * 3);
+		--radius-xs: calc(var(--radius) * 0.25);
+		--radius-sm: calc(var(--radius) * 0.5);
+		--radius-md: calc(var(--radius) * 0.75);
+		--radius-lg: var(--radius);
+		--radius-xl: calc(var(--radius) * 1.5);
+		--radius-2xl: calc(var(--radius) * 2);
+		--radius-3xl: calc(var(--radius) * 3);
+		--radius-4xl: calc(var(--radius) * 4);
+		--radius-field: var(--field-radius);
+		--radius-chip: 0.25rem;
+		--radius-card: 0.75rem;
+		--radius-pill: 9999px;
+
+		/* Icon buttons: one size per role. The icon inside is --icon-size-*.
+		 *   bar  buttons in a bar or a header (size-(--icon-btn-bar))
+		 *   row  buttons inside a row, a handle or a banner (size-(--icon-btn-row)) */
+		--icon-btn-bar: 1.75rem;
+		--icon-btn-row: 1.5rem;
+		--icon-size-bar: 1rem;
+		--icon-size-row: 0.875rem;
+
+		/* Stacking order, low to high (z-(--z-bar)):
+		 *   stage   the photo and its layers
+		 *   bar     the bottom bar
+		 *   popup   pop-up cards, the scrim behind a drawer, the panel resize handle
+		 *   drawer  the side panel on a phone, the stage edge handle, the color zoom
+		 *   banner  messages and the logo, the full-screen color
+		 *   toast   short notes over everything */
+		--z-stage: 0;
+		--z-bar: 10;
+		--z-popup: 20;
+		--z-drawer: 30;
+		--z-banner: 40;
+		--z-toast: 50;
+
+		/* Tooltips: how long the pointer rests before a tip shows. `Tip` in ui/icons.tsx reads it. */
+		--tooltip-delay: 400ms;
+		--tooltip-close-delay: 500ms;
+
+		/* sizes shared by the panels and the stage */
+		--panel-pad: 0.75rem;
+		--logo-h: 2rem;
+		--shadow-photo:
+			0 2px 6px rgb(0 0 0 / 0.3), 0 18px 48px rgb(0 0 0 / 0.38),
+			0 48px 110px rgb(0 0 0 / 0.34);
+	}
+
+	/* 2. Light colors */
+	:root,
+	.light,
+	[data-theme="light"],
+	[data-theme="atelier"] {
+		color-scheme: light;
+		--background: oklch(0.955 0.008 260);
+		/* the side panel and the cards on it; the stage is --default */
+		--panel: var(--background);
+		--card: var(--surface);
+		--foreground: var(--eclipse);
+		--surface: oklch(0.995 0.003 260);
+		--surface-secondary: oklch(0.945 0.008 260);
+		--surface-tertiary: oklch(0.925 0.008 260);
+		--overlay: oklch(0.995 0.003 260);
+		--muted: oklch(0.49 0.0128 260);
+		--default: oklch(0.935 0.008 260);
+		--accent: oklch(0.51 0.155 272);
+		--focus-ring: oklch(0.48 0.17 272);
+		--logo-from: oklch(0.45 0.16 272);
+		--logo-to: oklch(0.68 0.11 272);
+		--logo-halo: oklch(1 0 0);
+		--accent-foreground: var(--snow);
+		--field-background: oklch(0.975 0.004 260);
+		--success: oklch(0.54 0.115 155);
+		--success-foreground: var(--snow);
+		--warning: oklch(0.76 0.12 75);
+		--danger: oklch(0.56 0.17 25);
+		--segment: oklch(1 0 0);
+		--border: oklch(0.865 0.008 260);
+		--separator: oklch(0.905 0.008 260);
+		--backdrop: rgba(0, 0, 0, 0.5);
+		--surface-shadow:
+			0 1px 2px 0 rgba(20, 24, 32, 0.06), 0 0 1px 0 rgba(20, 24, 32, 0.08);
+		--overlay-shadow:
+			0 2px 8px 0 rgba(20, 24, 32, 0.07), 0 14px 28px 0 rgba(20, 24, 32, 0.09);
+		--field-shadow:
+			0 1px 2px 0 rgba(20, 24, 32, 0.05), 0 0 1px 0 rgba(20, 24, 32, 0.07);
+
+		/* calculated colors that differ in dark */
+		--accent-soft: color-mix(in oklab, var(--accent) 18%, transparent);
+		--accent-soft-foreground: color-mix(
+			in oklab,
+			var(--accent) 65%,
+			var(--foreground) 35%
+		);
+		--accent-soft-hover: color-mix(in oklab, var(--accent) 26%, transparent);
+
+		--danger-soft-foreground: color-mix(
+			in oklab,
+			var(--danger) 70%,
+			var(--foreground) 40%
+		);
+
+		--warning-soft: color-mix(in oklab, var(--warning) 15%, transparent);
+		--warning-soft-foreground: color-mix(
+			in oklab,
+			var(--warning) 80%,
+			var(--foreground) 70%
+		);
+		--warning-soft-hover: color-mix(in oklab, var(--warning) 20%, transparent);
+
+		--success-soft: color-mix(in oklab, var(--success) 15%, transparent);
+		--success-soft-foreground: color-mix(
+			in oklab,
+			var(--success) 80%,
+			var(--foreground) 60%
+		);
+		--success-soft-hover: color-mix(in oklab, var(--success) 20%, transparent);
+	}
+
+	/* 3. Calculated colors, the same formula in both themes */
+	:root,
+	.light,
+	[data-theme="light"],
+	[data-theme="atelier"],
+	.dark,
+	[data-theme="dark"],
+	[data-theme="atelier-dark"] {
+		--surface-foreground: var(--foreground);
+		--surface-secondary-foreground: var(--foreground);
+		--surface-tertiary-foreground: var(--foreground);
+		--overlay-foreground: var(--foreground);
+		--default-foreground: var(--foreground);
+		--field-foreground: var(--foreground);
+		--field-placeholder: var(--muted);
+		--segment-foreground: var(--foreground);
+		--focus: var(--focus-ring);
+		--link: var(--foreground);
+		--scrollbar: var(--scrollbar-thumb);
+		--scrollbar-thumb: color-mix(in oklch, var(--foreground) 15%, transparent);
+		--scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
+
+		--surface-hover: color-mix(
+			in oklab,
+			var(--surface) 92%,
+			var(--surface-foreground) 8%
+		);
+
+		--background-secondary: color-mix(
+			in oklab,
+			var(--background) 96%,
+			var(--foreground) 4%
+		);
+		--background-tertiary: color-mix(
+			in oklab,
+			var(--background) 92%,
+			var(--foreground) 8%
+		);
+		--background-inverse: var(--foreground);
+
+		--default-hover: color-mix(
+			in oklab,
+			var(--default) 96%,
+			var(--default-foreground) 4%
+		);
+		--accent-hover: color-mix(
+			in oklab,
+			var(--accent) 90%,
+			var(--accent-foreground) 10%
+		);
+		--success-hover: color-mix(
+			in oklab,
+			var(--success) 90%,
+			var(--success-foreground) 10%
+		);
+		--warning-hover: color-mix(
+			in oklab,
+			var(--warning) 90%,
+			var(--warning-foreground) 10%
+		);
+		--danger-hover: color-mix(
+			in oklab,
+			var(--danger) 90%,
+			var(--danger-foreground) 10%
+		);
+
+		--field-hover: color-mix(
+			in oklab,
+			var(--field-background, var(--default)) 90%,
+			var(--field-foreground, var(--foreground)) 2%
+		);
+		--field-focus: var(--field-background, var(--default));
+		--field-border-hover: color-mix(
+			in oklab,
+			var(--field-border, var(--border)) 88%,
+			var(--field-foreground, var(--foreground)) 10%
+		);
+		--field-border-focus: color-mix(
+			in oklab,
+			var(--field-border, var(--border)) 74%,
+			var(--field-foreground, var(--foreground)) 22%
+		);
+
+		--default-soft: color-mix(in oklab, var(--default) 50%, transparent);
+		--default-soft-foreground: var(--default-foreground);
+		--default-soft-hover: color-mix(in oklab, var(--default) 60%, transparent);
+
+		--danger-soft: color-mix(in oklab, var(--danger) 15%, transparent);
+		--danger-soft-hover: color-mix(in oklab, var(--danger) 20%, transparent);
+
+		--separator-secondary: color-mix(
+			in oklab,
+			var(--surface) 85%,
+			var(--surface-foreground) 15%
+		);
+		--separator-tertiary: color-mix(
+			in oklab,
+			var(--surface) 81%,
+			var(--surface-foreground) 19%
+		);
+
+		--border-secondary: color-mix(
+			in oklab,
+			var(--surface) 78%,
+			var(--surface-foreground) 22%
+		);
+		--border-tertiary: color-mix(
+			in oklab,
+			var(--surface) 66%,
+			var(--surface-foreground) 34%
+		);
+	}
+
+	/* 4. Dark colors: only what differs from light */
+	.dark,
+	[data-theme="dark"],
+	[data-theme="atelier-dark"] {
+		color-scheme: dark;
+		--background: oklch(0.155 0.008 260);
+		--panel: oklch(0.2 0.008 260);
+		--card: oklch(0.245 0.008 260);
+		--foreground: var(--snow);
+		--surface: oklch(0.205 0.008 260);
+		--surface-secondary: oklch(0.245 0.008 260);
+		--surface-tertiary: oklch(0.275 0.008 260);
+		--overlay: oklch(0.225 0.008 260);
+		--muted: oklch(0.72 0.0128 260);
+		--default: oklch(0.27 0.008 260);
+		--accent: oklch(0.72 0.1275 272);
+		--focus-ring: oklch(0.8 0.12 272);
+		--logo-from: oklch(0.72 0.1275 272);
+		--logo-to: oklch(0.93 0.04 272);
+		--logo-halo: oklch(0.12 0.01 272);
+		--accent-foreground: var(--eclipse);
+		--field-background: oklch(0.25 0.008 260);
+		--success: oklch(0.76 0.13 155);
+		--success-foreground: var(--eclipse);
+		--warning: oklch(0.82 0.12 76);
+		--danger: oklch(0.66 0.17 25);
+		--segment: oklch(0.38 0.008 260);
+		--border: oklch(0.33 0.008 260);
+		--separator: oklch(0.26 0.008 260);
+		--backdrop: rgba(0, 0, 0, 0.6);
+		--surface-shadow: 0 0 0 0 transparent inset;
+		--overlay-shadow: 0 0 0 0 transparent inset;
+		--field-shadow: 0 0 0 0 transparent inset;
+
+		--accent-soft: color-mix(in oklab, var(--accent) 24%, transparent);
+		--accent-soft-foreground: color-mix(
+			in oklab,
+			var(--accent) 65%,
+			var(--foreground) 35%
+		);
+		--accent-soft-hover: color-mix(in oklab, var(--accent) 32%, transparent);
+
+		--danger-soft-foreground: color-mix(
+			in oklab,
+			var(--danger) 80%,
+			var(--foreground) 30%
+		);
+
+		--warning-soft: color-mix(in oklab, var(--warning) 12%, transparent);
+		--warning-soft-foreground: color-mix(
+			in oklab,
+			var(--warning) 80%,
+			var(--foreground) 30%
+		);
+		--warning-soft-hover: color-mix(in oklab, var(--warning) 16%, transparent);
+
+		--success-soft: color-mix(in oklab, var(--success) 12%, transparent);
+		--success-soft-foreground: color-mix(
+			in oklab,
+			var(--success) 80%,
+			var(--foreground) 30%
+		);
+		--success-soft-hover: color-mix(in oklab, var(--success) 16%, transparent);
+	}
+}

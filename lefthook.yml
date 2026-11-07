@@ -1,0 +1,31 @@
+# Git hooks, run by Lefthook (https://lefthook.dev). `mise run setup` installs them, and so does
+# `mise install`. pre-commit checks the staged files only, as they are in the working tree, so stage
+# whole files. pre-push is the full check: a push to main deploys and Cloudflare runs no checks.
+
+pre-commit:
+  parallel: true
+  commands:
+    rustfmt:
+      glob: "*.rs"
+      run: rustfmt --check --edition 2024 {staged_files}
+      fail_text: run `cargo fmt --all`, stage the files, commit again
+    biome:
+      root: app/web/
+      glob:
+        - "app/web/src/**/*.{ts,tsx,css}"
+        - "app/web/src/*.{ts,tsx,css}"
+        - "app/web/e2e/*.ts"
+        - "app/web/playwright.config.ts"
+      run: pnpm exec biome check --no-errors-on-unmatched {staged_files}
+      fail_text: run `make fix`, stage the files, commit again
+
+pre-push:
+  commands:
+    check:
+      run: mise run check
+      fail_text: fix what `mise run check` reports, then push again
+    wasm-glue:
+      # Stops the push when the Rust inputs changed since the glue was made, or when the hash
+      # file has uncommitted changes. Only the hash file is compared: wasm bytes may differ per build.
+      run: bash scripts/wasm-fresh.sh check && git diff --quiet HEAD -- app/web/wasm/.crates-hash
+      fail_text: run `mise run web:wasm`, commit app/web/wasm, then push again

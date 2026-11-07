@@ -1,0 +1,6 @@
+# The one Rust version for this repo. Cargo (rustup) and mise both read this file.
+# Change it here only.
+[toolchain]
+channel = "1.99.1"
+profile = "minimal"
+components = ["clippy", "rustfmt"]

@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "env": {
+    "CLAUDE_CODE_GLOB_NO_IGNORE": "false"
+  },
+  "attribution": {
+    "commit": "",
+    "pr": "",
+    "sessionUrl": false
+  },
+  "permissions": {
+    "ask": [
+      "Bash(cargo xtask refs --bless*)",
+      "Bash(mise run web:golden:bless*)"
+    ],
+    "deny": [
+      "Bash(cargo clean*)",
+      "Read(./bench-out/**)",
+      "Read(./in/**)",
+      "Read(./out/**)"
+    ]
+  },
+  "enabledPlugins": {
+    "rust-analyzer-lsp@claude-plugins-official": true
+  }
+}
