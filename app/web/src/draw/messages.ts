@@ -35,7 +35,7 @@ export type DrawAnswer = {
 	ms: number;
 };
 
-export type FailAnswer = { id: number; ok: false; error: string };
+type FailAnswer = { id: number; ok: false; error: string };
 
 export type WorkerResponse = LoadAnswer | DrawAnswer | FailAnswer;
 

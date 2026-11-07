@@ -13,12 +13,10 @@ import {
 	callFor,
 	type Look,
 	NARROW,
-	readLayout,
-	readLook,
 	STAGE_IDS,
 	type StageId,
-	useLayoutSaved,
-	useLookSaved,
+	useLayout,
+	useLook,
 } from "@/features/tools/settings";
 import Logo from "@/ui/Logo";
 import { useTheme } from "@/ui/useTheme";
@@ -35,10 +33,8 @@ const callsOf = (s: Look): Record<StageId, Call | null> => ({
 
 export default function App() {
 	useTheme();
-	const [look, setLook] = useState(readLook);
-	const [layout, setLayout] = useState(readLayout);
-	useLookSaved(look);
-	useLayoutSaved(layout);
+	const [look, setLook] = useLook();
+	const [layout, setLayout] = useLayout();
 	const ph = usePhotos();
 	const input = useRef<HTMLInputElement>(null);
 	const root = useRef<HTMLDivElement>(null);

@@ -20,7 +20,7 @@ designs are deleted from main; `git log` keeps them.
 - [design/2026-11-01-heroui-color-system.md](design/2026-11-01-heroui-color-system.md): the
   Graphite palette, the radius and the Hero UI part map. The theme is
   [app/web/src/styles/atelier-theme.css](../app/web/src/styles/atelier-theme.css).
-- [research/2026-11-04-oil-value-science.md](research/2026-11-04-oil-value-science.md) and
+- [research/2026-11-04-painting-value-science.md](research/2026-11-04-painting-value-science.md) and
   [research/2026-11-04-value-eval-spec.md](research/2026-11-04-value-eval-spec.md): the science
   behind Values and Shapes for oil painting, and the deterministic metrics that judge them
   (`bench/value-eval/`).

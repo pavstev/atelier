@@ -6,7 +6,7 @@ description: Run real photos through the Atelier parts (Values, Shapes, Edges, G
 # Tool bench
 
 The reference tests (`cargo xtask refs`) use one synthetic picture. A real photo shows more. The
-bench (`crates/oil-core/examples/bench.rs`) calls the same typed layer calls as the web app
+bench (`crates/atelier-core/examples/bench.rs`) calls the same typed layer calls as the web app
 (`values_layer`, `shapes_layer`, `edges_layer`, `grid_layer`), with the start values of `LOOK`
 in `app/web/src/features/tools/settings.ts`, on a 1024 px work picture. It needs no browser.
 
@@ -31,16 +31,16 @@ is shown are in the `//!` of `bench.rs`.
    2 minutes; run it in the background.
 
    ```bash
-   cargo run -q --release -p oil-core --example bench -- render .agents/web-photos .agents/bench/sheets before
+   cargo run -q --release -p atelier-core --example bench -- render .agents/web-photos .agents/bench/sheets before
    ```
 
 2. Make the change. Render again with the tag `after`. Add a name filter as a 5th argument to run
    one photo only.
    `BENCH_*` env vars override the start values for one run; the list is in the `//!` of
-   `crates/oil-core/examples/bench.rs`. For example
-   `BENCH_EDGES_MODE=1 cargo run -q --release -p oil-core --example bench -- render IN OUT after-m1`.
+   `crates/atelier-core/examples/bench.rs`. For example
+   `BENCH_EDGES_MODE=1 cargo run -q --release -p atelier-core --example bench -- render IN OUT after-m1`.
 3. Stack them:
-   `cargo run -q --release -p oil-core --example bench -- compare .agents/bench/sheets before after`.
+   `cargo run -q --release -p atelier-core --example bench -- compare .agents/bench/sheets before after`.
    Each `.agents/bench/sheets/cmp-before-after-<photo>.png` has the before rows on top and the after rows
    below.
 4. Look at the sheets with Read. For a small detail, crop first:
@@ -58,7 +58,7 @@ ink as a gray PNG. `scripts/edge_score.py` scores those pictures against the BSD
 (data in `.agents/bench/bsds`) and prints the F-score:
 
 ```bash
-cargo run -q --release -p oil-core --example edge_score -- IN OUT [MODE] [AMOUNT]
+cargo run -q --release -p atelier-core --example edge_score -- IN OUT [MODE] [AMOUNT]
 ```
 
 Outputs stay under `.agents/`. Run the script on `OUT` as its header says.

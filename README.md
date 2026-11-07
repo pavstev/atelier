@@ -8,8 +8,8 @@
 Flat values, paint shapes, clean lines and a grid over your own photo. It runs in your browser, and your photos never leave it.
 
 [![Live](https://img.shields.io/badge/live-atelier.stevanpavlovic.com-7D8FF0?style=flat-square&labelColor=16181D)](https://atelier.stevanpavlovic.com)
-[![Rust](https://img.shields.io/badge/Rust-core-16181D?style=flat-square&logo=rust&logoColor=E8EAF2)](crates/oil-core)
-[![WebAssembly](https://img.shields.io/badge/WebAssembly-in_the_browser-16181D?style=flat-square&logo=webassembly&logoColor=9AA9F5)](crates/oil-wasm)
+[![Rust](https://img.shields.io/badge/Rust-core-16181D?style=flat-square&logo=rust&logoColor=E8EAF2)](crates/atelier-core)
+[![WebAssembly](https://img.shields.io/badge/WebAssembly-in_the_browser-16181D?style=flat-square&logo=webassembly&logoColor=9AA9F5)](crates/atelier-wasm)
 [![React](https://img.shields.io/badge/React_19-Hero_UI_v3-16181D?style=flat-square&logo=react&logoColor=9AA9F5)](app/web)
 [![Private](https://img.shields.io/badge/photos-stay_on_your_device-4FE0C8?style=flat-square&labelColor=16181D)](#-privacy)
 [![AGENTS.md](https://img.shields.io/badge/AGENTS.md-ready-FF6FB5?style=flat-square&labelColor=16181D)](AGENTS.md)
@@ -75,8 +75,8 @@ See [SECURITY.md](SECURITY.md).
 
 | Part | Job |
 |---|---|
-| [`crates/oil-core`](crates/oil-core) | All pixel work in Rust: values, shapes, the edge map and the grid. Deterministic. |
-| [`crates/oil-wasm`](crates/oil-wasm) | The core compiled to wasm for the browser. |
+| [`crates/atelier-core`](crates/atelier-core) | All pixel work in Rust: values, shapes, the edge map and the grid. Deterministic. |
+| [`crates/atelier-wasm`](crates/atelier-wasm) | The core compiled to wasm for the browser. |
 | [`app/web`](app/web) | React 19, Hero UI v3, Tailwind v4 and Vite. A web worker holds the photo and draws each layer, so the page never freezes. |
 
 The layers sit in a fixed order: one base, then Edges, then Grid on top. The full picture:
@@ -99,7 +99,7 @@ The order of the layers follows how oil painters start a painting:
 [Lost and found edges](https://portraits-by-nc.com/blogs/news/lost-and-found-edges) and
 [The accent rule](https://www.internationalartist.com/issues/166/The-Blast-Rule).
 The science behind Values and Shapes:
-[docs/research/2026-11-04-oil-value-science.md](docs/research/2026-11-04-oil-value-science.md).
+[docs/research/2026-11-04-painting-value-science.md](docs/research/2026-11-04-painting-value-science.md).
 The hero shows the Mona Lisa, a public domain painting.
 
 ## 📄 License

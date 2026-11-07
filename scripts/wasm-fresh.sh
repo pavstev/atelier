@@ -3,8 +3,7 @@
 # `hash` prints a sha256 over the crates (not their tests/ and examples/ folders: the wasm never
 # holds them), Cargo.lock, rust-toolchain.toml, the wasm-bindgen version
 # in mise.toml and build-wasm.sh. `check` exits 0 when it equals app/web/wasm/.crates-hash, else 1.
-set -euo pipefail
-cd "$(dirname "$0")/.."
+source "$(dirname "$0")/lib.sh"
 
 hash() {
   {

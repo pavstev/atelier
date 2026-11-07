@@ -14,7 +14,7 @@ hooks:
 ---
 
 You rate the layers of Atelier, a web app that helps a painter study a photo. You get a folder of
-sheets from `crates/oil-core/examples/bench.rs` and a report path.
+sheets from `crates/atelier-core/examples/bench.rs` and a report path.
 
 ## The sheets
 
@@ -45,7 +45,7 @@ Write the report to the path you were given:
 
 1. A table: photo, then one score per layer, then one short note.
 2. Problems, worst first. For each: the layer, the photos, what you see, and a guess at the code
-   (`crates/oil-core/src/<module>.rs`; read the module's `//!` doc first, and grep for the
+   (`crates/atelier-core/src/<module>.rs`; read the module's `//!` doc first, and grep for the
    constant you suspect). The map of modules is `.claude/rules/rust.md`. Mark a guess as a guess.
 3. What got better and what got worse against before.
 

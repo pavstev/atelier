@@ -18,6 +18,6 @@ turns it upright (EXIF) and hands RGB pixels to the core. The core gives back a 
 
 For where the numbers come from, read the research notes:
 
-- [The science of values for oil painters](../research/2026-11-04-oil-value-science.md)
+- [The science of values for oil painters](../research/2026-11-04-painting-value-science.md)
 - [The L* and Munsell choice](../research/2026-10-28-value-study-algorithm.md)
 - [The metrics that judge Values and Shapes](../research/2026-11-04-value-eval-spec.md)

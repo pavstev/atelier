@@ -115,23 +115,37 @@ type IconButtonProps = {
 	/** `bar` (28 px, the default) or `row` (24 px, inside a list row). */
 	size?: IconSize;
 	className?: string;
-};
+	onPressStart?: () => void;
+	onPressEnd?: () => void;
+} & { [K in `data-${string}`]?: string | boolean };
 
-/** A square icon button with a tooltip, 28 px (`bar`) or 24 px (`row`). */
+/** A square icon button with a tooltip, 28 px (`bar`) or 24 px (`row`). Any `data-*` attribute is
+ * passed to the button. It can sit under a `Dropdown` or `Popover` as their trigger. */
 export function IconButton(p: IconButtonProps) {
+	const {
+		label,
+		tip,
+		icon,
+		testid,
+		variant,
+		pressed,
+		placement,
+		size,
+		...rest
+	} = p;
 	return (
-		<Tip text={p.tip ?? p.label} placement={p.placement}>
+		<Tip text={tip ?? label} placement={placement}>
 			<Button
 				isIconOnly
 				size="sm"
-				variant={p.pressed ? "secondary" : (p.variant ?? "ghost")}
-				className={`${ICON_BUTTON[p.size ?? "bar"]} ${p.className ?? ""}`}
-				aria-label={p.label}
-				aria-pressed={p.pressed}
-				data-testid={p.testid}
-				onPress={p.onPress}
+				variant={pressed ? "secondary" : (variant ?? "ghost")}
+				aria-label={label}
+				aria-pressed={pressed}
+				data-testid={testid}
+				{...rest}
+				className={`${ICON_BUTTON[size ?? "bar"]} ${p.className ?? ""}`}
 			>
-				<Icon name={p.icon} size={p.size} />
+				<Icon name={icon} size={size} />
 			</Button>
 		</Tip>
 	);

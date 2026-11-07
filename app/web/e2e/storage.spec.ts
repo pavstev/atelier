@@ -1,35 +1,18 @@
 // What the page keeps on this device and how it survives trouble: an unreadable file store must not
 // empty the photo list, stored files without an owner are swept, a full localStorage is reported,
 // and two tabs add photos to one list instead of overwriting each other.
-import type { Page } from "@playwright/test";
-import { expect, KEYS, Studio, store, stored, test } from "./studio";
-
-const KEPT = KEYS.docs;
-const names = (page: Page) =>
-	page.evaluate(
-		(key) =>
-			(JSON.parse(localStorage.getItem(key) ?? "[]") as { name: string }[])
-				.map((d) => d.name)
-				.sort(),
-		KEPT,
-	);
-/** The ids of the stored files, read the way the page opens its database. */
-const fileIds = (page: Page) =>
-	page.evaluate(
-		() =>
-			new Promise<string[]>((ok, bad) => {
-				const open = indexedDB.open("atelier", 2);
-				open.onerror = () => bad(open.error);
-				open.onsuccess = () => {
-					const req = open.result
-						.transaction("photos", "readonly")
-						.objectStore("photos")
-						.getAllKeys();
-					req.onsuccess = () => ok(req.result.map(String).sort());
-					req.onerror = () => bad(req.error);
-				};
-			}),
-	);
+import {
+	blockSetItem,
+	expect,
+	photoFileIds as fileIds,
+	KEYS,
+	docNames as names,
+	photosDb,
+	Studio,
+	store,
+	stored,
+	test,
+} from "./studio";
 
 test("test_an_unreadable_store_does_not_empty_the_photo_list", async ({
 	studio,
@@ -59,21 +42,11 @@ test("test_stored_files_without_an_owner_are_swept_after_a_while", async ({
 	await studio.openSynthetic(480, 640, "one.png");
 	await expect.poll(() => names(page)).toEqual(["one.png"]);
 	// two files nobody owns: one first seen long ago, one that nobody has seen yet
-	await page.evaluate(
-		() =>
-			new Promise<void>((ok, bad) => {
-				const open = indexedDB.open("atelier", 2);
-				open.onerror = () => bad(open.error);
-				open.onsuccess = () => {
-					const tx = open.result.transaction("photos", "readwrite");
-					const store = tx.objectStore("photos");
-					store.put(new Blob(["x"]), "ghost-old");
-					store.put(new Blob(["y"]), "ghost-new");
-					tx.oncomplete = () => ok();
-					tx.onerror = () => bad(tx.error);
-				};
-			}),
-	);
+	await photosDb(page, "readwrite", (photos) => {
+		photos.put(new Blob(["x"]), "ghost-old");
+		photos.put(new Blob(["y"]), "ghost-new");
+		return undefined;
+	});
 	await store(page, KEYS.orphans, { "ghost-old": Date.now() - 11 * 60_000 });
 	await page.reload();
 	await expect
@@ -94,13 +67,7 @@ test("test_stored_files_without_an_owner_are_swept_after_a_while", async ({
 
 test("test_a_full_storage_is_reported_not_silent", async ({ studio }) => {
 	const { page } = studio;
-	await page.evaluate((blocked) => {
-		const real = Storage.prototype.setItem;
-		Storage.prototype.setItem = function (key: string, value: string) {
-			if (key === blocked) throw new Error("QuotaExceededError");
-			return real.call(this, key, value);
-		};
-	}, KEPT);
+	await blockSetItem(page, KEYS.docs);
 	await studio.openSynthetic(480, 640, "one.png");
 	await expect(page.getByTestId("error")).toContainText(
 		"photo list could not be kept",
@@ -172,13 +139,7 @@ test("test_messages_of_different_sources_show_together_and_one_click_clears_them
 	studio,
 }) => {
 	const { page } = studio;
-	await page.evaluate((blocked) => {
-		const real = Storage.prototype.setItem;
-		Storage.prototype.setItem = function (key: string, value: string) {
-			if (key === blocked) throw new Error("QuotaExceededError");
-			return real.call(this, key, value);
-		};
-	}, KEPT);
+	await blockSetItem(page, KEYS.docs);
 	await studio.openSynthetic(480, 640, "one.png");
 	await expect(page.getByTestId("error")).toContainText(
 		"photo list could not be kept",

@@ -9,18 +9,18 @@ A part's output is a contract between Rust and the web app. Touch every file, in
 
 ## Files
 
-1. The module in `crates/oil-core/src` (`values`, `shapes`, `grid` or `edges/`) (see `.claude/rules/rust.md` for which one).
-2. `crates/oil-core/src/render.rs`: the typed call and its range checks.
-3. `crates/oil-core/tests/tools_reference.rs`: the cases of the part, when a preset is added or
+1. The module in `crates/atelier-core/src` (`values`, `shapes`, `grid` or `edges/`) (see `.claude/rules/rust.md` for which one).
+2. `crates/atelier-core/src/render.rs`: the typed call and its range checks.
+3. `crates/atelier-core/tests/tools_reference.rs`: the cases of the part, when a preset is added or
    removed.
-4. `crates/oil-wasm/src/lib.rs`: the method of the part on `Photo` for the page.
+4. `crates/atelier-wasm/src/lib.rs`: the method of the part on `Photo` for the page.
 5. `app/web/src`: `draw/calls.ts` (the typed call), `features/tools/settings.ts` (`LOOK` and
    `callFor`; the Base is Photo, Values, Shapes or Paper), `draw/worker.ts` (the call into wasm)
    and `features/tools/Panel.tsx` (the controls).
 6. `docs/web-app.md`, the controls list, when a user can see the change.
 
 Read little. A change needs about 600 lines: the rules (AGENTS.md, `rust.md`), the typed call
-in `render.rs`, `oil-wasm/src/lib.rs`, `features/tools/settings.ts`, `draw/calls.ts`, and the `view` function of one
+in `render.rs`, `atelier-wasm/src/lib.rs`, `features/tools/settings.ts`, `draw/calls.ts`, and the `view` function of one
 core module (use the LSP tool, do not read the whole module).
 
 ## Checks, in order

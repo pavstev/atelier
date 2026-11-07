@@ -1,4 +1,4 @@
-# The three commands of the dotfiles harness contract (see docs/HARNESS.md). The real work lives
+# The three commands of the dotfiles harness contract (see .claude/HARNESS.md). The real work lives
 # in mise.toml; these targets only call it, so `proj detect` finds them.
 #   make check                the full gate (mise run check)
 #   make check-fast           the fast check (mise run check:fast)
@@ -18,4 +18,4 @@ endif
 
 fix:
 	cargo fmt --all
-	pnpm --dir app/web exec biome check --write src e2e playwright.config.ts
+	pnpm --dir app/web lint --write

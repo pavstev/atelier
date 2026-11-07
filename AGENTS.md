@@ -20,19 +20,20 @@ Nothing leaves the device.
 
 The tasks are in `mise.toml` (its header has the setup). While you work: `mise run check:fast`.
 Once before a push: `mise run check`. For a Rust file: `bash scripts/test-files.sh FILES`. For a
-core or web change also run `mise run web:e2e` once (`PHOTOS_DIR` holds the photos; set up once with `npx playwright install chromium`). The
-test rules are in [docs/development/testing.md](docs/development/testing.md). Bless only for a meant change: `cargo xtask refs --bless` and
-`mise run web:golden:bless`.
+core or web change also run `mise run web:e2e` once (`PHOTOS_DIR` must hold `mona-lisa-2400.jpg`;
+set up once with `pnpm --dir app/web exec playwright install chromium`). The test rules, the test
+photo and the bless commands (`cargo xtask refs --bless`, `mise run web:golden:bless`) are in
+[docs/development/testing.md](docs/development/testing.md). Bless only for a meant change, and say
+in the commit why the pictures moved.
 
 `cargo xtask refs` renders the synthetic photo through each layer at a long side of 128 px and
-compares it with `crates/oil-core/tests/reference`: the size, the range and a mean difference of
-at most 3.0. After `--bless`, say in the commit why the pictures moved.
+compares it with `crates/atelier-core/tests/reference` (size, range, a mean difference of at most 3.0).
 
 ## Rules
 
 - The Rust core stays the home of pixel work. The page decodes a photo and hands RGBA pixels to
   the layers worker. Edges draws from the core's own edge map (`edges/map.rs`, a blurred Sobel).
-- One simple test per part in `crates/oil-core/tests/tools_*.rs`.
+- One simple test per part in `crates/atelier-core/tests/tools_*.rs`.
 - Browser tests run headless Chromium with Playwright. No Firefox, no WebKit, no visible window.
 - One base, then Edges, then Grid, in a fixed order, bottom first. Edges and Grid are see-through.
 - A number out of range is `Error::BadInput`, never a panic.

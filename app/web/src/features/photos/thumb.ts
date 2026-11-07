@@ -5,23 +5,38 @@
 /** The long side of the tiny preview, in px (for sharp tiles on any screen). */
 const SMALL = 128;
 
-/** The tiny preview of a bitmap, or "" when the browser cannot make one. The bitmap is not closed. */
-async function small(source: ImageBitmap | ImageData): Promise<string> {
+/** The size of a `width` by `height` image scaled to the long side `long` (never up, at least 1 px). */
+function fitTo(width: number, height: number, long: number) {
+	const k = Math.min(1, long / Math.max(width, height));
+	return {
+		w: Math.max(1, Math.round(width * k)),
+		h: Math.max(1, Math.round(height * k)),
+	};
+}
+
+/** A canvas element of `w` by `h` px with the bitmap drawn on it, stretched to fill it. */
+function paint(bitmap: ImageBitmap, w: number, h: number) {
+	const canvas = document.createElement("canvas");
+	canvas.width = w;
+	canvas.height = h;
+	canvas.getContext("2d")?.drawImage(bitmap, 0, 0, w, h);
+	return canvas;
+}
+
+/** The tiny preview of a decoded photo or a bitmap, or "" when the browser cannot make one. The
+ * bitmap is not closed. */
+export async function thumbnail(
+	source: ImageBitmap | ImageData,
+): Promise<string> {
 	try {
-		const k = Math.min(1, SMALL / Math.max(source.width, source.height));
-		const w = Math.max(1, Math.round(source.width * k));
-		const h = Math.max(1, Math.round(source.height * k));
+		const { w, h } = fitTo(source.width, source.height, SMALL);
 		const bitmap = await createImageBitmap(source, {
 			resizeWidth: w,
 			resizeHeight: h,
 			resizeQuality: "medium",
 		});
 		try {
-			const canvas = document.createElement("canvas");
-			canvas.width = w;
-			canvas.height = h;
-			canvas.getContext("2d")?.drawImage(bitmap, 0, 0);
-			return canvas.toDataURL("image/jpeg", 0.62);
+			return paint(bitmap, w, h).toDataURL("image/jpeg", 0.62);
 		} finally {
 			bitmap.close();
 		}
@@ -30,15 +45,12 @@ async function small(source: ImageBitmap | ImageData): Promise<string> {
 	}
 }
 
-/** The tiny preview of a decoded photo, or "". */
-export const thumbnail = (img: ImageData) => small(img);
-
 /** The tiny preview of a stored image (the bigger preview), or "". */
 export async function thumbnailOfBlob(blob: Blob): Promise<string> {
 	try {
 		const bitmap = await createImageBitmap(blob);
 		try {
-			return await small(bitmap);
+			return await thumbnail(bitmap);
 		} finally {
 			bitmap.close();
 		}
@@ -76,13 +88,8 @@ export async function previewOfFile(
 /** Scales a bitmap to the long side `BIG` (never up), makes a JPEG, and lets the bitmap go. */
 async function shrink(bitmap: ImageBitmap): Promise<Blob | null> {
 	try {
-		const k = Math.min(1, BIG / Math.max(bitmap.width, bitmap.height));
-		const w = Math.max(1, Math.round(bitmap.width * k));
-		const h = Math.max(1, Math.round(bitmap.height * k));
-		const canvas = document.createElement("canvas");
-		canvas.width = w;
-		canvas.height = h;
-		canvas.getContext("2d")?.drawImage(bitmap, 0, 0, w, h);
+		const { w, h } = fitTo(bitmap.width, bitmap.height, BIG);
+		const canvas = paint(bitmap, w, h);
 		return await new Promise<Blob | null>((done) =>
 			canvas.toBlob(done, "image/jpeg", 0.82),
 		);

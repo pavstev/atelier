@@ -40,7 +40,8 @@ A double click or a double tap on the photo toggles Fit and 100% (not while the 
 
 ### The layers
 
-The order is fixed: one base, then Edges, then Grid.
+The order is fixed ([ARCHITECTURE.md](../ARCHITECTURE.md#the-layers)): one base, then Edges, then
+Grid.
 
 - **Base:** Photo, Values, Shapes or Paper. Values and Shapes have one opacity. Paper is white with
   no photo, so only the lines show (hold See photo to see the photo).
@@ -122,10 +123,9 @@ has five folders. Paths below are under `src/`.
 
 ### The worker and the core
 
-- `crates/oil-wasm` is the Rust edge (wasm-bindgen): a `Photo` kept between draws, and one call per
-  layer. `scripts/build-wasm.sh` builds it and writes the JS glue into `app/web/wasm/`. The glue is
-  committed at release, so a deploy can skip Rust when no Rust input changed
-  (`scripts/wasm-fresh.sh`).
+- `crates/atelier-wasm` is the Rust edge (wasm-bindgen): a `Photo` kept between draws, and one call per
+  layer. `app/web/scripts/build-wasm.sh` builds it and writes the JS glue into `app/web/wasm/`.
+  When the glue is committed: [development/release.md](development/release.md).
 - One worker holds the wasm, so the page never freezes. `draw/worker.ts` keeps the last photos as a
   wasm `Photo`. The RGB copy and the work picture stay between draws, so a knob redraws from them.
   The worker holds only the photo on screen, and a photo it dropped is sent again when a draw asks

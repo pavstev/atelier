@@ -1,6 +1,6 @@
 // The Grid Cells slider: the steps 3, 4, 6, 8, 9, 10, 12, 18, 20, 24, 30, 40 and 50, and no error on the way.
 // The Width slider, the heavy lines every 2 or 4 cells, and the line color: Contrast or one color.
-import { expect, MAIN_PHOTO, test } from "./studio";
+import { expect, MAIN_PHOTO, readCanvas, test } from "./studio";
 
 const STEPS = [3, 4, 6, 8, 9, 10, 12, 18, 20, 24, 30, 40, 50];
 
@@ -32,12 +32,7 @@ test("test_width_and_heavy_lines", async ({ studio }) => {
 	await studio.layer("grid", true);
 	// The pixels a line covers on the Grid canvas.
 	const ink = () =>
-		page.evaluate(() => {
-			const c = document.querySelector<HTMLCanvasElement>(
-				"[data-testid=layer-canvas-grid]",
-			);
-			const d = c?.getContext("2d")?.getImageData(0, 0, c.width, c.height).data;
-			if (!d) throw new Error("no grid pixels");
+		readCanvas(page, "layer-canvas-grid", ({ data: d }) => {
 			let n = 0;
 			for (let i = 3; i < d.length; i += 4) if (d[i] > 0) n++;
 			return n;
@@ -62,12 +57,7 @@ test("test_line_color_contrast_or_one", async ({ studio }) => {
 	await studio.layer("grid", true);
 	// The colors of the opaque line pixels on the Grid canvas.
 	const colors = () =>
-		page.evaluate(() => {
-			const c = document.querySelector<HTMLCanvasElement>(
-				"[data-testid=layer-canvas-grid]",
-			);
-			const d = c?.getContext("2d")?.getImageData(0, 0, c.width, c.height).data;
-			if (!d) throw new Error("no grid pixels");
+		readCanvas(page, "layer-canvas-grid", ({ data: d }) => {
 			const seen = new Set<string>();
 			for (let i = 0; i < d.length; i += 4) {
 				if (d[i + 3] === 255) seen.add(`${d[i]},${d[i + 1]},${d[i + 2]}`);
@@ -91,12 +81,7 @@ test("test_center_puts_a_heavy_line_in_the_middle", async ({ studio }) => {
 	await studio.knob("grid-group", 1);
 	// The lit runs along one row and one column of the Grid canvas: [start, length] each.
 	const runs = () =>
-		page.evaluate(() => {
-			const c = document.querySelector<HTMLCanvasElement>(
-				"[data-testid=layer-canvas-grid]",
-			);
-			const d = c?.getContext("2d")?.getImageData(0, 0, c.width, c.height);
-			if (!c || !d) throw new Error("no grid pixels");
+		readCanvas(page, "layer-canvas-grid", (d, c) => {
 			const lit = (x: number, y: number) =>
 				d.data[(y * c.width + x) * 4 + 3] > 0;
 			const along = (n: number, at: (i: number) => boolean) => {

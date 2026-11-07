@@ -1,0 +1,4 @@
+# ShellCheck settings for the scripts here: follow `source "$(dirname "$0")/lib.sh"`.
+shell=bash
+source-path=SCRIPTDIR
+external-sources=true

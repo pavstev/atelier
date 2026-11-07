@@ -2,7 +2,7 @@
 
 Date: 2026-11-04. Status: first version.
 
-This spec turns the research in [2026-11-04-oil-value-science.md](2026-11-04-oil-value-science.md)
+This spec turns the research in [2026-11-04-painting-value-science.md](2026-11-04-painting-value-science.md)
 into deterministic metrics. Each metric reads a photo and the Values map or the Shapes map. Each has
 a pass range, the sources behind it and how strong that evidence is. Tags such as [A8] point to the numbered source lists at the end of the research doc
 (A perception, B paint, C process).

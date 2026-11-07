@@ -2,13 +2,9 @@
 // Fit and 100% that stay off while the lock is on, the single top row of icon buttons with tips, the
 // logo outline, the hover card, the saved zoom and the list that fills the panel.
 import type { Page } from "@playwright/test";
-import { expect, KEYS, stored, test } from "./studio";
+import { box, expect, KEYS, stored, test } from "./studio";
 
-const canvasX = async (page: Page) => {
-	const b = await page.getByTestId("photo-canvas").boundingBox();
-	if (!b) throw new Error("no photo canvas");
-	return b;
-};
+const canvasX = (page: Page) => box(page, "photo-canvas");
 
 test("test_the_logo_and_the_four_icon_buttons_share_one_row_and_each_has_a_tip", async ({
 	studio,
@@ -20,12 +16,10 @@ test("test_the_logo_and_the_four_icon_buttons_share_one_row_and_each_has_a_tip",
 		"photo-sort",
 		"photo-layout",
 	];
-	const logo = await page.getByTestId("logo").boundingBox();
-	if (!logo) throw new Error("no logo");
+	const logo = await box(page, "logo");
 	let right = 0;
 	for (const id of rows) {
-		const b = await page.getByTestId(id).boundingBox();
-		if (!b) throw new Error(`no box for ${id}`);
+		const b = await box(page, id);
 		// one row: the buttons are centered on the logo, right of it, and in the order given
 		expect(b.y + b.height / 2).toBeCloseTo(logo.y + logo.height / 2, 0);
 		expect(b.x).toBeGreaterThan(logo.x + logo.width);
@@ -33,9 +27,8 @@ test("test_the_logo_and_the_four_icon_buttons_share_one_row_and_each_has_a_tip",
 		right = b.x;
 	}
 	// the buttons sit at the right edge of the panel
-	const files = await page.getByTestId("files").boundingBox();
-	const layoutBtn = await page.getByTestId("photo-layout").boundingBox();
-	if (!files || !layoutBtn) throw new Error("no boxes");
+	const files = await box(page, "files");
+	const layoutBtn = await box(page, "photo-layout");
 	expect(files.x + files.width - (layoutBtn.x + layoutBtn.width)).toBeLessThan(
 		20,
 	);

@@ -3,15 +3,9 @@
 // tiles switch. Under it one list of the photos on this device, which scrolls inside itself (a row
 // is `PhotoRow`). The panel hides fully; the handle on its edge (`EdgeHandle`) brings it back.
 // Photos can be dropped on the panel. Everything stays on the device.
-import {
-	Button,
-	Dropdown,
-	Label,
-	ScrollShadow,
-	SearchField,
-} from "@heroui/react";
+import { Dropdown, Label, ScrollShadow, SearchField } from "@heroui/react";
 import { useMemo, useState } from "react";
-import { ICON_BUTTON, Icon, IconButton, Tip } from "@/ui/icons";
+import { IconButton } from "@/ui/icons";
 import PanelShell from "@/ui/PanelShell";
 import { useFileDrop } from "@/ui/useFileDrop";
 import PhotoRow from "./PhotoRow";
@@ -95,18 +89,7 @@ export default function Files(p: Props) {
 					onPress={() => (searching ? closeSearch() : setSearching(true))}
 				/>
 				<Dropdown>
-					<Tip text="Sort photos">
-						<Button
-							isIconOnly
-							size="sm"
-							variant="ghost"
-							className={ICON_BUTTON.bar}
-							aria-label="Sort photos"
-							data-testid="photo-sort"
-						>
-							<Icon name="sort" />
-						</Button>
-					</Tip>
+					<IconButton label="Sort photos" icon="sort" testid="photo-sort" />
 					<Dropdown.Popover className="min-w-40">
 						<Dropdown.Menu
 							selectionMode="single"

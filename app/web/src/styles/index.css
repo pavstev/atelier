@@ -1,3 +1,5 @@
+/* The style entry of the page: the layer order, Tailwind and Hero UI, the Atelier theme, then the
+ * few rules of our own (a scrollbar, the button track, sliders, tool card rows, the floating card). */
 @layer theme, base, components, utilities;
 @import "tailwindcss";
 @import "@heroui/styles";
@@ -16,9 +18,9 @@ body {
 	overscroll-behavior: none;
 }
 
-/* The one thin scrollbar of the side panel (the photo list and the tools): a slim round thumb that
- * shows while the pointer is over the area, or the keyboard is inside it, and is gone otherwise. */
 @layer components {
+	/* The one thin scrollbar of the side panel (the photo list and the tools): a slim round thumb that
+	 * shows while the pointer is over the area, or the keyboard is inside it, and is gone otherwise. */
 	.atelier-scroll {
 		overflow-y: auto;
 		overscroll-behavior: contain;
@@ -30,10 +32,8 @@ body {
 	.atelier-scroll:focus-within {
 		scrollbar-color: var(--scrollbar-thumb) transparent;
 	}
-}
 
-/* A row of buttons (ToggleButtonGroup) as one gray track with the picked button tinted. */
-@layer components {
+	/* A row of buttons (ToggleButtonGroup) as one gray track with the picked button tinted. */
 	.atelier-seg.toggle-button-group {
 		gap: 2px;
 		padding: 3px;
@@ -56,12 +56,10 @@ body {
 		background: var(--accent-soft);
 		color: var(--accent-soft-foreground);
 	}
-}
 
-/* Round switches and slim sliders with a round white thumb, as in the design pick. Hero rounds
- * them with the radius scale, which is small in this theme, and draws a 20 px slider track, so
- * they are set here with Hero's own selectors. The track's side borders keep the thumb inside. */
-@layer components {
+	/* Round switches and slim sliders with a round white thumb, as in the design pick. Hero rounds
+	 * them with the radius scale, which is small in this theme, and draws a 20 px slider track, so
+	 * they are set here with Hero's own selectors. The track's side borders keep the thumb inside. */
 	.switch__control,
 	.switch__thumb {
 		border-radius: var(--radius-pill);
@@ -87,12 +85,10 @@ body {
 	.slider[data-orientation="horizontal"] .slider__thumb::after {
 		display: none;
 	}
-}
 
-/* A tool card row: the label in a fixed column on the left, the control on the right, one line
- * each. A slider puts its value at the end of the same line (Hero draws the slider as a grid, so
- * only its areas change). A choice list and a switch sit in the same columns. */
-@layer components {
+	/* A tool card row: the label in a fixed column on the left, the control on the right, one line
+	 * each. A slider puts its value at the end of the same line (Hero draws the slider as a grid, so
+	 * only its areas change). A choice list and a switch sit in the same columns. */
 	.atelier-tools {
 		--row-label: 4.75rem;
 	}
@@ -126,18 +122,14 @@ body {
 	.select.atelier-row .select__value {
 		font-size: 0.8rem;
 	}
-}
 
-/* The one keyboard focus ring of the page, for plain buttons and links that Hero does not draw. */
-@layer components {
+	/* The one keyboard focus ring of the page, for plain buttons and links that Hero does not draw. */
 	.atelier-focus:focus-visible {
 		outline: 2px solid var(--focus);
 		outline-offset: 1px;
 	}
-}
 
-/* A card that floats over the stage (the bar, the Lock card): a surface, a hairline and a shadow. */
-@layer components {
+	/* A card that floats over the stage (the bar, the Lock card): a surface, a hairline and a shadow. */
 	.floating-card {
 		background: color-mix(in oklab, var(--surface) 92%, transparent);
 		border: 1px solid var(--border);

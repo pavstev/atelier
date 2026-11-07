@@ -6,6 +6,7 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import type { Page } from "@playwright/test";
+import { LOOK } from "../src/features/tools/settings";
 import { type BaseKind, expect, type LayerId, test } from "./studio";
 
 const GOLDEN_DIR = join(process.cwd(), "e2e/golden");
@@ -15,15 +16,22 @@ const GOLDEN_LONG_SIDE = 128;
 
 /** The start value of every knob the cases touch. Setting a knob to its start value draws nothing. */
 const START: Record<string, number> = {
-	"values-preset": 1,
-	"values-tint": 0,
-	"shapes-step": 3,
-	"edges-mode": 0,
-	"edges-amount": 67,
-	"grid-mode": 2,
+	"values-preset": LOOK.values.preset,
+	"values-tint": LOOK.values.tint,
+	"shapes-step": LOOK.shapes.step,
+	"edges-mode": LOOK.edges.mode,
+	"edges-amount": LOOK.edges.amount,
+	"grid-mode": LOOK.grid.mode,
 };
 
 type Step = { name: string; set: [string, number][] };
+
+/** One step for each value: the name is `<prefix>-<value>`, `set` says which knobs to set. */
+const sweep = (
+	prefix: string,
+	values: number[],
+	set: (value: number) => Step["set"],
+): Step[] => values.map((v) => ({ name: `${prefix}-${v}`, set: set(v) }));
 
 /** Every case: the layer that is drawn, how to turn it on, and the pictures to compare. */
 const CASES: {
@@ -35,50 +43,38 @@ const CASES: {
 		layer: "base",
 		on: "values",
 		steps: [
-			...[0, 1, 2, 3, 4, 5].map((i) => ({
-				name: `values-${i}`,
-				set: [["values-preset", i]] as [string, number][],
-			})),
+			...sweep("values", [0, 1, 2, 3, 4, 5], (i) => [["values-preset", i]]),
 			// Tint 0 is the start; the preset goes back to the start value first.
-			{ name: "values-tint-0", set: [["values-preset", 1]] },
+			{
+				name: "values-tint-0",
+				set: [["values-preset", LOOK.values.preset]],
+			},
 			{ name: "values-tint-1", set: [["values-tint", 1]] },
 		],
 	},
 	{
 		layer: "base",
 		on: "shapes",
-		steps: [0, 1, 2, 3].map((i) => ({
-			name: `shapes-step-${i}`,
-			set: [["shapes-step", i]] as [string, number][],
-		})),
+		steps: sweep("shapes-step", [0, 1, 2, 3], (i) => [["shapes-step", i]]),
 	},
 	{
 		layer: "edges",
 		on: "edges",
 		steps: [
-			...[0, 1, 2].map((m) => ({
-				name: `edges-mode-${m}`,
-				set: [
-					["edges-mode", m],
-					["edges-amount", 67],
-				] as [string, number][],
-			})),
-			...[0, 33, 100].map((a) => ({
-				name: `edges-amount-${a}`,
-				set: [
-					["edges-mode", 0],
-					["edges-amount", a],
-				] as [string, number][],
-			})),
+			...sweep("edges-mode", [0, 1, 2], (m) => [
+				["edges-mode", m],
+				["edges-amount", LOOK.edges.amount],
+			]),
+			...sweep("edges-amount", [0, 33, 100], (a) => [
+				["edges-mode", 0],
+				["edges-amount", a],
+			]),
 		],
 	},
 	{
 		layer: "grid",
 		on: "grid",
-		steps: [0, 1, 2].map((i) => ({
-			name: `grid-${i}`,
-			set: [["grid-mode", i]] as [string, number][],
-		})),
+		steps: sweep("grid", [0, 1, 2], (i) => [["grid-mode", i]]),
 	},
 ];
 

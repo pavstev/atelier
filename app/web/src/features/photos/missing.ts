@@ -17,27 +17,29 @@ async function storedHash(id: string): Promise<string> {
 	return file ? await sha256Hex(file) : "";
 }
 
+/** The hash of a row that has none, when the stored file can give it. */
+async function hashPatch(d: Doc): Promise<Partial<Doc>> {
+	if (d.hash) return {};
+	const hash = await storedHash(d.id);
+	return hash ? { hash } : {};
+}
+
+/** A made tiny preview as a row change; nothing when the browser made none (""). */
+const thumbPatch = (thumb: string): Partial<Doc> =>
+	thumb ? { thumb, tile: true } : {};
+
 /** What the photo on screen lacks, made from its decoded pixels. */
 export async function missingFromPixels(
 	d: Doc,
 	photo: ImageData,
 ): Promise<Partial<Doc>> {
-	const change: Partial<Doc> = {};
-	if (!d.hash) {
-		const hash = await storedHash(d.id);
-		if (hash) change.hash = hash;
-	}
+	const change = await hashPatch(d);
 	if (d.width === 0) {
 		change.width = photo.width;
 		change.height = photo.height;
 	}
-	if (!d.thumb || !d.tile) {
-		const thumb = await thumbnail(photo);
-		if (thumb) {
-			change.thumb = thumb;
-			change.tile = true;
-		}
-	}
+	if (!d.thumb || !d.tile)
+		Object.assign(change, thumbPatch(await thumbnail(photo)));
 	if (!d.preview) {
 		const big = await previewOf(photo);
 		if (big && (await savePreview(d.id, big))) change.preview = true;
@@ -47,11 +49,7 @@ export async function missingFromPixels(
 
 /** What a listed photo lacks, made from its stored file; null when the file cannot give a preview. */
 async function missingFromFile(d: Doc): Promise<Partial<Doc> | null> {
-	const change: Partial<Doc> = {};
-	if (!d.hash) {
-		const hash = await storedHash(d.id);
-		if (hash) change.hash = hash;
-	}
+	const change = await hashPatch(d);
 	let thumbFrom = d.preview ? await loadPreview(d.id) : undefined;
 	if (!thumbFrom || d.width === 0) {
 		const file = await loadFile(d.id);
@@ -63,13 +61,8 @@ async function missingFromFile(d: Doc): Promise<Partial<Doc> | null> {
 			change.preview = true;
 		thumbFrom ??= big.blob;
 	}
-	if (!d.thumb || !d.tile) {
-		const thumb = await thumbnailOfBlob(thumbFrom);
-		if (thumb) {
-			change.thumb = thumb;
-			change.tile = true;
-		}
-	}
+	if (!d.thumb || !d.tile)
+		Object.assign(change, thumbPatch(await thumbnailOfBlob(thumbFrom)));
 	return change;
 }
 

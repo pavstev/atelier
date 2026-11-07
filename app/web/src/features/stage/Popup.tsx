@@ -1,11 +1,11 @@
 // A bar button that opens a card over the bar: a pop-up above the button on a wide window, a
 // bottom sheet under 768 px. The window decides which one is made, so a card has one body.
 // The caller holds `open`, so only one card is open at a time. A second press on the button, Esc or
-// a press outside closes it. `BarButton` is the round-corner icon button every bar control uses.
-import { Button, Popover, Sheet } from "@heroui/react";
+// a press outside closes it. The button is an `IconButton` with round corners.
+import { Popover, Sheet } from "@heroui/react";
 import { type ReactNode, useEffect, useRef, useSyncExternalStore } from "react";
 import { NARROW } from "@/features/tools/settings";
-import { ICON_BUTTON, Icon, type IconName, Tip } from "@/ui/icons";
+import { IconButton, type IconName } from "@/ui/icons";
 
 /** True in a window narrower than 768 px (a phone). */
 function useNarrow(): boolean {
@@ -32,23 +32,20 @@ type ButtonProps = {
 	onPress?: () => void;
 };
 
-/** A square icon button of the bar, with its tooltip. */
-export function BarButton(p: ButtonProps) {
+/** The round icon button of the bar. It has no `aria-pressed`, only the look of a pressed one. */
+function BarButton(p: ButtonProps) {
 	return (
-		<Tip text={p.tip ?? p.label} placement="top">
-			<Button
-				isIconOnly
-				size="sm"
-				variant={p.on ? "secondary" : "ghost"}
-				className={`${ICON_BUTTON.bar} touch-none rounded-full select-none`}
-				aria-label={p.label}
-				data-testid={p.testid}
-				data-bar-button
-				onPress={p.onPress}
-			>
-				<Icon name={p.icon} />
-			</Button>
-		</Tip>
+		<IconButton
+			icon={p.icon}
+			label={p.label}
+			tip={p.tip}
+			testid={p.testid}
+			variant={p.on ? "secondary" : "ghost"}
+			placement="top"
+			className="touch-none rounded-full select-none"
+			data-bar-button
+			onPress={p.onPress}
+		/>
 	);
 }
 

@@ -11,8 +11,11 @@ wasm tools, and it installs the git hooks.
 ```bash
 mise install
 brew install cargo-deny cargo-shear typos-cli   # or another package manager
-mise run web:dev                                # http://localhost:5173/
+mise run web:dev                                # builds the wasm, then http://localhost:5173/
 ```
+
+The first `web:dev` compiles the Rust core to wasm, which takes a few minutes. The `brew` line
+installs the tools for `mise run check` (not needed for `web:dev`).
 
 ## Checks
 
@@ -22,26 +25,28 @@ The tasks are in `mise.toml`.
 |---|---|
 | While you work | `mise run check:fast` (fmt, clippy, Rust tests, web types, Biome) |
 | Before a pull request | `mise run check` |
-| For a core or web change | `mise run web:e2e` (headless Chromium; needs `npx playwright install chromium` once) |
+| For a core or web change | `mise run web:e2e` (headless Chromium; run `pnpm --dir app/web exec playwright install chromium` once, and put the test photo in `.agents/web-photos`: [how](docs/development/testing.md#the-test-photo)) |
 | Reference pictures | `cargo xtask refs` |
 | Broken doc links | `bash scripts/docs-check.sh` |
 
 The pre-commit hook checks the files you staged. The pre-push hook runs `mise run check`.
 
-Bless reference or golden pictures only for a change you meant, and say in the commit why the
-pictures moved: `cargo xtask refs --bless`, `mise run web:golden:bless`.
+Bless reference or golden pictures only for a change you meant, and say in the commit why they
+moved. The commands are in
+[docs/development/testing.md](docs/development/testing.md#blessing-a-changed-picture).
 
 ## Rules
 
 - **The Rust core is the home of pixel work.** The page decodes a photo and hands RGBA pixels to the
   worker. Do not draw layers in TypeScript.
-- **Layer order is fixed:** one base, then Edges, then Grid. Edges and Grid are see-through.
+- **Layer order is fixed** ([ARCHITECTURE.md](ARCHITECTURE.md#the-layers)): one base, then Edges,
+  then Grid.
 - **A number out of range is `Error::BadInput`,** never a panic.
 - **Same input, same bytes.** No clock, no randomness, no hash map order in the core.
-- **One simple test per part** in `crates/oil-core/tests/tools_*.rs`.
+- **One simple test per part** in `crates/atelier-core/tests/tools_*.rs`.
 - **Browser tests are headless Chromium** with Playwright. No other browser, no visible window.
-- **No photo, and no picture made from a photo, goes into git.** Test photos live in `.agents/`
-  (ignored). The tests use a synthetic photo.
+- **No photo, and no picture made from a photo, goes into git.** See
+  [docs/development/testing.md](docs/development/testing.md#no-photos-in-git).
 - **Nothing leaves the device.** No analytics, no uploads, no remote scripts.
 - Every source file starts with a comment that says its job. Keep it true.
 - Features that were dropped on purpose are listed in [AGENTS.md](AGENTS.md) under "Dropped for

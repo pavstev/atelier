@@ -1,15 +1,14 @@
 #!/usr/bin/env bash
 # Runs the tests that cover the given files.
-set -euo pipefail
-cd "$(dirname "$0")/.."
+source "$(dirname "$0")/lib.sh"
 for f in "$@"; do
   case "$f" in
-    crates/oil-core/src/*.rs)
+    crates/atelier-core/src/*.rs)
       m=$(basename "$f" .rs)
-      cargo test -q -p oil-core --lib "${m}::" ;;
-    crates/oil-core/tests/*.rs)
-      cargo test -q -p oil-core --test "$(basename "$f" .rs)" ;;
-    crates/oil-wasm/*) cargo test -q -p oil-wasm ;;
+      cargo test -q -p atelier-core --lib "${m}::" ;;
+    crates/atelier-core/tests/*.rs)
+      cargo test -q -p atelier-core --test "$(basename "$f" .rs)" ;;
+    crates/atelier-wasm/*) cargo test -q -p atelier-wasm ;;
     xtask/*) cargo test -q -p xtask ;;
   esac
 done

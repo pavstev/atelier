@@ -1,6 +1,7 @@
 // The base, Edges and Grid switches, opacities and knobs, their start values, labels and the call each sends.
 import type { Call, LayerId } from "@/draw/calls";
-import { KEYS, loadJson, loadText, useSaved } from "@/lib/storage";
+import { isRecord } from "@/lib/clean";
+import { KEYS, loadJson, loadText, usePersisted } from "@/lib/storage";
 
 /** The least opacity a layer can have, in percent. */
 export const OPACITY_MIN = 10;
@@ -117,12 +118,9 @@ const GRID_ON_PAPER = 0x1a1a1a;
 /** The widest Edges line; 3 is the width before the knob (`EDGES_WIDTH_MAX` in `render.rs`). */
 export const EDGES_WIDTH_MAX = 10;
 
-const plain = (v: unknown): v is Record<string, unknown> =>
-	!!v && typeof v === "object" && !Array.isArray(v);
-
 /** Each key of `start` read from `v`; a missing or wrong-typed value falls back to the start. */
 function pick<T extends object>(v: unknown, start: T): T {
-	const src = plain(v) ? v : {};
+	const src = isRecord(v) ? v : {};
 	const out: Record<string, unknown> = {};
 	for (const [k, d] of Object.entries(start)) {
 		const x = src[k];
@@ -140,7 +138,7 @@ function pick<T extends object>(v: unknown, start: T): T {
  * hand-edited save never stops the app.
  */
 function cleanLook(raw: unknown): Look {
-	const r = plain(raw) ? raw : {};
+	const r = isRecord(raw) ? raw : {};
 	const values = pick(r.values, LOOK.values);
 	const shapes = pick(r.shapes, LOOK.shapes);
 	const edges = pick(r.edges, LOOK.edges);
@@ -181,7 +179,7 @@ function cleanLook(raw: unknown): Look {
 
 /** The saved layout, cleaned the same way: wrong types and out-of-range sizes give the start values. */
 function cleanLayout(raw: unknown): Layout {
-	const r = plain(raw) ? raw : {};
+	const r = isRecord(raw) ? raw : {};
 	const panels = pick(r.panels, LAYOUT.panels);
 	const widths = pick(r.widths, LAYOUT.widths);
 	for (const id of PANEL_IDS)
@@ -254,14 +252,13 @@ export function callFor(id: LayerId, s: Look): Call {
 export const NARROW = "(max-width: 767px)";
 
 /** The saved look, or the start values. */
-export const readLook = (): Look =>
-	loadJson(KEYS.state, cleanLook, () => cleanLook(null));
+const readLook = (): Look => loadJson(KEYS.state, cleanLook);
 
 /**
  * The saved layout, or the start values (on a phone the drawer starts closed). The first visit
  * after the layout got its own key still finds its fields in the look save: they are carried over once.
  */
-export const readLayout = (): Layout =>
+const readLayout = (): Layout =>
 	loadJson(KEYS.layout, cleanLayout, () => {
 		const old = loadText(KEYS.state);
 		if (old !== null)
@@ -276,8 +273,9 @@ export const readLayout = (): Layout =>
 		};
 	});
 
-/** Keeps the look saved (a slider drag is saved once it settles). The photos have their own home in `docs.ts`. */
-export const useLookSaved = (s: Look) => useSaved(KEYS.state, s, 150);
+/** The look as state, kept saved (a slider drag is saved once it settles). The photos have their
+ * own home in `features/photos/store/`. */
+export const useLook = () => usePersisted(KEYS.state, readLook, 150);
 
-/** Keeps the layout saved, in its own key. */
-export const useLayoutSaved = (l: Layout) => useSaved(KEYS.layout, l, 150);
+/** The layout as state, kept saved in its own key. */
+export const useLayout = () => usePersisted(KEYS.layout, readLayout, 150);

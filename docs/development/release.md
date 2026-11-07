@@ -9,7 +9,7 @@ This page is for maintainers. A fork can deploy the same files to any static hos
 mise run web:build
 ```
 
-It builds the wasm (`scripts/build-wasm.sh`), then type checks and builds the web app into
+It builds the wasm (`app/web/scripts/build-wasm.sh`), then type checks and builds the web app into
 `app/web/dist`.
 
 ## The wasm glue
@@ -17,6 +17,7 @@ It builds the wasm (`scripts/build-wasm.sh`), then type checks and builds the we
 `app/web/wasm/` holds the JS glue that wasm-bindgen writes. It is committed at release, with a hash
 of the Rust inputs (`app/web/wasm/.crates-hash`). `bash scripts/wasm-fresh.sh check` tells whether
 the glue is fresh. The pre-push hook fails when it is not. Rebuild it with `mise run web:wasm`.
+A deploy skips Rust when the glue is fresh (see "Deploy on push").
 
 ## Deploy on push
 

@@ -1,7 +1,7 @@
 # Shapes
 
 Shapes cuts the photo into the shapes you paint, and shows them in paint order. Code:
-`crates/oil-core/src/shapes.rs` and `crates/oil-core/src/shapes/`.
+`crates/atelier-core/src/shapes.rs` and `crates/atelier-core/src/shapes/`.
 
 ## What you see
 

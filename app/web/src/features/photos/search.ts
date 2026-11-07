@@ -96,7 +96,7 @@ export function sorted(list: Doc[], sort: Sort): Doc[] {
 }
 
 /** How the photos show: one row each, or tiles (a square picture with the name under it). */
-export type ListLayout = "list" | "tiles";
+type ListLayout = "list" | "tiles";
 
 export type View = { sort: Sort; layout: ListLayout };
 
@@ -109,7 +109,6 @@ const cleanView = (r: unknown): View => {
 };
 
 /** The saved sort and layout; a broken save gives the defaults. */
-export const readView = (): View =>
-	loadJson(KEYS.list, cleanView, () => cleanView(null));
+export const readView = (): View => loadJson(KEYS.list, cleanView);
 
 export const writeView = (v: View) => saveJson(KEYS.list, v);

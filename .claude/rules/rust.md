@@ -7,7 +7,7 @@ paths:
 
 # Rust core
 
-Modules of `crates/oil-core/src`. Each file starts with a `//!` line that says its job.
+Modules of `crates/atelier-core/src`. Each file starts with a `//!` line that says its job.
 
 | Module | Job |
 |---|---|
@@ -24,7 +24,7 @@ reference pictures must stay.
 
 ## Work rules
 
-- One module: `cargo test -q -p oil-core --lib <module>::`. Reference tests: `cargo xtask refs`
+- One module: `cargo test -q -p atelier-core --lib <module>::`. Reference tests: `cargo xtask refs`
   (`tests/tools_reference.rs` and `tests/tools_layers.rs`; the shared helpers are in `tests/common/mod.rs`).
 - A meant pixel change: `cargo xtask refs --bless`, and say in the commit why the pictures moved.
   Never edit the reference pictures by hand.

@@ -1,6 +1,6 @@
 // The Edges Width slider: wider lines cover more of the canvas in every mode, with no error. The
 // Even slider: only in Lines, and it changes the lines.
-import { expect, MAIN_PHOTO, test } from "./studio";
+import { expect, MAIN_PHOTO, readCanvas, test } from "./studio";
 
 test("test_edges_width_adds_ink", async ({ studio }) => {
 	const { page } = studio;
@@ -8,12 +8,7 @@ test("test_edges_width_adds_ink", async ({ studio }) => {
 	await studio.layer("edges", true);
 	// The ink on the Edges canvas: the sum of its alpha.
 	const ink = () =>
-		page.evaluate(() => {
-			const c = document.querySelector<HTMLCanvasElement>(
-				"[data-testid=layer-canvas-edges]",
-			);
-			const d = c?.getContext("2d")?.getImageData(0, 0, c.width, c.height).data;
-			if (!d) throw new Error("no edges pixels");
+		readCanvas(page, "layer-canvas-edges", ({ data: d }) => {
 			let n = 0;
 			for (let i = 3; i < d.length; i += 4) n += d[i];
 			return n;
@@ -35,14 +30,9 @@ test("test_edges_even_only_in_lines", async ({ studio }) => {
 	await studio.open(MAIN_PHOTO);
 	await studio.layer("edges", true);
 	const pixels = () =>
-		page.evaluate(() => {
-			const c = document.querySelector<HTMLCanvasElement>(
-				"[data-testid=layer-canvas-edges]",
-			);
-			const d = c?.getContext("2d")?.getImageData(0, 0, c.width, c.height).data;
-			if (!d) throw new Error("no edges pixels");
-			return Array.from(d.filter((_, i) => i % 4 === 3)).join(",");
-		});
+		readCanvas(page, "layer-canvas-edges", ({ data: d }) =>
+			Array.from(d.filter((_, i) => i % 4 === 3)).join(","),
+		);
 	await studio.knob("edges-even", 0);
 	const raw = await pixels();
 	await studio.knob("edges-even", 100);

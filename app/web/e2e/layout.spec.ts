@@ -2,15 +2,7 @@
 // hides and stays hidden after a reload, and it lists every photo where it can be searched, shown,
 // renamed or deleted. The tools are in the bar over the stage. With SHOT=dir it also saves
 // screenshots of the window (a synthetic photo) to that folder.
-import type { Page } from "@playwright/test";
-import { expect, KEYS, stored, test } from "./studio";
-
-const box = async (page: Page, id: string) => {
-	const b = await page.getByTestId(id).boundingBox();
-	if (!b) throw new Error(`no box for ${id}`);
-	return b;
-};
-const kept = (page: Page) => stored(page, KEYS.docs, []);
+import { box, expect, KEYS, keptDocs as kept, stored, test } from "./studio";
 
 test("test_stage_runs_flush_to_the_panel_and_the_tools_sit_in_the_bar", async ({
 	studio,

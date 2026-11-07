@@ -1,8 +1,7 @@
 #!/usr/bin/env bash
 # Finds broken relative links in the repo's own Markdown files. A link is `[text](path)` or an
 # HTML `src="path"` (an image) where path is not a URL or an anchor. Run it after you move or delete a doc. Exit 1 on a broken link.
-set -euo pipefail
-cd "$(dirname "$0")/.."
+source "$(dirname "$0")/lib.sh"
 
 bad=0
 while IFS= read -r file; do

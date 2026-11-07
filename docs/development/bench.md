@@ -6,15 +6,15 @@ goes into git.
 
 ## Layer sheets
 
-`crates/oil-core/examples/bench.rs` calls the same typed layer calls as the web app, with the app's
+`crates/atelier-core/examples/bench.rs` calls the same typed layer calls as the web app, with the app's
 start values, on a 1024 px work picture. It needs no browser. For each photo it makes one row:
 Edges, Shapes, Values, Grid.
 
 ```bash
-cargo run -q --release -p oil-core --example bench -- render IN OUT before
+cargo run -q --release -p atelier-core --example bench -- render IN OUT before
 # make your change, then
-cargo run -q --release -p oil-core --example bench -- render IN OUT after
-cargo run -q --release -p oil-core --example bench -- compare OUT before after
+cargo run -q --release -p atelier-core --example bench -- render IN OUT after
+cargo run -q --release -p atelier-core --example bench -- compare OUT before after
 ```
 
 `IN` holds PNG or JPEG photos. A fifth argument filters by name. `BENCH_*` environment variables
@@ -31,7 +31,7 @@ The first release build takes about 2 minutes.
 F-score. Get the BSDS500 data from the Berkeley segmentation group.
 
 ```bash
-cargo run -q --release -p oil-core --example edge_score -- IN OUT [MODE] [AMOUNT]
+cargo run -q --release -p atelier-core --example edge_score -- IN OUT [MODE] [AMOUNT]
 ```
 
 ## Values and Shapes scorer

@@ -21,8 +21,8 @@ file -> browser decoder -> RGBA pixels -> layers worker (wasm Photo) -> layer pi
 
 | Part | Where | Job |
 |---|---|---|
-| Core | `crates/oil-core` | All pixel work: Values, Shapes, Edges, Grid. Deterministic, no clock, no randomness. A number out of range is `Error::BadInput`, never a panic. |
-| Wasm edge | `crates/oil-wasm` | `Photo`, kept between draws, and one call per layer, over wasm-bindgen. The JS glue is built into `app/web/wasm/`. |
+| Core | `crates/atelier-core` | All pixel work: Values, Shapes, Edges, Grid. Deterministic, no clock, no randomness. A number out of range is `Error::BadInput`, never a panic. |
+| Wasm edge | `crates/atelier-wasm` | `Photo`, kept between draws, and one call per layer, over wasm-bindgen. The JS glue is built into `app/web/wasm/`. |
 | Worker | `app/web/src/draw/worker.ts` | Holds the wasm and the photo. Draws on request. |
 | Client | `app/web/src/draw/coreClient.ts`, `calls.ts`, `useLayers.ts` | Sends typed calls to the worker and hands the pictures to the stage. |
 | Stage | `app/web/src/features/stage/` | The canvases, zoom and pan, the bottom bar, shortcuts. |
@@ -54,18 +54,18 @@ part draws is in [docs/how-it-works/](docs/how-it-works/).
 - Every saved value is read back through a cleaner. A missing, wrong or old value falls back to
   the start value, and unknown keys are dropped. An old save never stops the app.
 
-Every key is in `app/web/src/lib/storage.ts`.
+Every key is in `app/web/src/lib/keys.ts`.
 
 ## Build and release
 
-`scripts/build-wasm.sh` (via `mise run web:wasm`) builds `crates/oil-wasm` and writes the glue into
-`app/web/wasm/`. The glue is committed with each release, so a deploy can skip Rust when no Rust
-input changed. The site is static files served by a Cloudflare Worker with static assets. The
-page's security headers are in `app/web/public/_headers`. See [docs/development/release.md](docs/development/release.md).
+`app/web/scripts/build-wasm.sh` (via `mise run web:wasm`) builds `crates/atelier-wasm` and writes
+the JS glue into `app/web/wasm/`. The site is static files served by a Cloudflare Worker with
+static assets. The page's security headers are in `app/web/public/_headers`. When the glue is
+committed and how a deploy skips Rust: [docs/development/release.md](docs/development/release.md).
 
 ## Tests
 
-- Rust: one simple test per part in `crates/oil-core/tests/tools_*.rs`, checked against reference
+- Rust: one simple test per part in `crates/atelier-core/tests/tools_*.rs`, checked against reference
   pictures (`cargo xtask refs`).
 - Web: Playwright in headless Chromium, with golden pictures drawn from a synthetic photo.
 

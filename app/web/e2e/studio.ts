@@ -1,9 +1,21 @@
 // The helpers every spec shares: the photo folder, a `studio` fixture with the page and the calls
 // the specs make (open a photo, switch a layer, set a knob, wait for a draw, read a canvas). The
-// fixture fails a test on any console error or page error.
+// fixture fails a test on any console error or page error. It also holds the page-side helpers the
+// specs share: the saved lists, the photo database, a blocked save, a range setter, a bounding box
+// and the canvas pixel reader.
 import { join } from "node:path";
-import { test as base, expect, type Page } from "@playwright/test";
-import type { Layout, Look } from "../src/features/tools/settings";
+import {
+	test as base,
+	expect,
+	type Locator,
+	type Page,
+} from "@playwright/test";
+import {
+	BASES,
+	type Layout,
+	type Look,
+	type StageId,
+} from "../src/features/tools/settings";
 import { KEYS } from "../src/lib/storage";
 
 const PHOTOS_DIR =
@@ -33,12 +45,107 @@ export function store(page: Page, key: string, value: unknown) {
 	});
 }
 
+/** The kept photo list (the rows the page saves under `KEYS.docs`); empty when none is saved. */
+export function keptDocs(page: Page): Promise<{ name: string }[]> {
+	return stored(page, KEYS.docs, []);
+}
+
+/** The names in the kept photo list, sorted. */
+export async function docNames(page: Page): Promise<string[]> {
+	return (await keptDocs(page)).map((d) => d.name).sort();
+}
+
+/**
+ * Makes saving one localStorage key throw, like a full disk. It patches the current document, so
+ * call it after the page has loaded and before the action that saves.
+ */
+export function blockSetItem(page: Page, key: string) {
+	return page.evaluate((blocked) => {
+		const real = Storage.prototype.setItem;
+		Storage.prototype.setItem = function (k: string, value: string) {
+			if (k === blocked) throw new Error("QuotaExceededError");
+			return real.call(this, k, value);
+		};
+	}, key);
+}
+
+/**
+ * Runs `use` in the page on the object store of the photo files, opened the way the app opens its
+ * database. It resolves with the result of the request `use` returns, when the transaction ends.
+ * `use` runs in the page, so it can use nothing from the spec. It is sent as text, which also
+ * works under the Content-Security-Policy of the built app.
+ */
+export function photosDb<T = undefined>(
+	page: Page,
+	mode: IDBTransactionMode,
+	use: (photos: IDBObjectStore) => IDBRequest<T> | undefined,
+): Promise<T> {
+	return page.evaluate<T>(`new Promise((ok, bad) => {
+		const open = indexedDB.open("atelier", 2);
+		open.onerror = () => bad(open.error);
+		open.onsuccess = () => {
+			const tx = open.result.transaction("photos", ${JSON.stringify(mode)});
+			const last = (${String(use)})(tx.objectStore("photos"));
+			tx.oncomplete = () => ok(last?.result);
+			tx.onerror = () => bad(tx.error);
+		};
+	})`);
+}
+
+/** The ids of the stored photo files, sorted. */
+export async function photoFileIds(page: Page): Promise<string[]> {
+	const keys = await photosDb(page, "readonly", (photos) =>
+		photos.getAllKeys(),
+	);
+	return keys.map(String).sort();
+}
+
+/** Sets an `<input type=range>` the way a drag would: the native setter, then input and change. */
+export function setRange(range: Locator, value: string | number) {
+	return range.evaluate((el, v) => {
+		const input = el as HTMLInputElement;
+		const set = Object.getOwnPropertyDescriptor(
+			HTMLInputElement.prototype,
+			"value",
+		)?.set;
+		set?.call(input, String(v));
+		input.dispatchEvent(new Event("input", { bubbles: true }));
+		input.dispatchEvent(new Event("change", { bubbles: true }));
+	}, value);
+}
+
+/** The bounding box of an element (a test id); throws when it is not on the page. */
+export async function box(page: Page, testid: string) {
+	const b = await page.getByTestId(testid).boundingBox();
+	if (!b) throw new Error(`no box for ${testid}`);
+	return b;
+}
+
+/**
+ * Reads a canvas (a test id) in the page and returns what `read` makes of its pixels. `read` runs
+ * in the page, so it can use nothing from the spec, and only its small result comes back (a large
+ * canvas is megabytes of pixels). It is sent as text, which also works under the CSP of the built app.
+ */
+export function readCanvas<T>(
+	page: Page,
+	testid: string,
+	read: (img: ImageData, canvas: HTMLCanvasElement) => T,
+): Promise<T> {
+	return page.evaluate<T>(`((read, id) => {
+		const c = document.querySelector("[data-testid=" + id + "]");
+		if (!c) throw new Error("no canvas " + id);
+		const img = c.getContext("2d")?.getImageData(0, 0, c.width, c.height);
+		if (!img) throw new Error("no pixels");
+		return read(img, c);
+	})(${String(read)}, ${JSON.stringify(testid)})`);
+}
+
 /** The photo the layer specs draw. */
 export const MAIN_PHOTO = join(PHOTOS_DIR, "mona-lisa-2400.jpg");
 
 /** The stacked layers: the base (Values or Shapes), Edges and Grid. */
-export type LayerId = "base" | "edges" | "grid";
-export type BaseKind = "photo" | "values" | "shapes" | "paper";
+export type LayerId = StageId;
+export type BaseKind = Look["base"]["kind"];
 
 type Stats = { w: number; h: number; hash: number; min: number; max: number };
 
@@ -168,7 +275,7 @@ export class Studio {
 			this.page
 				.locator("[data-testid=base]")
 				.getByRole("radio")
-				.nth(["photo", "values", "shapes", "paper"].indexOf(kind))
+				.nth(BASES.findIndex((b) => b.id === kind))
 				.click();
 		const canvas = this.page.locator("[data-testid=layer-canvas-base]");
 		if (kind === "photo" || kind === "paper") {
@@ -190,18 +297,7 @@ export class Studio {
 		const root = this.page.locator(`[data-testid=${id}]`);
 		const range = root.locator("input[type=range]");
 		if ((await range.count()) > 0) {
-			await this.drawn(() =>
-				range.evaluate((el, v) => {
-					const input = el as HTMLInputElement;
-					const set = Object.getOwnPropertyDescriptor(
-						HTMLInputElement.prototype,
-						"value",
-					)?.set;
-					set?.call(input, String(v));
-					input.dispatchEvent(new Event("input", { bubbles: true }));
-					input.dispatchEvent(new Event("change", { bubbles: true }));
-				}, value),
-			);
+			await this.drawn(() => setRange(range, value));
 			return;
 		}
 		// a row of buttons: click the one at the index
@@ -220,29 +316,16 @@ export class Studio {
 	/** Sets an opacity slider (10 to 100). It does not draw again, so it does not wait. */
 	async opacity(id: LayerId, value: number) {
 		await this.tool(id);
-		await this.page
-			.locator(`[data-testid=opacity-${id}] input[type=range]`)
-			.evaluate((el, v) => {
-				const input = el as HTMLInputElement;
-				const set = Object.getOwnPropertyDescriptor(
-					HTMLInputElement.prototype,
-					"value",
-				)?.set;
-				set?.call(input, String(v));
-				input.dispatchEvent(new Event("input", { bubbles: true }));
-				input.dispatchEvent(new Event("change", { bubbles: true }));
-			}, value);
+		await setRange(
+			this.page.locator(`[data-testid=opacity-${id}] input[type=range]`),
+			value,
+		);
 	}
 
 	/** A hash and the spread of the pixels of a canvas (a test id). */
 	stats(testid: string): Promise<Stats> {
-		return this.page.evaluate((id) => {
-			const c = document.querySelector<HTMLCanvasElement>(
-				`[data-testid=${id}]`,
-			);
-			if (!c) throw new Error(`no canvas ${id}`);
-			const d = c.getContext("2d")?.getImageData(0, 0, c.width, c.height).data;
-			if (!d) throw new Error("no pixels");
+		return readCanvas(this.page, testid, (img, c) => {
+			const d = img.data;
 			let hash = 0;
 			let min = 255;
 			let max = 0;
@@ -253,7 +336,7 @@ export class Studio {
 				max = Math.max(max, d[i], d[i + 3]);
 			}
 			return { w: c.width, h: c.height, hash, min, max };
-		}, testid);
+		});
 	}
 
 	/**

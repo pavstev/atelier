@@ -3,8 +3,8 @@
 // screen width in cm, measured once with a ruler, turns cm into CSS pixels: `screen.width` is
 // the whole screen in CSS pixels, and in Chrome it follows the browser zoom. On a known MacBook
 // screen the app fills in the screen width itself (`guessScreen`).
-import { useState } from "react";
-import { KEYS, loadJson, useSaved } from "@/lib/storage";
+import { isRecord, nonNegative } from "@/lib/clean";
+import { KEYS, loadJson, usePersisted } from "@/lib/storage";
 import { guessScreen } from "./screens";
 
 export type Lock = {
@@ -20,22 +20,16 @@ const START: Lock = { on: false, cm: 18, screenCm: 0 };
 /** The saved lock; a missing or wrong-typed value falls back to the start. The key keeps its old
  * dotted name (`atelier.lockZoom`) so saved locks of earlier visits still load. */
 function clean(v: unknown): Lock {
-	const r = (v && typeof v === "object" ? v : {}) as Partial<Lock>;
-	const num = (x: unknown, d: number) =>
-		typeof x === "number" && Number.isFinite(x) && x >= 0 ? x : d;
+	const r = isRecord(v) ? v : {};
 	return {
 		on: r.on === true,
-		cm: num(r.cm, START.cm),
-		screenCm: num(r.screenCm, 0) || (guessScreen()?.cm ?? 0),
+		cm: nonNegative(r.cm, START.cm),
+		screenCm: nonNegative(r.screenCm) || (guessScreen()?.cm ?? 0),
 	};
 }
 
 export function useLock() {
-	const [lock, setLock] = useState<Lock>(() =>
-		loadJson(KEYS.lock, clean, () => clean(null)),
-	);
-	useSaved(KEYS.lock, lock);
-	return [lock, setLock] as const;
+	return usePersisted(KEYS.lock, () => loadJson(KEYS.lock, clean));
 }
 
 /** The photo width in CSS pixels the lock asks for, or null when the lock is off or not set up. */

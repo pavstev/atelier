@@ -1,6 +1,6 @@
 # Edges
 
-Edges draws a painter's line drawing over the photo. Code: `crates/oil-core/src/edges/`.
+Edges draws a painter's line drawing over the photo. Code: `crates/atelier-core/src/edges/`.
 The core finds the edges itself. It uses no model.
 
 ## What you see

@@ -1,6 +1,6 @@
 [workspace]
 resolver = "3"
-members = ["crates/oil-core", "crates/oil-wasm", "xtask"]
+members = ["crates/atelier-core", "crates/atelier-wasm", "xtask"]
 
 [workspace.package]
 version = "0.1.0"
@@ -11,7 +11,7 @@ repository = "https://github.com/pavstev/atelier"
 license = "MIT OR Apache-2.0"
 
 [workspace.dependencies]
-oil-core = { path = "crates/oil-core" }
+atelier-core = { path = "crates/atelier-core" }
 png = "=0.18.1"
 libm = "=0.2.16"
 thiserror = "2.0.21"

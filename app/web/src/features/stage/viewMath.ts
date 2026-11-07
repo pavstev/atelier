@@ -9,7 +9,7 @@ export type Size = { width: number; height: number };
 export type Room = { w: number; h: number };
 export type View = { zoom: number; x: number; y: number };
 
-export const MAX_ZOOM = 16;
+const MAX_ZOOM = 16;
 /** The least zoom is this share of the fit zoom. */
 const MIN_OF_FIT = 0.25;
 /** Space kept around the photo when it is fitted, in px. */

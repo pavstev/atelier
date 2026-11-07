@@ -134,11 +134,6 @@
 
 		/* calculated colors that differ in dark */
 		--accent-soft: color-mix(in oklab, var(--accent) 18%, transparent);
-		--accent-soft-foreground: color-mix(
-			in oklab,
-			var(--accent) 65%,
-			var(--foreground) 35%
-		);
 		--accent-soft-hover: color-mix(in oklab, var(--accent) 26%, transparent);
 
 		--danger-soft-foreground: color-mix(
@@ -213,6 +208,11 @@
 			in oklab,
 			var(--accent) 90%,
 			var(--accent-foreground) 10%
+		);
+		--accent-soft-foreground: color-mix(
+			in oklab,
+			var(--accent) 65%,
+			var(--foreground) 35%
 		);
 		--success-hover: color-mix(
 			in oklab,
@@ -312,11 +312,6 @@
 		--field-shadow: 0 0 0 0 transparent inset;
 
 		--accent-soft: color-mix(in oklab, var(--accent) 24%, transparent);
-		--accent-soft-foreground: color-mix(
-			in oklab,
-			var(--accent) 65%,
-			var(--foreground) 35%
-		);
 		--accent-soft-hover: color-mix(in oklab, var(--accent) 32%, transparent);
 
 		--danger-soft-foreground: color-mix(

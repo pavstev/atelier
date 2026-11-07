@@ -1,16 +1,18 @@
 // The one place the page reads and writes `localStorage`. A read cleans what it finds (a broken or
 // wrong-typed save gives the start value); a write never throws. Saving that follows changes goes
-// through one debounced saver (`Saver`): `useSaved` is its hook form, `store/` and `views.ts` use it directly.
+// through one debounced saver (`Saver`): `useSaved` is its hook form (`usePersisted` adds the state), `store/` and `views.ts` use it
+// directly.
 import { useEffect, useEffectEvent, useState } from "react";
 import { KEYS } from "./keys";
 
 export { KEYS };
 
-/** The value saved under `key`, cleaned by `clean`; `fallback()` when there is none or it is broken. */
+/** The value saved under `key`, cleaned by `clean`; `fallback()` when there is none or it is broken
+ * (`clean(null)` unless the caller gives another start). */
 export function loadJson<T>(
 	key: string,
 	clean: (raw: unknown) => T,
-	fallback: () => T,
+	fallback: () => T = () => clean(null),
 ): T {
 	try {
 		const text = localStorage.getItem(key);
@@ -143,4 +145,11 @@ export function useSaved<T>(
 		saver.later(() => value, wait, latestHooks);
 		return () => saver.cancel();
 	}, [saver, value, wait]);
+}
+
+/** State that starts from `read()` (the saved value, cleaned) and is kept saved under `key`. */
+export function usePersisted<T>(key: string, read: () => T, wait = SAVE_MS) {
+	const [value, setValue] = useState(read);
+	useSaved(key, value, wait);
+	return [value, setValue] as const;
 }

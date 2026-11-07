@@ -1,11 +1,11 @@
-# Pinned tools and build tasks. The checks run on this Mac. A push to main also starts a
-# Cloudflare Workers Build that deploys the site (see .claude/rules/web.md).
+# Pinned tools and build tasks. The checks run on your machine, not in CI. A push to main starts a
+# Cloudflare Workers Build that deploys the site (see docs/development/release.md).
 # Setup: `mise install` (it also installs the git hooks), `brew install cargo-deny cargo-shear
 # typos-cli`. Check: `mise run check` (fast: `mise run check:fast`).
 min_version = "2026.10.5"
 
 [tools]
-# The CLI that makes the JS glue for crates/oil-wasm. Keep it equal to wasm-bindgen in Cargo.lock.
+# The CLI that makes the JS glue for crates/atelier-wasm. Keep it equal to wasm-bindgen in Cargo.lock.
 "cargo:wasm-bindgen-cli" = "0.2.130"
 lefthook = "2.2.2"
 
@@ -28,46 +28,46 @@ run = "bash scripts/test-all.sh"
 
 [tasks."check:fast"]
 description = "The fast check while you work: fmt, clippy, the Rust tests, web types and Biome"
-run = [
-  "cargo fmt --all --check",
-  "cargo clippy --workspace --all-targets -- -D warnings",
-  "cargo test -q --workspace",
-  "pnpm --dir app/web exec tsc --noEmit",
-  "pnpm --dir app/web exec biome check src e2e playwright.config.ts",
-]
+run = "bash scripts/test-all.sh --fast"
 
 # The web app (app/web): Hero UI and React over the Rust core in wasm. See app/web/README.md.
 
+[tasks."web:install"]
+description = "Install the web dependencies from the lockfile"
+run = "pnpm --dir app/web install --frozen-lockfile"
+
 [tasks."web:wasm"]
-description = "Build crates/oil-wasm and its JS glue into app/web/wasm"
+description = "Build crates/atelier-wasm and its JS glue into app/web/wasm"
 run = "bash app/web/scripts/build-wasm.sh"
 
 [tasks."web:brand"]
 description = "Make the favicons and share images from app/web/brand/logo.svg"
-run = "pnpm --dir app/web install --frozen-lockfile && node app/web/scripts/brand.mjs"
+depends = ["web:install"]
+run = "node app/web/scripts/brand.mjs"
 
 [tasks."web:dev"]
 description = "Run the web app in the browser (builds the wasm first)"
-depends = ["web:wasm"]
-run = "pnpm --dir app/web install --frozen-lockfile && pnpm --dir app/web dev"
+depends = ["web:wasm", "web:install"]
+run = "pnpm --dir app/web dev"
 
 [tasks."web:build"]
 description = "Type check and build the web app"
-depends = ["web:wasm"]
-run = "pnpm --dir app/web install --frozen-lockfile && pnpm --dir app/web build"
+depends = ["web:wasm", "web:install"]
+run = "pnpm --dir app/web build"
 
 [tasks."web:e2e"]
-description = "Headless Chromium tests of the web app (starts Vite itself, or uses the one on :5173). PHOTOS_DIR holds the photos, with a variants/ folder"
-depends = ["web:wasm"]
-run = "pnpm --dir app/web install --frozen-lockfile && pnpm --dir app/web exec playwright test"
+description = "Headless Chromium tests of the web app (starts Vite itself, or uses the one on :5173). PHOTOS_DIR must hold mona-lisa-2400.jpg (docs/development/testing.md)"
+depends = ["web:wasm", "web:install"]
+run = "pnpm --dir app/web exec playwright test"
 
 [tasks."web:golden:bless"]
 description = "Rewrite the golden pictures of e2e/golden (only for a meant change; say why in the commit)"
-depends = ["web:wasm"]
-run = "rm -rf app/web/e2e/golden && pnpm --dir app/web install --frozen-lockfile && GOLDEN_BLESS=1 pnpm --dir app/web exec playwright test golden.spec.ts"
+depends = ["web:wasm", "web:install"]
+run = "rm -rf app/web/e2e/golden && GOLDEN_BLESS=1 pnpm --dir app/web exec playwright test golden.spec.ts"
 
-# Deploy: Cloudflare Worker `atelier` at atelier.stevanpavlovic.com, from this Mac only.
-# The account is pinned in wrangler.jsonc; scripts/deploy.sh stops on any other.
+# Deploy: Cloudflare Worker `atelier` at atelier.stevanpavlovic.com. A push to main deploys it;
+# `mise run deploy` is the manual deploy. The account is pinned in wrangler.jsonc, and
+# scripts/deploy.sh stops on any other.
 
 [tasks.deploy]
 description = "Build the web app, deploy it to Cloudflare and probe the live site"

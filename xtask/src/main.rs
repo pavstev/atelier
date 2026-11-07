@@ -1,4 +1,4 @@
-//! Project tasks: `cargo xtask refs [--bless]` runs the tool reference tests of oil-core: every
+//! Project tasks: `cargo xtask refs [--bless]` runs the tool reference tests of atelier-core: every
 //! `tests/tools_*.rs`.
 
 #![allow(
@@ -22,16 +22,16 @@ fn main() -> ExitCode {
     let tests = match reference_tests() {
         Ok(tests) if !tests.is_empty() => tests,
         Ok(_) => {
-            eprintln!("no tests/tools_*.rs in oil-core");
+            eprintln!("no tests/tools_*.rs in atelier-core");
             return ExitCode::FAILURE;
         }
         Err(e) => {
-            eprintln!("cannot list the oil-core tests: {e}");
+            eprintln!("cannot list the atelier-core tests: {e}");
             return ExitCode::FAILURE;
         }
     };
     let mut cmd = Command::new("cargo");
-    cmd.args(["test", "-q", "-p", "oil-core"]);
+    cmd.args(["test", "-q", "-p", "atelier-core"]);
     for name in &tests {
         cmd.args(["--test", name]);
     }
@@ -48,9 +48,9 @@ fn main() -> ExitCode {
     }
 }
 
-/// The tool reference tests of oil-core: the name of every `tests/tools_*.rs`, sorted.
+/// The tool reference tests of atelier-core: the name of every `tests/tools_*.rs`, sorted.
 fn reference_tests() -> std::io::Result<Vec<String>> {
-    let dir = Path::new(env!("CARGO_MANIFEST_DIR")).join("../crates/oil-core/tests");
+    let dir = Path::new(env!("CARGO_MANIFEST_DIR")).join("../crates/atelier-core/tests");
     let mut names = Vec::new();
     for entry in std::fs::read_dir(dir)? {
         let file = entry?.file_name();

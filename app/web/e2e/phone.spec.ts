@@ -1,7 +1,7 @@
 // A phone-sized window (390 x 844): the side panel is a drawer over the stage. It starts closed,
 // opens from the edge handle or the [ key, a press on the scrim closes it, picking a photo closes
 // it, and nothing sticks out of the window.
-import { expect, test } from "./studio";
+import { box, expect, test } from "./studio";
 
 test.use({ viewport: { width: 390, height: 844 } });
 
@@ -40,8 +40,7 @@ test("test_the_drawer_starts_closed_opens_over_the_stage_and_closes_again", asyn
 		"photo-sort",
 		"photo-layout",
 	]) {
-		const b = await page.getByTestId(id).boundingBox();
-		if (!b) throw new Error(`no box for ${id}`);
+		const b = await box(page, id);
 		expect(b.x + b.width).toBeLessThanOrEqual(drawer.width + 0.5);
 	}
 	// the cards fit the drawer without sideways scroll

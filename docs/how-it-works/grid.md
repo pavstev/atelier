@@ -1,7 +1,7 @@
 # Grid
 
 Grid draws guide lines over the photo: the rule of thirds, a square grid, or both. Code:
-`crates/oil-core/src/grid.rs`.
+`crates/atelier-core/src/grid.rs`.
 
 ## What you see
 

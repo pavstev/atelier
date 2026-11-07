@@ -9,6 +9,23 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "320119579fcad9c21884f5c4861d16174d0e06250625266f50fe6898340abefa"
 
 [[package]]
+name = "atelier-core"
+version = "0.1.0"
+dependencies = [
+ "libm",
+ "png",
+ "thiserror",
+]
+
+[[package]]
+name = "atelier-wasm"
+version = "0.1.0"
+dependencies = [
+ "atelier-core",
+ "wasm-bindgen",
+]
+
+[[package]]
 name = "bitflags"
 version = "2.13.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -79,23 +96,6 @@ checksum = "b63fbc4a50860e98e7b2aa7804ded1db5cbc3aff9193adaff57a6931bf7c4b4c"
 dependencies = [
  "adler2",
  "simd-adler32",
-]
-
-[[package]]
-name = "oil-core"
-version = "0.1.0"
-dependencies = [
- "libm",
- "png",
- "thiserror",
-]
-
-[[package]]
-name = "oil-wasm"
-version = "0.1.0"
-dependencies = [
- "oil-core",
- "wasm-bindgen",
 ]
 
 [[package]]

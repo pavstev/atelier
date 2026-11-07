@@ -1,5 +1,5 @@
 // What the base, the switches, opacities and knobs do to the canvases.
-import { expect, MAIN_PHOTO, test } from "./studio";
+import { expect, MAIN_PHOTO, setRange, test } from "./studio";
 
 test("test_bare_photo_on_open", async ({ studio }) => {
 	const { page } = studio;
@@ -160,18 +160,10 @@ test("a layer stays on screen while a knob redraws it", async ({ studio }) => {
 	await studio.openSynthetic();
 	await studio.layer("edges", true);
 	const prev = await studio.stamp();
-	await page
-		.locator("[data-testid=edges-amount] input[type=range]")
-		.evaluate((el) => {
-			const input = el as HTMLInputElement;
-			const set = Object.getOwnPropertyDescriptor(
-				HTMLInputElement.prototype,
-				"value",
-			)?.set;
-			set?.call(input, "10");
-			input.dispatchEvent(new Event("input", { bubbles: true }));
-			input.dispatchEvent(new Event("change", { bubbles: true }));
-		});
+	await setRange(
+		page.locator("[data-testid=edges-amount] input[type=range]"),
+		10,
+	);
 	await expect(page.getByTestId("layer-canvas-edges")).toHaveCount(1);
 	await studio.waitDraw(prev);
 	await expect(page.getByTestId("layer-canvas-edges")).toHaveCount(1);

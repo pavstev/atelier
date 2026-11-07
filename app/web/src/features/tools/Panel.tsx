@@ -89,13 +89,21 @@ const Rule = () => <div className="my-0.5 h-px bg-separator" />;
 export function ToolBody(p: Props & { id: StageId; legend?: ReactNode }) {
 	const s = p.look;
 	const set = setter(p);
+	/** The `value` and `onChange` of a field that holds one setting of one part. */
+	const bind = <K extends keyof Look, F extends keyof Look[K]>(
+		id: K,
+		key: F,
+	) => ({
+		value: s[id][key],
+		onChange: (v: Look[K][F]) =>
+			set(id, { [key]: v } as unknown as Partial<Look[K]>),
+	});
 	const opacity = (id: StageId) => (
 		<Knob
 			testid={`opacity-${id}`}
 			label="Opacity"
 			min={OPACITY_MIN}
-			value={s[id].opacity}
-			onChange={(opacity) => set(id, { opacity })}
+			{...bind(id, "opacity")}
 		/>
 	);
 	const dim = p.id !== "base" && !s[p.id].on;
@@ -123,21 +131,18 @@ export function ToolBody(p: Props & { id: StageId; legend?: ReactNode }) {
 								testid="values-preset"
 								label="Steps"
 								options={LABELS.valuesPreset}
-								value={s.values.preset}
-								onChange={(preset) => set("values", { preset })}
+								{...bind("values", "preset")}
 							/>
 							<Knob
 								testid="values-detail"
 								label="Detail"
-								value={s.values.detail}
-								onChange={(detail) => set("values", { detail })}
+								{...bind("values", "detail")}
 							/>
 							<Segment
 								testid="values-tint"
 								label="Tint"
 								options={LABELS.valuesTint}
-								value={s.values.tint}
-								onChange={(tint) => set("values", { tint })}
+								{...bind("values", "tint")}
 							/>
 						</>
 					)}
@@ -147,14 +152,12 @@ export function ToolBody(p: Props & { id: StageId; legend?: ReactNode }) {
 								testid="shapes-step"
 								label="Step"
 								options={LABELS.shapesStep}
-								value={s.shapes.step}
-								onChange={(step) => set("shapes", { step })}
+								{...bind("shapes", "step")}
 							/>
 							<Knob
 								testid="shapes-detail"
 								label="Detail"
-								value={s.shapes.detail}
-								onChange={(detail) => set("shapes", { detail })}
+								{...bind("shapes", "detail")}
 							/>
 						</>
 					)}
@@ -174,16 +177,14 @@ export function ToolBody(p: Props & { id: StageId; legend?: ReactNode }) {
 						testid="edges-mode"
 						label="Mode"
 						options={LABELS.edgesMode}
-						value={s.edges.mode}
-						onChange={(mode) => set("edges", { mode })}
+						{...bind("edges", "mode")}
 					/>
 					<Rule />
 					<Knob
 						testid="edges-amount"
 						label="Amount"
 						step={1}
-						value={s.edges.amount}
-						onChange={(amount) => set("edges", { amount })}
+						{...bind("edges", "amount")}
 					/>
 					<Knob
 						testid="edges-width"
@@ -191,16 +192,14 @@ export function ToolBody(p: Props & { id: StageId; legend?: ReactNode }) {
 						min={1}
 						max={EDGES_WIDTH_MAX}
 						step={1}
-						value={s.edges.width}
-						onChange={(width) => set("edges", { width })}
+						{...bind("edges", "width")}
 					/>
 					{s.edges.mode === EDGES_MODE.lines && (
 						<Knob
 							testid="edges-even"
 							label="Even"
 							step={1}
-							value={s.edges.even}
-							onChange={(even) => set("edges", { even })}
+							{...bind("edges", "even")}
 						/>
 					)}
 					<Rule />
@@ -214,16 +213,14 @@ export function ToolBody(p: Props & { id: StageId; legend?: ReactNode }) {
 						testid="grid-mode"
 						label="Mode"
 						options={LABELS.gridMode}
-						value={s.grid.mode}
-						onChange={(mode) => set("grid", { mode })}
+						{...bind("grid", "mode")}
 					/>
 					<Rule />
 					<Knob
 						testid="grid-cells"
 						label="Cells"
 						steps={GRID_CELLS}
-						value={s.grid.cells}
-						onChange={(cells) => set("grid", { cells })}
+						{...bind("grid", "cells")}
 						disabled={thirds}
 					/>
 					<Segment
@@ -251,8 +248,7 @@ export function ToolBody(p: Props & { id: StageId; legend?: ReactNode }) {
 						min={1}
 						max={GRID_WIDTH_MAX}
 						step={1}
-						value={s.grid.width}
-						onChange={(width) => set("grid", { width })}
+						{...bind("grid", "width")}
 					/>
 					<Segment
 						testid="grid-paint"
@@ -266,8 +262,7 @@ export function ToolBody(p: Props & { id: StageId; legend?: ReactNode }) {
 									bare
 									testid="grid-color"
 									label="Line color"
-									value={s.grid.color}
-									onChange={(color) => set("grid", { color })}
+									{...bind("grid", "color")}
 								/>
 							)
 						}

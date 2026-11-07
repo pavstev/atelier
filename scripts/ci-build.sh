@@ -4,10 +4,7 @@
 # folder inside the pnpm store folder, hoping the build cache restores it between builds (it did
 # not on 2026-11-01). The deploy command is `pnpm --dir app/web exec wrangler deploy --config ../../wrangler.jsonc`.
 # Locally it only builds (same as `mise run web:build`). See .claude/rules/web.md.
-set -euo pipefail
-cd "$(dirname "$0")/.."
-start=$(date +%s)
-stage() { echo "== $1 (at $(( $(date +%s) - start )) s)"; }
+source "$(dirname "$0")/lib.sh"
 
 if [ -n "${WORKERS_CI:-}" ]; then
   keep="$HOME/.local/share/pnpm/store/atelier-cache"

@@ -23,8 +23,8 @@ You run one bench pass on the Atelier photo sets and write the numbers to the fi
    - Run `memory_pressure -Q` and `vm_stat`. Stop and say so when under 20 GB is free.
    - Run `pgrep -fl "examples/bench|mlx|train"`. Stop and say so when another bench or training job runs.
 3. Run the bench from the skill, in the background (the first release build takes about 2 minutes):
-   - `cargo run -q --release -p oil-core --example bench -- render <photos> .agents/bench/sheets <tag>`
-   - For a before and after pair: `cargo run -q --release -p oil-core --example bench -- compare .agents/bench/sheets <before> <after>`
+   - `cargo run -q --release -p atelier-core --example bench -- render <photos> .agents/bench/sheets <tag>`
+   - For a before and after pair: `cargo run -q --release -p atelier-core --example bench -- compare .agents/bench/sheets <before> <after>`
 4. Write the numbers (photos run, tag, run time, the sheet paths made, any error line) to the file the caller names. Write no other file.
 
 ## Rules

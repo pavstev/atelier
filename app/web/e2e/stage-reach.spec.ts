@@ -2,7 +2,7 @@
 // double click and the pinch, the one thin scrollbar, no page bounce, the whole-photo tiles and
 // their quiet rebuild for photos saved by an earlier version.
 import type { Page } from "@playwright/test";
-import { expect, KEYS, store, stored, test } from "./studio";
+import { box, expect, KEYS, store, stored, test } from "./studio";
 
 const percent = async (page: Page) =>
 	Number.parseInt(
@@ -10,12 +10,10 @@ const percent = async (page: Page) =>
 		10,
 	);
 
-const boxes = async (page: Page) => {
-	const stage = await page.getByTestId("stage").boundingBox();
-	const photo = await page.getByTestId("photo-canvas").boundingBox();
-	if (!stage || !photo) throw new Error("no boxes");
-	return { stage, photo };
-};
+const boxes = async (page: Page) => ({
+	stage: await box(page, "stage"),
+	photo: await box(page, "photo-canvas"),
+});
 
 test("test_the_photo_cannot_be_panned_more_than_500_px_off_the_stage", async ({
 	studio,

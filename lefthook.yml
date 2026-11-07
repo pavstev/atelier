@@ -15,7 +15,9 @@ pre-commit:
         - "app/web/src/**/*.{ts,tsx,css}"
         - "app/web/src/*.{ts,tsx,css}"
         - "app/web/e2e/*.ts"
+        - "app/web/scripts/*.mjs"
         - "app/web/playwright.config.ts"
+        - "app/web/vite.config.ts"
       run: pnpm exec biome check --no-errors-on-unmatched {staged_files}
       fail_text: run `make fix`, stage the files, commit again
 

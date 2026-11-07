@@ -2,7 +2,7 @@
 // draws, so a knob redraws at once. It talks in the types of `messages.ts`.
 
 import { keepNewest } from "@/lib/lru";
-import init, { Photo } from "../../wasm/oil_wasm.js";
+import init, { Photo } from "../../wasm/atelier_wasm.js";
 import type { Call, Rgb } from "./calls";
 import {
 	PHOTO_GONE,

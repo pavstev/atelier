@@ -1,7 +1,7 @@
 # Values
 
 Values turns the photo into a few flat tones, so you can see the light and dark masses before you
-paint. Code: `crates/oil-core/src/values.rs`.
+paint. Code: `crates/atelier-core/src/values.rs`.
 
 ## What you see
 
@@ -43,7 +43,7 @@ There is no randomness, no clock and no hash map order, so the same input gives 
 
 Painters work from a few big masses, not from every gradient. About four chunks fit in working
 memory, so two to five tones is the useful range. The research is in
-[the science of values](../research/2026-11-04-oil-value-science.md).
+[the science of values](../research/2026-11-04-painting-value-science.md).
 
 ## Known limits
 
