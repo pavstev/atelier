@@ -12,13 +12,21 @@ import {
 	useEffect,
 	useEffectEvent,
 	useId,
+	useMemo,
 	useRef,
 	useState,
 } from "react";
 import type { StageId } from "@/features/tools/settings";
 import { Segment } from "@/ui/fields";
 import { IconButton } from "@/ui/icons";
-import { type Mix, masstone, mixFor, PAINTS, type Rgb } from "./mix";
+import {
+	type Mix,
+	masstone,
+	mixFor,
+	PAINTS,
+	type Rgb,
+	skinString,
+} from "./mix";
 import { colorAround } from "./sample";
 
 type Layers = Record<StageId, { image: ImageData; opacity: number } | null>;
@@ -41,6 +49,9 @@ const TAP_SLOP = 8;
 /** The card's room, in px, for flipping it away from the edge. */
 const CARD_W = 304;
 const CARD_H = 290;
+/** The extra height of a held card: the dry hint, and with it the skin string. */
+const HELD = 50;
+const HELD_SKIN = 130;
 /** The gap between the cursor and the card, in px. */
 const GAP = 18;
 /** A key step of the probe, in px; with Shift the big one. */
@@ -246,6 +257,8 @@ export default function Picker(p: {
 			: "";
 
 	const room = box.current;
+	// a held card is taller: the dry hint, and for skin the three mixes of the skin string
+	const cardH = pinned ? CARD_H + (mix?.skin ? HELD_SKIN : HELD) : CARD_H;
 	let style: React.CSSProperties | null = null;
 	if (fixed) style = { right: 12, top: 12 };
 	else if (at) {
@@ -254,8 +267,8 @@ export default function Picker(p: {
 				? at.x - GAP - CARD_W
 				: at.x + GAP;
 		const top =
-			room && at.y + GAP + CARD_H > room.clientHeight
-				? at.y - GAP - CARD_H
+			room && at.y + GAP + cardH > room.clientHeight
+				? at.y - GAP - cardH
 				: at.y + GAP;
 		style = { left: Math.max(4, left), top: Math.max(4, top) };
 	}
@@ -480,6 +493,54 @@ function Card(p: {
 			) : (
 				<p className="text-muted">Click to hold this color. Esc lets it go.</p>
 			)}
+			{p.pinned && (
+				<div className="flex flex-col gap-1.5 border-t border-separator pt-2">
+					{mix.skin && <SkinString color={p.color} />}
+					<p
+						data-testid="picker-dry"
+						className="text-[0.7rem] leading-tight text-muted"
+					>
+						Acrylic dries a little darker. Mix it a little lighter than the
+						photo.
+					</p>
+				</div>
+			)}
 		</div>
+	);
+}
+
+/** Three mixes of this skin tone, warm, same and cool, of one lightness and with no black. */
+function SkinString(p: { color: Rgb }) {
+	const string = useMemo(() => skinString(p.color), [p.color]);
+	const rows = [
+		["Warm", string.warm],
+		["Same", string.same],
+		["Cool", string.cool],
+	] as const;
+	return (
+		<ul
+			data-testid="picker-skin"
+			aria-label="Skin string: a warm, a same and a cool mix of one lightness"
+			className="flex flex-col gap-1"
+		>
+			{rows.map(([name, m]) => (
+				<li
+					key={name}
+					data-testid={`picker-skin-${name.toLowerCase()}`}
+					data-mix={hex(m.result)}
+					className="flex items-center gap-1.5"
+				>
+					<span
+						aria-hidden="true"
+						className="size-4 shrink-0 rounded-(--radius-chip) border border-separator"
+						style={{ backgroundColor: css(m.result) }}
+					/>
+					<span className="w-9 shrink-0 font-medium">{name}</span>
+					<span className="min-w-0 flex-1 leading-tight">
+						{recipeWords(m) || "white"}
+					</span>
+				</li>
+			))}
+		</ul>
 	);
 }

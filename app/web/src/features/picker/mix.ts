@@ -16,6 +16,7 @@ import {
 	labOfRgb,
 	labOfXyz,
 	type Rgb,
+	rgbOfLab,
 	rgbOfXyz,
 	surface,
 	xyzOf,
@@ -35,6 +36,8 @@ export type Mix = {
 	/** CIEDE2000 between the wanted color and the result. Under 1 cannot be seen; under 3 is a
 	 * match for the eye in a side-by-side look. */
 	error: number;
+	/** The wanted color is skin-like, so it was mixed without black when that matches closely. */
+	skin: boolean;
 };
 
 /** The cost of using one more paint, in CIEDE2000 units. A paint is worth adding only when the
@@ -130,12 +133,54 @@ function toParts(w: readonly number[]): number[] {
 const cache = new Map<string, Mix>();
 const CACHE_MAX = 400;
 
-/** The best recipe for a color. The same color gives the same answer. */
+const BLACK = PAINTS.findIndex((p) => p.id === "black");
+/** A skin recipe is good enough without black when it is a close match to the eye. */
+const SKIN_CLOSE = 3;
+
+/** Is this a skin-like color: warm hue (red to yellow-orange), soft chroma, not near white or black?
+ * Teachers mix such colors from the chromatic paints, because black turns skin gray and muddy. */
+export function isSkin([l, a, b]: Lab): boolean {
+	const chroma = Math.hypot(a, b);
+	const hue = (Math.atan2(b, a) * 180) / Math.PI;
+	return (
+		l >= 25 && l <= 92 && chroma >= 8 && chroma <= 45 && hue >= 20 && hue <= 80
+	);
+}
+
+/** The best recipe for a color. The same color gives the same answer. A skin-like color is mixed
+ * without black first, and black comes in only when the match is not close without it. */
 export function mixFor(rgb: Rgb): Mix {
 	const key = rgb.join(",");
 	const hit = cache.get(key);
 	if (hit) return hit;
 
+	const skin = isSkin(labOfRgb(rgb));
+	let mix: Mix;
+	if (skin) {
+		const clean = search(rgb, [BLACK]);
+		if (clean.error < SKIN_CLOSE) mix = clean;
+		else {
+			const full = search(rgb, []);
+			mix = clean.error <= full.error + 1 ? clean : full;
+		}
+	} else mix = search(rgb, []);
+	mix = { ...mix, skin };
+	if (cache.size >= CACHE_MAX) cache.clear();
+	cache.set(key, mix);
+	return mix;
+}
+
+/** Three mixes of one skin tone with the same lightness: a warmer, the same, and a cooler one.
+ * A painter keeps one string of them on the palette and places them where the light turns. */
+export function skinString(rgb: Rgb): { warm: Mix; same: Mix; cool: Mix } {
+	const [l, a, b] = labOfRgb(rgb);
+	const shift = (da: number, db: number) =>
+		mixFor(rgbOfLab([l, a + da, b + db]));
+	return { warm: shift(3, 4), same: mixFor(rgb), cool: shift(-3, -5) };
+}
+
+/** The search itself: the best recipe for a color with the `blocked` paints left out. */
+function search(rgb: Rgb, blocked: readonly number[]): Mix {
 	const want = labOfRgb(rgb);
 	const error = (w: readonly number[]) => deltaE2000(labOfMix(w), want);
 	const count = (w: readonly number[]) => w.filter((x) => x > 1e-4).length;
@@ -190,6 +235,7 @@ export function mixFor(rgb: Rgb): Mix {
 	const byError: Start[] = [];
 	const byCost: Start[] = [];
 	eachRecipe(GRID, (w) => {
+		if (blocked.some((i) => (w[i] as number) > 0)) return;
 		const e = error(w);
 		const item = { w: [...w], e, c: e + PER_PAINT * count(w) };
 		keep(byError, item, "e");
@@ -202,7 +248,7 @@ export function mixFor(rgb: Rgb): Mix {
 	let best: number[] = starts[0]?.w ?? [1, 0, 0, 0, 0, 0];
 	let bestCost = Number.POSITIVE_INFINITY;
 	for (const start of starts) {
-		const allowed = new Array<boolean>(P).fill(true);
+		const allowed = PAINTS.map((_, i) => !blocked.includes(i));
 		let w = refine(start.w, allowed);
 		for (;;) {
 			const here = total(w);
@@ -253,8 +299,7 @@ export function mixFor(rgb: Rgb): Mix {
 		parts: toParts(weights),
 		result: rgbOfMix(weights),
 		error: error(weights),
+		skin: false,
 	};
-	if (cache.size >= CACHE_MAX) cache.clear();
-	cache.set(key, mix);
 	return mix;
 }

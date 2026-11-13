@@ -24,7 +24,8 @@ paths:
   has `aria-pressed`; while on, `picker-card` follows the mouse, has `data-pinned`, `data-color`,
   `data-mix` and `data-error`, and holds `picker-swatch`, `picker-result`, `picker-parts` and one
   `picker-verdict`, `picker-ring` (the area under the mouse), and one `picker-white|yellow|red|lake|phthalo|black` row with `data-share` and
-  `data-parts`; `picker-mark` is the
+  `data-parts`; a held card also has `picker-dry` (the dry hint) and, for a skin color,
+  `picker-skin` with `picker-skin-warm|same|cool` rows (each has `data-mix`); `picker-mark` is the
   pin), `tool-popup` (the open card or sheet;
   has `data-tool`), `tools` (the body inside a card; only one card is open at a time),
   `opacity-base`, `opacity-edges`, `opacity-grid`, `zoom-menu` (the zoom button; has `data-locked`),

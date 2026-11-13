@@ -12,6 +12,7 @@ import {
 	PAINTS,
 	type Rgb,
 	rgbOfMix,
+	skinString,
 } from "../src/features/picker/mix";
 import { colorAround, colorAt } from "../src/features/picker/sample";
 import {
@@ -185,6 +186,35 @@ test("test_a_gray_is_white_and_black_and_never_a_color_paint", () => {
 	}
 });
 
+test("test_skin_is_mixed_without_black_when_the_match_stays_close", () => {
+	// light, medium and tan skin: black turns skin gray, so the recipe must not hold any
+	for (const c of [
+		[236, 196, 168],
+		[210, 160, 124],
+		[176, 124, 90],
+	] as Rgb[]) {
+		const m = mixFor(c);
+		expect(m.skin).toBe(true);
+		expect(share(m, "black")).toBe(0);
+		expect(m.error).toBeLessThan(3);
+	}
+	// a blue is not skin, and a gray is not skin: both keep the old search
+	expect(mixFor([60, 90, 200]).skin).toBe(false);
+	expect(mixFor([128, 128, 128]).skin).toBe(false);
+});
+
+test("test_a_skin_string_has_a_warm_a_same_and_a_cool_mix_of_one_lightness", () => {
+	const { warm, same, cool } = skinString([210, 160, 124]);
+	for (const m of [warm, same, cool]) expect(share(m, "black")).toBe(0);
+	const [lw, , bw] = labOfMix(warm.weights);
+	const [ls, , bs] = labOfMix(same.weights);
+	const [lc, , bc] = labOfMix(cool.weights);
+	expect(bw).toBeGreaterThan(bs);
+	expect(bs).toBeGreaterThan(bc);
+	expect(Math.abs(lw - ls)).toBeLessThan(4);
+	expect(Math.abs(lc - ls)).toBeLessThan(4);
+});
+
 test("test_mix_shares_add_up_to_one_and_parts_are_whole_numbers", () => {
 	for (const c of [
 		[128, 128, 128],
@@ -341,10 +371,15 @@ test("test_a_held_card_copies_lets_go_and_averages_an_area", async ({
 	await page.mouse.move(x, y);
 	// a card that only follows the mouse has no buttons
 	await expect(page.getByTestId("picker-copy")).toHaveCount(0);
+	await expect(page.getByTestId("picker-dry")).toHaveCount(0);
 	await page.mouse.click(x, y);
 	const card = page.getByTestId("picker-card");
 	await expect(card).toHaveAttribute("data-pinned", "true");
 	await expect(page.getByRole("group", { name: "Paint mix" })).toBeVisible();
+	// a held card says acrylic dries darker
+	await expect(page.getByTestId("picker-dry")).toContainText(
+		"dries a little darker",
+	);
 
 	// the area is a real choice; one card sample size is picked at a time
 	const area = page.getByTestId("picker-area");

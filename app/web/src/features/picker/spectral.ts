@@ -126,6 +126,22 @@ export function rgbOfXyz([x, y, z]: Lab): Rgb {
 
 export const labOfRgb = (c: Rgb): Lab => labOfXyz(xyzOfRgb(c));
 
+const fInverse = (t: number) =>
+	t ** 3 > 216 / 24389 ? t ** 3 : (116 * t - 16) / (24389 / 27);
+
+/** The XYZ color (D65) of a CIE L*a*b* color, the inverse of `labOfXyz`. */
+export function xyzOfLab([l, a, b]: Lab): Lab {
+	const fy = (l + 16) / 116;
+	return [
+		WHITE[0] * fInverse(fy + a / 500),
+		fInverse(fy),
+		WHITE[2] * fInverse(fy - b / 200),
+	];
+}
+
+/** The sRGB color (whole numbers, clipped to the screen) of a CIE L*a*b* color. */
+export const rgbOfLab = (c: Lab): Rgb => rgbOfXyz(xyzOfLab(c));
+
 /** Saunderson settings: the paint surface, as Berns used for acrylic. */
 const K1 = 0.035;
 const K2 = 0.6;

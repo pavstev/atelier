@@ -44,6 +44,13 @@ Left to right:
    - **Keyboard and screen reader.** With the picker on, the stage takes the focus: the arrow keys
      move a probe (Shift for big steps), Enter holds the color and Esc lets go. A held recipe is read
      out as a status message, and the stage says how to use it.
+   - **Skin without black.** A skin-like color (warm hue, soft color, not near white or black) is
+     mixed from white, yellow, red and the two blues first. Black turns skin gray and muddy. Black
+     comes in only when the match is not "close" without it (a CIEDE2000 difference of 3 or more).
+   - **Skin string.** A held skin color also shows three mixes of the same lightness: Warm, Same
+     and Cool, for the places where the light turns the skin warmer or cooler. None holds black.
+   - **Dry hint.** A held card says that acrylic dries a little darker, so mix it a little
+     lighter than the photo. The size of the shift is not measured, so the card gives no number.
    - The white paint is taken as the white of the screen, so the card reads relative to your white.
    - The prediction is physical: each paint is a spectrum and a tinting strength, a mix adds their
      absorption and scattering (Kubelka-Munk), and the result is read under daylight. How it works,
