@@ -60,7 +60,7 @@ test("test_legend_shows_munsell_values", async ({ studio }) => {
 	}
 });
 
-test("test_legend_color_opens_big_on_a_gray_mat", async ({ studio }) => {
+test("test_legend_color_is_held_in_the_paint_mix_card", async ({ studio }) => {
 	const { page } = studio;
 	await studio.open(MAIN_PHOTO);
 	await studio.base("values");
@@ -69,21 +69,28 @@ test("test_legend_color_opens_big_on_a_gray_mat", async ({ studio }) => {
 	const bg = (el: Element) => getComputedStyle(el).backgroundColor;
 	const first = await swatches.first().evaluate(bg);
 	await swatches.first().getByRole("button").click();
-	const zoom = page.getByTestId("swatch-zoom");
-	await expect(zoom).toBeVisible();
-	const big = page.getByTestId("swatch-zoom-color");
-	expect(await big.evaluate(bg)).toBe(first);
-	const box = await big.boundingBox();
-	expect(box?.width ?? 0).toBeGreaterThan(300);
-	// the arrow keys switch to the next color, a press fills the screen, Escape goes back
-	await page.keyboard.press("ArrowRight");
-	expect(await big.evaluate(bg)).toBe(await swatches.nth(1).evaluate(bg));
-	await big.click();
-	await expect(page.getByTestId("swatch-full")).toBeVisible();
+	// there is no full screen zoom any more: the base card gives way to the paint mix card
+	await expect(page.getByTestId("swatch-zoom")).toHaveCount(0);
+	await expect(page.getByTestId("tool-popup")).toHaveCount(0);
+	const card = page.getByTestId("picker-card");
+	await expect(card).toBeVisible();
+	await expect(card).toHaveAttribute("data-pinned", "true");
+	await expect(page.getByTestId("tool-picker")).toHaveAttribute(
+		"aria-pressed",
+		"true",
+	);
+	expect(await page.getByTestId("picker-swatch").evaluate(bg)).toBe(first);
+	await expect(card.getByRole("heading")).toHaveText(/^Paint mix · V\d+$/);
+	// a legend color has no photo spot, so no sample area
+	await expect(page.getByTestId("picker-area")).toHaveCount(0);
+	// another swatch replaces it; Esc and the close button let go
+	await page.getByTestId("tool-base").click();
+	await swatches.nth(1).getByRole("button").click();
+	expect(await page.getByTestId("picker-swatch").evaluate(bg)).toBe(
+		await swatches.nth(1).evaluate(bg),
+	);
 	await page.keyboard.press("Escape");
-	await expect(zoom).toBeVisible();
-	await page.keyboard.press("Escape");
-	await expect(zoom).toHaveCount(0);
+	await expect(page.getByTestId("picker-copy")).toHaveCount(0);
 });
 
 test("test_opacity_changes_the_canvas_style", async ({ studio }) => {

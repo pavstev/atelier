@@ -1,16 +1,12 @@
-// The color legend of Values and Shapes, and the zoom that shows one color big on a neutral gray
-// mat, so a painter can hold a brush or a paint chip next to it on the screen. The mat and the
-// black and white on it are plain colors on purpose: they must not follow the theme.
-import { Button } from "@heroui/react";
-import { useEffect, useState } from "react";
+// The color legend of Values and Shapes: one swatch per tone or pile, with its Munsell value. A
+// press holds that color in the paint mix card of the color picker (`features/picker`).
+import type { Fixed } from "@/features/picker/Picker";
 
 /** The CIE L* of each Munsell value V0 to V10. */
 const MUNSELL_L = [
 	0, 10.6, 20.5, 30.8, 41.2, 51.6, 61.7, 71.6, 81.3, 91.1, 100,
 ];
 
-/** The mat around a zoomed color: a neutral middle gray (Munsell N5, L* 51.6). */
-const MAT = "rgb(124, 124, 124)";
 const BLACK = "#000";
 const WHITE = "#fff";
 
@@ -35,11 +31,11 @@ const hex = (t: number[]) =>
 const ink = (t: number[]) =>
 	0.299 * t[0] + 0.587 * t[1] + 0.114 * t[2] > 128 ? BLACK : WHITE;
 
-/** The legend: one button per tone or pile. A press opens the zoom on that color. */
+/** The legend: one button per tone or pile. A press holds that color in the paint mix card. */
 export function Legend(p: {
 	tones: number[][];
 	label: string;
-	onPick: (i: number) => void;
+	onPick: (f: Fixed) => void;
 }) {
 	return (
 		<ol
@@ -57,9 +53,14 @@ export function Legend(p: {
 				>
 					<button
 						type="button"
-						aria-label={`Zoom V${munsellValue(t)} ${hex(t)}`}
-						onClick={() => p.onPick(i)}
-						className="flex size-full cursor-zoom-in items-center justify-center rounded-(--radius-chip) atelier-focus"
+						aria-label={`Paint mix for V${munsellValue(t)} ${hex(t)}`}
+						onClick={() =>
+							p.onPick({
+								rgb: [t[0] as number, t[1] as number, t[2] as number],
+								label: `V${munsellValue(t)}`,
+							})
+						}
+						className="flex size-full cursor-pointer items-center justify-center rounded-(--radius-chip) atelier-focus"
 						style={{ color: ink(t) }}
 					>
 						V{munsellValue(t)}
@@ -67,91 +68,5 @@ export function Legend(p: {
 				</li>
 			))}
 		</ol>
-	);
-}
-
-/** One color big on the gray mat, its value and its numbers, and the other colors to switch.
- * The arrow keys switch, Escape closes, a press on the big color fills the screen with it. */
-export function SwatchZoom(p: {
-	tones: number[][];
-	at: number;
-	onAt: (i: number) => void;
-	onClose: () => void;
-}) {
-	const [full, setFull] = useState(false);
-	const { tones, at, onAt, onClose } = p;
-	const t = tones[at];
-	useEffect(() => {
-		const key = (e: KeyboardEvent) => {
-			if (e.key === "Escape") {
-				if (full) setFull(false);
-				else onClose();
-			} else if (e.key === "ArrowRight") {
-				onAt((at + 1) % tones.length);
-			} else if (e.key === "ArrowLeft") {
-				onAt((at + tones.length - 1) % tones.length);
-			}
-		};
-		window.addEventListener("keydown", key);
-		return () => window.removeEventListener("keydown", key);
-	}, [at, full, onAt, onClose, tones.length]);
-	if (!t) return null;
-	if (full) {
-		return (
-			<button
-				type="button"
-				data-testid="swatch-full"
-				aria-label="Back to the zoom"
-				onClick={() => setFull(false)}
-				className="fixed inset-0 z-(--z-banner) cursor-zoom-out"
-				style={{ backgroundColor: css(t) }}
-			/>
-		);
-	}
-	return (
-		<div
-			role="dialog"
-			aria-modal="true"
-			aria-label="Color zoom"
-			data-testid="swatch-zoom"
-			className="fixed inset-0 z-(--z-drawer) flex flex-col items-center justify-center gap-4 p-6"
-			style={{ backgroundColor: MAT, color: BLACK }}
-		>
-			<button
-				type="button"
-				data-testid="swatch-zoom-color"
-				aria-label="Fill the screen with this color"
-				onClick={() => setFull(true)}
-				className="aspect-square w-[min(62vh,80vw)] cursor-zoom-in rounded-(--radius-chip)"
-				style={{ backgroundColor: css(t) }}
-			/>
-			<p className="font-mono text-base font-medium">
-				V{munsellValue(t)} · {hex(t)} · rgb({t[0]}, {t[1]}, {t[2]})
-			</p>
-			<ol className="flex flex-wrap justify-center gap-2" aria-label="Colors">
-				{tones.map((c, i) => (
-					// biome-ignore lint/suspicious/noArrayIndexKey: two piles can share a color; the list never reorders
-					<li key={`${i}-${c.join(",")}`}>
-						<button
-							type="button"
-							aria-label={`V${munsellValue(c)} ${hex(c)}`}
-							aria-pressed={i === at}
-							onClick={() => onAt(i)}
-							className="size-14 rounded-(--radius-chip) border-2 border-transparent"
-							style={{
-								backgroundColor: css(c),
-								borderColor: i === at ? BLACK : undefined,
-							}}
-						/>
-					</li>
-				))}
-			</ol>
-			<div className="flex items-center gap-3 text-sm">
-				<span>Arrow keys switch · press the color to fill the screen</span>
-				<Button variant="secondary" onPress={onClose} autoFocus>
-					Close
-				</Button>
-			</div>
-		</div>
 	);
 }

@@ -20,8 +20,8 @@ Six presets:
 tones in Gray or in Umber.
 
 The legend in the Base pop-up shows each tone as a Munsell value, V1 (dark) to V9 (light). Press a
-swatch to see it big on a middle gray mat with its hex and RGB, so you can hold a brush or a paint
-chip next to it. Press it again to fill the screen.
+swatch to hold that color in the paint mix card of the color picker, with its hex and the amounts of
+white, yellow, red, blue and black to mix for it.
 
 ## How it is made
 

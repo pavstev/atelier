@@ -1,7 +1,7 @@
 // The keyboard shortcuts, kept few: hold Space to see the bare photo, the arrow keys move the photo
 // (10 px, Shift for 100 px), [ hides or shows the side panel. A key does nothing
 // when the focus is in a panel, a text box, a slider, a menu or a dialog, so those keep their own
-// keys. The color zoom (`SwatchZoom`) has its own arrows; it turns these off with `enabled`.
+// keys.
 import { useEffect, useEffectEvent } from "react";
 
 /** Where a key belongs to the thing that has the focus. */
@@ -21,8 +21,6 @@ const ARROWS: Record<string, [number, number]> = {
 };
 
 type Handlers = {
-	/** False while something else (the color zoom) uses the keys. */
-	enabled: boolean;
 	hasPhoto: boolean;
 	onHold: (down: boolean) => void;
 	onPan: (dx: number, dy: number) => void;
@@ -34,7 +32,7 @@ export function useShortcuts(p: Handlers) {
 	const hold = useEffectEvent((down: boolean) => p.onHold(down));
 	/** Acts on a key; true when it asks for the hold (Space). */
 	const act = useEffectEvent((e: KeyboardEvent): boolean => {
-		if (!p.enabled || e.defaultPrevented) return false;
+		if (e.defaultPrevented) return false;
 		if (e.ctrlKey || e.metaKey || e.altKey) return false;
 		const t = e.target instanceof Element ? e.target : document.body;
 		if (t.closest(OWN_KEYS)) return false;

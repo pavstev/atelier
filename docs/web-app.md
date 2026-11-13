@@ -24,7 +24,7 @@ Left to right:
      values, shapes or paper) and looks pressed when the base is not Photo.
    - A pop-up has the tool name and the controls, one line each: the main choice at full width,
      then its settings, then Opacity last. The Edges and Grid pop-ups also have an on/off switch. The Values and Shapes legend is in the Base pop-up. Pressing a legend
-     swatch closes the open pop-up.
+     swatch closes the open pop-up and holds that color in the color picker card (see 3).
    - Swiping down also closes the phone sheet.
 3. **Color picker.** A pipette toggle. While it is on, the cursor is a crosshair and a card
    follows the mouse over the photo. It reads the picture you see now, so it works in Photo, Values,
@@ -33,8 +33,17 @@ Left to right:
    yellow, red, lake blue, phthalo blue and black to mix for it, as percent bars and as small whole
    parts, with "a touch of" for a strong paint in a tiny share. The label says "same to the eye"
    (a CIEDE2000 difference under 1), "close match" (under 3) or "nearest mix" (your paints cannot
-   reach the color). A click or a tap pins the card to that spot (it stays there while you zoom or
-   move the photo); the next click moves it; Esc lets it go. A drag still moves the photo.
+   reach the color). A ring on the photo shows the area that is read.
+   - **Hold a color.** A click or a tap holds the card at that spot (it stays there while you
+     zoom or move the photo). A held card has a **Copy** button (the recipe as text), a **close**
+     button and a **Sample area** choice: Point, Small, Medium or Large. A larger area averages the
+     light of a patch, as a painter judges it, and not one grain of the photo. Esc also lets go.
+     A drag still moves the photo.
+   - **Legend swatches.** Pressing a swatch of the Values or Shapes legend holds that color in the
+     same card (it has no sample area). The Base pop-up closes.
+   - **Keyboard and screen reader.** With the picker on, the stage takes the focus: the arrow keys
+     move a probe (Shift for big steps), Enter holds the color and Esc lets go. A held recipe is read
+     out as a status message, and the stage says how to use it.
    - The white paint is taken as the white of the screen, so the card reads relative to your white.
    - The prediction is physical: each paint is a spectrum and a tinting strength, a mix adds their
      absorption and scattering (Kubelka-Munk), and the result is read under daylight. How it works,
@@ -63,8 +72,8 @@ Grid.
   no photo, so only the lines show (hold See photo to see the photo).
   - **Values:** six presets (Notan, Three, Five, Shadow family, Light family, Families), Detail,
     and Gray or Umber. The legend in the Base pop-up shows the Munsell value of each tone, V1
-    (dark) to V9 (light). Press a swatch to see it big on a middle gray mat with its hex and RGB.
-    Press it again to fill the screen.
+    (dark) to V9 (light). Press a swatch to hold that color in the paint mix card (see the color
+    picker in the bottom bar).
   - **Shapes:** Step and Detail. Step is the paint order: 1 Shadows, 2 Halftones, 3 Lights,
     4 Accents. The legend lists the piles of paint to mix in that step.
 - **Edges:** Lines, Transfer or Masses. Amount 0 to 100 (starts at 67). Width 1 to 10 (starts at 5).

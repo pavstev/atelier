@@ -15,8 +15,7 @@ paths:
   `edges-mode`, `edges-amount`, `edges-even`, `edges-width`, `grid-mode`, `grid-cells`, `grid-width`,
   `grid-group`, `grid-center`, `grid-paint`, `grid-color`, `values-detail`, `values-tint`,
   `shapes-detail`, `layer-edges`, `layer-grid`,
-  `stage`, `facts`, `file`, `error`, `legend`, `legend-swatch`, `swatch-zoom`,
-  `swatch-zoom-color`, `swatch-full`, `lock-width`, `screen-width`, `screen-found`, `lock-card`
+  `stage`, `facts`, `file`, `error`, `legend`, `legend-swatch`, `lock-width`, `screen-width`, `screen-found`, `lock-card`
   (the small cm card),
   `photos`, `photo-scroll`, `photo-row` (has `data-active`), `photo-open`, `photo-add`, `photo-search-toggle`, `photo-search`, `photo-search-clear`, `photo-sort`,
   `photo-layout`, `photo-count`, `photo-rename`, `photo-name`, `photo-delete`, `stage-bar`, `logo`, `files-resize`, `panel-scrim`, `photo-card`, `photo-card-image`, `logo-outline`,
@@ -24,7 +23,7 @@ paths:
   `tool-base`, `tool-edges`, `tool-grid` (the bar buttons), `tool-picker` (the color picker toggle;
   has `aria-pressed`; while on, `picker-card` follows the mouse, has `data-pinned`, `data-color`,
   `data-mix` and `data-error`, and holds `picker-swatch`, `picker-result`, `picker-parts` and one
-  `picker-verdict` and one `picker-white|yellow|red|lake|phthalo|black` row with `data-share` and
+  `picker-verdict`, `picker-ring` (the area under the mouse), and one `picker-white|yellow|red|lake|phthalo|black` row with `data-share` and
   `data-parts`; `picker-mark` is the
   pin), `tool-popup` (the open card or sheet;
   has `data-tool`), `tools` (the body inside a card; only one card is open at a time),

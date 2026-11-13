@@ -13,7 +13,7 @@ import {
 	type Rgb,
 	rgbOfMix,
 } from "../src/features/picker/mix";
-import { colorAt } from "../src/features/picker/sample";
+import { colorAround, colorAt } from "../src/features/picker/sample";
 import {
 	BANDS,
 	deltaE2000,
@@ -286,10 +286,114 @@ test("test_picker_card_follows_the_mouse_pins_on_click_and_goes_on_esc", async (
 	await expect(card).toHaveAttribute("data-color", centre);
 	await expect(page.getByTestId("picker-mark")).toBeVisible();
 
-	// Esc lets it go; the toggle turns the picker off
+	// Esc lets it go, and the card follows the mouse again (the mouse was over the held card, so
+	// it moves back onto the photo first); the toggle turns the picker off
 	await page.keyboard.press("Escape");
+	await page.mouse.move(x - 30, y - 30);
 	await expect(card).toHaveAttribute("data-pinned", "false");
 	await toggle.click();
 	await expect(toggle).toHaveAttribute("aria-pressed", "false");
 	await expect(page.getByTestId("picker-card")).toHaveCount(0);
+});
+
+test("test_an_area_is_the_average_in_linear_light_and_a_point_is_the_pixel", () => {
+	// left half black, right half white, 20 by 1 pixels
+	const px = Array.from({ length: 20 }, (_, i) =>
+		i < 10 ? [0, 0, 0, 255] : [255, 255, 255, 255],
+	);
+	const photo = picture(20, 1, px);
+	const none = { base: null, edges: null, grid: null };
+	// a point is the pixel
+	expect(colorAround(photo, none, false, false, 3.5, 0.5, 0)).toEqual([
+		0, 0, 0,
+	]);
+	// an area on the edge is half the light, which is sRGB 188 and not 128
+	const mid = colorAround(
+		photo,
+		none,
+		false,
+		false,
+		10,
+		0.5,
+		3,
+	) as unknown as number[];
+	for (const c of mid) expect(Math.abs(c - 188)).toBeLessThanOrEqual(12);
+	// a flat area is its color; off the photo it is null
+	expect(colorAround(photo, none, false, false, 3, 0.5, 2)).toEqual([0, 0, 0]);
+	expect(colorAround(photo, none, false, false, 25, 0.5, 2)).toBeNull();
+});
+
+/** The middle of the shown photo, in page px. */
+async function middle(page: import("@playwright/test").Page) {
+	const b = await box(page, "photo-canvas");
+	return { x: b.x + b.width / 2, y: b.y + b.height / 2 };
+}
+
+test("test_a_held_card_copies_lets_go_and_averages_an_area", async ({
+	studio,
+	context,
+}) => {
+	const { page } = studio;
+	await context.grantPermissions(["clipboard-read", "clipboard-write"]);
+	await studio.openSynthetic(240, 320, "held.png");
+	await page.getByTestId("tool-picker").click();
+	const { x, y } = await middle(page);
+	await page.mouse.move(x, y);
+	// a card that only follows the mouse has no buttons
+	await expect(page.getByTestId("picker-copy")).toHaveCount(0);
+	await page.mouse.click(x, y);
+	const card = page.getByTestId("picker-card");
+	await expect(card).toHaveAttribute("data-pinned", "true");
+	await expect(page.getByRole("group", { name: "Paint mix" })).toBeVisible();
+
+	// the area is a real choice; one card sample size is picked at a time
+	const area = page.getByTestId("picker-area");
+	await expect(area.getByRole("radio", { name: "Small" })).toBeChecked();
+	await area.getByRole("radio", { name: "Large" }).click();
+	await expect(area.getByRole("radio", { name: "Large" })).toBeChecked();
+	await expect(card).toHaveAttribute("data-pinned", "true");
+
+	// copy puts the recipe on the clipboard and says so
+	await page.getByTestId("picker-copy").click();
+	await expect(page.getByTestId("picker-copied")).toHaveText("Copied");
+	const text = await page.evaluate(() => navigator.clipboard.readText());
+	expect(text).toContain("Paint mix");
+	expect(text).toMatch(/#[0-9a-f]{6}/);
+	await expect(
+		page.getByRole("status").filter({ hasText: "Paint mix" }),
+	).toBeVisible();
+
+	// the close button lets go of the held color
+	await page.getByTestId("picker-close").click();
+	await expect(page.getByTestId("picker-mark")).toHaveCount(0);
+	await expect(page.getByTestId("picker-copy")).toHaveCount(0);
+});
+
+test("test_the_picker_works_from_the_keyboard", async ({ studio }) => {
+	const { page } = studio;
+	await studio.openSynthetic(240, 320, "keys.png");
+	await page.getByTestId("tool-picker").click();
+	const stage = page.getByTestId("stage");
+	// the stage can take the focus only while the picker is on, and says how to use it
+	await expect(stage).toHaveAttribute("tabindex", "0");
+	await expect(stage).toHaveAccessibleDescription(/arrow keys move the probe/i);
+	await stage.focus();
+	const before = await page.getByTestId("photo-canvas").boundingBox();
+	await page.keyboard.press("ArrowRight");
+	await page.keyboard.press("Shift+ArrowDown");
+	// the arrow keys moved the probe and not the photo
+	await expect(page.getByTestId("picker-ring")).toBeVisible();
+	expect(await page.getByTestId("photo-canvas").boundingBox()).toEqual(before);
+	await page.keyboard.press("Enter");
+	const card = page.getByTestId("picker-card");
+	await expect(card).toHaveAttribute("data-pinned", "true");
+	await expect(
+		page.getByRole("status").filter({ hasText: "Paint mix" }),
+	).toBeVisible();
+	// Esc lets go
+	await page.keyboard.press("Escape");
+	await expect(page.getByTestId("picker-copy")).toHaveCount(0);
+	// the picker off gives the stage back its normal keys
+	await page.getByTestId("tool-picker").click();
+	await expect(stage).not.toHaveAttribute("tabindex", /.*/);
 });

@@ -42,12 +42,18 @@ export default function StageBar(p: {
 	legend?: ReactNode;
 	/** The color picker is on. */
 	picking: boolean;
+	/** A color just held from the legend: the open card gives way to the picker card. */
+	picked: unknown;
 	onPicking: (on: boolean) => void;
 }) {
 	const [open, setOpen] = useState<Open>(null);
 	const { lock } = p;
 	const found = guessScreen();
 	const lockCard = useRef<HTMLDivElement>(null);
+
+	useEffect(() => {
+		if (p.picked) setOpen(null);
+	}, [p.picked]);
 
 	useEffect(() => {
 		if (open !== "lock") return;

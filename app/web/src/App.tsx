@@ -7,6 +7,7 @@ import type { Call } from "@/draw/calls";
 import { useLayers } from "@/draw/useLayers";
 import Files from "@/features/photos/Files";
 import { usePhotos } from "@/features/photos/usePhotos";
+import type { Fixed } from "@/features/picker/Picker";
 import StageArea from "@/features/stage/StageArea";
 import { Legend } from "@/features/stage/Swatches";
 import {
@@ -38,8 +39,8 @@ export default function App() {
 	const ph = usePhotos();
 	const input = useRef<HTMLInputElement>(null);
 	const root = useRef<HTMLDivElement>(null);
-	// the legend color shown big, or none
-	const [zoom, setZoom] = useState<number | null>(null);
+	// the legend color held in the paint mix card, or none
+	const [picked, setPicked] = useState<Fixed | null>(null);
 
 	const calls = useMemo(() => callsOf(look), [look]);
 	const { pictures, tones } = useLayers(
@@ -123,7 +124,7 @@ export default function App() {
 						<Legend
 							tones={tones}
 							label={look.base.kind === "values" ? "Value legend" : "Mix piles"}
-							onPick={setZoom}
+							onPick={setPicked}
 						/>
 					) : undefined
 				}
@@ -135,9 +136,8 @@ export default function App() {
 				}}
 				errors={ph.errors}
 				onDismissError={() => ph.dismissErrors()}
-				tones={tones}
-				zoomAt={zoom}
-				onZoomAt={setZoom}
+				picked={picked}
+				onPicked={setPicked}
 				onOpen={openPicker}
 				onFiles={(f) => void ph.open(f)}
 			/>

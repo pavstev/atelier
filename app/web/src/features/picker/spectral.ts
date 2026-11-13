@@ -96,16 +96,17 @@ export function labOfXyz([x, y, z]: Lab): Lab {
 	return [116 * fy - 16, 500 * (fx - fy), 200 * (fy - fz)];
 }
 
-const lin = (c: number) => {
+export const linearOf = (c: number) => {
 	const v = c / 255;
 	return v <= 0.04045 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4;
 };
-const enc = (v: number) =>
+/** The sRGB value (0 to 255, not rounded) of a linear-light value. */
+export const encodeOf = (v: number) =>
 	(v <= 0.0031308 ? v * 12.92 : 1.055 * v ** (1 / 2.4) - 0.055) * 255;
 
 /** XYZ of an sRGB color. */
 export function xyzOfRgb([r, g, b]: Rgb): Lab {
-	const [lr, lg, lb] = [lin(r), lin(g), lin(b)];
+	const [lr, lg, lb] = [linearOf(r), linearOf(g), linearOf(b)];
 	return [
 		0.4124564 * lr + 0.3575761 * lg + 0.1804375 * lb,
 		0.2126729 * lr + 0.7151522 * lg + 0.072175 * lb,
@@ -119,7 +120,7 @@ export function rgbOfXyz([x, y, z]: Lab): Rgb {
 	const lg = -0.969266 * x + 1.8760108 * y + 0.041556 * z;
 	const lb = 0.0556434 * x - 0.2040259 * y + 1.0572252 * z;
 	const c = (v: number) =>
-		Math.round(Math.min(255, Math.max(0, enc(Math.max(0, v)))));
+		Math.round(Math.min(255, Math.max(0, encodeOf(Math.max(0, v)))));
 	return [c(lr), c(lg), c(lb)];
 }
 

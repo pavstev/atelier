@@ -1,10 +1,10 @@
 // The middle of the screen: the stage with the photo, the bottom bar, the handle on the panel edge,
-// the error banner and the color zoom. It owns the zoom and pan (`useViewport`) and the Lock, so a
+// the error banner and the color picker. It owns the zoom and pan (`useViewport`) and the Lock, so a
 // drag or a wheel turn draws this part only and not the whole page.
 import { Button } from "@heroui/react";
 import { type ReactNode, type RefObject, useState } from "react";
 import { useFacts } from "@/draw/facts";
-import Picker from "@/features/picker/Picker";
+import Picker, { AREA_START, type Fixed } from "@/features/picker/Picker";
 import {
 	LAYOUT,
 	type Layout,
@@ -19,7 +19,6 @@ import { lockedWidth, useLock } from "./lockZoom";
 import ResizeHandle from "./ResizeHandle";
 import Stage from "./Stage";
 import StageBar from "./StageBar";
-import { SwatchZoom } from "./Swatches";
 import { useShortcuts } from "./useShortcuts";
 import { useViewport } from "./useViewport";
 
@@ -46,10 +45,9 @@ export default function StageArea(p: {
 	facts: Facts;
 	errors: string[];
 	onDismissError: () => void;
-	tones: number[][] | null;
-	/** Index of the legend color shown big, or null. */
-	zoomAt: number | null;
-	onZoomAt: (i: number | null) => void;
+	/** A color held from the legend, shown in the picker card, or null. */
+	picked: Fixed | null;
+	onPicked: (f: Fixed | null) => void;
 	onOpen: () => void;
 	onFiles: (files: File[]) => void;
 }) {
@@ -58,11 +56,17 @@ export default function StageArea(p: {
 	const [lock, setLock] = useLock();
 	const [hold, setHold] = useState(false);
 	const [picking, setPicking] = useState(false);
+	const [area, setArea] = useState(AREA_START);
+	// a color held from the legend turns the picker on
+	const [seen, setSeen] = useState<Fixed | null>(null);
+	if (p.picked !== seen) {
+		setSeen(p.picked);
+		if (p.picked) setPicking(true);
+	}
 	const viewport = useViewport(photo, p.photoId, lock.on, lockedWidth(lock));
 	const toggle = () =>
 		p.onLayout((l) => ({ ...l, panels: { left: !l.panels.left } }));
 	useShortcuts({
-		enabled: p.zoomAt === null,
 		hasPhoto: photo !== null,
 		onHold: setHold,
 		onPan: viewport.pan,
@@ -70,11 +74,6 @@ export default function StageArea(p: {
 	});
 	const widthOf = (w: number) =>
 		p.onLayout((l) => ({ ...l, widths: { left: w } }));
-	const toned =
-		(look.base.kind === "values" || look.base.kind === "shapes") &&
-		p.tones !== null &&
-		p.tones.length > 0;
-
 	return (
 		<main className="flex min-w-0 flex-1 flex-col">
 			<div className="@container relative min-h-0 flex-1">
@@ -120,6 +119,10 @@ export default function StageArea(p: {
 						paper={look.base.kind === "paper"}
 						hold={hold}
 						view={viewport.view}
+						fixed={p.picked}
+						onFixed={p.onPicked}
+						area={area}
+						onArea={setArea}
 					/>
 				)}
 				<EdgeHandle hidden={layout.panels.left} onToggle={toggle} />
@@ -146,15 +149,11 @@ export default function StageArea(p: {
 						onLook={p.onLook}
 						legend={p.legend}
 						picking={picking}
-						onPicking={setPicking}
-					/>
-				)}
-				{p.zoomAt !== null && toned && p.tones && (
-					<SwatchZoom
-						tones={p.tones}
-						at={Math.min(p.zoomAt, p.tones.length - 1)}
-						onAt={p.onZoomAt}
-						onClose={() => p.onZoomAt(null)}
+						picked={p.picked}
+						onPicking={(on) => {
+							setPicking(on);
+							if (!on) p.onPicked(null);
+						}}
 					/>
 				)}
 				{photo && (

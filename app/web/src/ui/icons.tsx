@@ -24,6 +24,8 @@ const ICONS = {
 	list: "M5.5 4h8M5.5 8h8M5.5 12h8M2.5 4h.01M2.5 8h.01M2.5 12h.01",
 	pipette:
 		"M11 1.8l3.2 3.2-1.6 1.6-3.2-3.2zM9.8 4.7L3.5 11v1.5H5l6.3-6.3M3.5 12.5l-1 1.5",
+	close: "M4 4l8 8M12 4l-8 8",
+	copy: "M5.5 5.5h7v8h-7zM3.5 10.5v-8h7",
 	left: "M10 3L5 8l5 5",
 	right: "M6 3l5 5-5 5",
 } as const;

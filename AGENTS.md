@@ -55,6 +55,8 @@ Do not bring these back.
   one. It reads the shown picture and gives a mix of white, yellow, red, lake blue, phthalo blue and black
   (`app/web/src/features/picker/`). Mixbox, a color list and a color picker panel stay dropped.
 
+- 2026-11-13: the Color zoom (a legend swatch shown big on a gray mat, then full screen). A legend
+  swatch now holds its color in the color picker card.
 - 2026-10-30: the PDF, the CLI, the color picker, ZIP export, the recent shelf, the worker count
   setting, watercolor and charcoal.
 - 2026-10-31: the old stage tables (the Stages tool is their new form), Squint, Coach tips, the

@@ -71,8 +71,8 @@
 		 *   stage   the photo and its layers
 		 *   bar     the bottom bar
 		 *   popup   pop-up cards, the scrim behind a drawer, the panel resize handle
-		 *   drawer  the side panel on a phone, the stage edge handle, the color zoom
-		 *   banner  messages and the logo, the full-screen color
+		 *   drawer  the side panel on a phone, the stage edge handle
+		 *   banner  messages and the logo
 		 *   toast   short notes over everything */
 		--z-stage: 0;
 		--z-bar: 10;

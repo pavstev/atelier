@@ -3,6 +3,7 @@
 // the picker reads what the eye sees, in any base. While the photo button is held it is the bare photo.
 import { PAPER, STAGE_IDS, type StageId } from "@/features/tools/settings";
 import type { Rgb } from "./mix";
+import { encodeOf, linearOf } from "./spectral";
 
 type Layers = Record<StageId, { image: ImageData; opacity: number } | null>;
 
@@ -53,4 +54,37 @@ export function colorAt(
 		Math.round(c[1] as number),
 		Math.round(c[2] as number),
 	];
+}
+
+/** The average color of a disk of radius `r` photo pixels around (x, y), judged as a painter does
+ * (a patch, not one speck of grain). The average is taken in linear light, where light adds up.
+ * Off the photo at the center it is null; a radius under 1 pixel is the pixel itself. */
+export function colorAround(
+	photo: ImageData,
+	layers: Layers,
+	paper: boolean,
+	hold: boolean,
+	x: number,
+	y: number,
+	r: number,
+): Rgb | null {
+	const center = colorAt(photo, layers, paper, hold, x, y);
+	if (!center || r < 1) return center;
+	// at most 9 by 9 samples across the disk
+	const step = Math.max(1, r / 4);
+	let n = 0;
+	const sum = [0, 0, 0];
+	for (let dy = -r; dy <= r + 1e-9; dy += step)
+		for (let dx = -r; dx <= r + 1e-9; dx += step) {
+			if (dx * dx + dy * dy > r * r + 1e-9) continue;
+			const c = colorAt(photo, layers, paper, hold, x + dx, y + dy);
+			if (!c) continue;
+			for (let k = 0; k < 3; k++)
+				sum[k] = (sum[k] as number) + linearOf(c[k] as number);
+			n++;
+		}
+	if (n === 0) return center;
+	const e = (v: number) =>
+		Math.round(Math.min(255, Math.max(0, encodeOf(v / n))));
+	return [e(sum[0] as number), e(sum[1] as number), e(sum[2] as number)];
 }
