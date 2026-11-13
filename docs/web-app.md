@@ -30,13 +30,18 @@ Left to right:
    follows the mouse over the photo. It reads the picture you see now, so it works in Photo, Values,
    Shapes and Paper, with Edges and Grid over them. On the left of the card is the color (the top
    half is the photo, the bottom half is what the recipe makes). On the right is how much white,
-   yellow, red, blue and black to mix for it, as percent bars and as small whole parts. The label says
-   "close match" when the recipe is within a color difference of 3, and "nearest mix" when your five
-   paints cannot reach the color. A click or a tap pins the card to that spot (it stays there while
-   you zoom or move the photo); the next click moves it; Esc lets it go. A drag still moves the
-   photo. The mix is an estimate: paint takes light away, so the sums use a weighted geometric mean of
-   the five paints in linear light. The tube colors are in `PAINTS` in
-   `app/web/src/features/picker/mix.ts`; set them to your tubes.
+   yellow, red, lake blue, phthalo blue and black to mix for it, as percent bars and as small whole
+   parts, with "a touch of" for a strong paint in a tiny share. The label says "same to the eye"
+   (a CIEDE2000 difference under 1), "close match" (under 3) or "nearest mix" (your paints cannot
+   reach the color). A click or a tap pins the card to that spot (it stays there while you zoom or
+   move the photo); the next click moves it; Esc lets it go. A drag still moves the photo.
+   - The white paint is taken as the white of the screen, so the card reads relative to your white.
+   - The prediction is physical: each paint is a spectrum and a tinting strength, a mix adds their
+     absorption and scattering (Kubelka-Munk), and the result is read under daylight. How it works,
+     the sources and the limits: [research/2026-11-13-acrylic-paint-spectra.md](research/2026-11-13-acrylic-paint-spectra.md).
+   - The spectra are typical shapes of each pigment, not measurements of your tubes, so the recipe
+     is a good start and not a promise. Test it on your palette. The paints are in `PAINTS` in
+     `app/web/src/features/picker/paints.ts`.
 4. **Zoom.** One button that shows the zoom now (for example "62%", with a chevron). Its menu has:
    - **Fit**, **100%** and **200%**.
    - **Real size (cm)...** opens a small card where you type the photo width in cm. On a built-in
@@ -122,8 +127,9 @@ has five folders. Paths below are under `src/`.
 - `features/photos/`: the photo list on this device and the photo on screen.
 - `features/stage/`: the stage, the bottom bar, zoom and pan, shortcuts, the real size lock and the
   color swatches.
-- `features/picker/`: the color picker: `mix.ts` (the paint recipe of a color), `sample.ts` (the
-  color the stage shows at a photo pixel) and `Picker.tsx` (the card).
+- `features/picker/`: the color picker: `spectral.ts` (the color science), `paints.ts` (the six
+  paints), `mix.ts` (the recipe of a color), `sample.ts` (the color the stage shows at a photo
+  pixel) and `Picker.tsx` (the card).
 - `features/tools/`: the pop-up cards of the bottom bar and the settings (`settings.ts`: the start
   values and ranges of every knob).
 - `draw/`: the layers worker, its client, the typed calls and the draw hook.

@@ -31,7 +31,7 @@ own, with the bench in [development/bench.md](development/bench.md).
 |---|---|---|
 | 59 | `mise run web:golden:bless` rewrites the four Edges goldens (`edges-amount-0`, `-33`, `-100`, `edges-mode-0`) when Edges did not change. Restore them from git after a bless. | `app/web/e2e/golden.spec.ts` |
 | 61 | Front-end review items not done: a focus trap for the Color zoom dialog, the memory of the decoded photos kept in the photo store (measure first), the bundle split (measure first), one rule for the stage tone (a design choice). | `app/web/src/features/stage/Swatches.tsx`, `app/web/src/features/photos/`, `app/web/vite.config.ts` |
-| 62 | Color picker: the five tube colors in `PAINTS` are guesses, and the mix is a geometric mean model, not a measured one. Set `PAINTS` to the real tubes, then test a few recipes on the palette. Fix idea: mix in a spectral model (Kubelka-Munk) with measured pigments. | `app/web/src/features/picker/mix.ts` |
+| 62 | Color picker: the six paints in `PAINTS` use typical spectra of their pigment class and a guessed tinting strength, not measurements of the owner's tubes (710 white, 120 yellow medium, 350 lake blue, 240 permanent red, 640 permanent black, 330 phthalocyanine blue; pigments and brand not known). Fix: a calibration card, where the painter picks each tube alone and with white from a photo of swatches, and the app fits the spectrum and strength; or a licensed set of measured acrylic K/S (Golden, Berns). | `app/web/src/features/picker/paints.ts`; [research/2026-11-13-acrylic-paint-spectra.md](research/2026-11-13-acrylic-paint-spectra.md) |
 
 ## Where leftovers come from
 

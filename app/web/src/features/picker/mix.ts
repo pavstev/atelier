@@ -1,92 +1,121 @@
-// The paint recipe of a color: how much white, yellow, red, blue and black to mix to match it.
-// Paint mixes by taking light away, so the model is a weighted geometric mean of the paints in
-// linear light (blue and yellow make green, not gray). It is an estimate: real tubes differ, so the
-// PAINTS colors below are the knob. Change them to the tubes on your table.
-// No photo data lives here, only one color in and one recipe out.
+// The paint recipe of a color: how much white, yellow, red, lake blue, phthalo blue and black to
+// mix to match it. The prediction is spectral. Each paint is a spectrum and a tinting strength
+// (`paints.ts`); a mix adds the absorption K and the scattering S of the paints by share, finds the
+// light the layer gives back with the Kubelka-Munk law, adds the surface (Saunderson), and turns
+// that spectrum into a screen color under daylight D65 (`spectral.ts`). The search then looks for
+// the shares whose color is closest to the wanted one by CIEDE2000, and prefers fewer paints.
+// One color goes in and one recipe comes out; no photo data lives here.
+import { PAINTS, type PaintId } from "./paints";
+import {
+	BANDS,
+	D65_WHITE,
+	deltaE2000,
+	ksOf,
+	kubelkaMunk,
+	type Lab,
+	labOfRgb,
+	labOfXyz,
+	type Rgb,
+	rgbOfXyz,
+	surface,
+	xyzOf,
+} from "./spectral";
 
-/** A color as sRGB, each channel 0 to 255. */
-export type Rgb = readonly [number, number, number];
-
-export type Paint = {
-	id: "white" | "yellow" | "red" | "blue" | "black";
-	name: string;
-	/** The color of the tube, straight from the tube, sRGB. */
-	rgb: Rgb;
-};
-
-/** The five paints, in the order the card lists them. */
-export const PAINTS: readonly Paint[] = [
-	{ id: "white", name: "White", rgb: [245, 243, 238] },
-	{ id: "yellow", name: "Yellow", rgb: [250, 215, 20] },
-	{ id: "red", name: "Red", rgb: [200, 25, 30] },
-	{ id: "blue", name: "Blue", rgb: [25, 35, 140] },
-	{ id: "black", name: "Black", rgb: [30, 28, 28] },
-];
+export type { PaintId };
+export { PAINTS, type Rgb };
 
 export type Mix = {
 	/** The share of each paint (same order as PAINTS), 0 to 1, adding up to 1. */
 	weights: number[];
-	/** The same shares as small whole numbers, for a brush: 6, 2, 1, 0, 0. */
+	/** The same shares as small whole numbers, for a brush: 6, 2, 1, 0, 0, 0. A paint that is only a
+	 * touch (a share too small for a whole part) has 0 here and a share above 0. */
 	parts: number[];
 	/** The color the recipe makes, sRGB. */
 	result: Rgb;
-	/** CIE76 color difference between the wanted color and the result; under 3 is hard to see. */
+	/** CIEDE2000 between the wanted color and the result. Under 1 cannot be seen; under 3 is a
+	 * match for the eye in a side-by-side look. */
 	error: number;
 };
 
-/** A paint share below this is left out of the recipe (a pinch nobody can measure). */
-const MIN_SHARE = 0.02;
-/** The cost of using one more paint, in color-difference units: simple recipes win a near tie. */
+/** The cost of using one more paint, in CIEDE2000 units. A paint is worth adding only when the
+ * match gets better by more than this (1 is a just visible difference), so simple recipes win. */
 const PER_PAINT = 1;
-/** A linear channel never goes under this, so a zero (pure yellow has no blue) cannot flatten a mix. */
-const FLOOR = 0.004;
-/** The first search puts the paints in steps of 1/GRID, then it refines. */
-const GRID = 20;
+/** The first search puts the paints in steps of 1/GRID; the best few are then refined. */
+const GRID = 10;
+const KEEP = 3;
 
-const lin = (c: number) => {
-	const x = c / 255;
-	return x <= 0.04045 ? x / 12.92 : ((x + 0.055) / 1.055) ** 2.4;
-};
-const enc = (x: number) => {
-	const v = x <= 0.0031308 ? x * 12.92 : 1.055 * x ** (1 / 2.4) - 0.055;
-	return Math.round(Math.min(1, Math.max(0, v)) * 255);
-};
+const N = BANDS.length;
+const P = PAINTS.length;
 
-type Vec = readonly [number, number, number];
-
-/** CIE L*a*b* of a linear-light color (D65). */
-function lab([r, g, b]: Vec): Vec {
-	const x = (0.4124564 * r + 0.3575761 * g + 0.1804375 * b) / 0.95047;
-	const y = 0.2126729 * r + 0.7151522 * g + 0.072175 * b;
-	const z = (0.0193339 * r + 0.119192 * g + 0.9503041 * b) / 1.08883;
-	const f = (t: number) =>
-		t > 216 / 24389 ? Math.cbrt(t) : ((24389 / 27) * t + 16) / 116;
-	const [fx, fy, fz] = [f(x), f(y), f(z)];
-	return [116 * fy - 16, 500 * (fx - fy), 200 * (fy - fz)];
-}
-
-const LOGS: Vec[] = PAINTS.map(
-	(p) => p.rgb.map((c) => Math.log(Math.max(lin(c), FLOOR))) as unknown as Vec,
+/** K and S of each paint at each band, from its inside reflectance and its strength. */
+const K = PAINTS.map((p) =>
+	Float64Array.from(p.spectrum, (r) => ksOf(r) * p.strength),
 );
+const S = PAINTS.map((p) => Float64Array.from(p.spectrum, () => p.strength));
 
-/** The linear-light color of a recipe: a weighted geometric mean of the paints. */
-function blend(w: readonly number[]): Vec {
-	let r = 0;
-	let g = 0;
-	let b = 0;
-	for (let i = 0; i < w.length; i++) {
-		const wi = w[i] as number;
-		if (wi === 0) continue;
-		const l = LOGS[i] as Vec;
-		r += wi * l[0];
-		g += wi * l[1];
-		b += wi * l[2];
+const spectrumBuf = new Float64Array(N);
+
+/** The spectrum, seen from outside, of a mix with these shares. */
+function spectrumOf(w: readonly number[]): Float64Array {
+	for (let b = 0; b < N; b++) {
+		let k = 0;
+		let s = 0;
+		for (let i = 0; i < P; i++) {
+			const wi = w[i] as number;
+			if (wi === 0) continue;
+			k += wi * ((K[i] as Float64Array)[b] as number);
+			s += wi * ((S[i] as Float64Array)[b] as number);
+		}
+		spectrumBuf[b] = surface(kubelkaMunk(k, s));
 	}
-	return [Math.exp(r), Math.exp(g), Math.exp(b)];
+	return spectrumBuf;
 }
 
-const distance = (a: Vec, b: Vec) =>
-	Math.hypot(a[0] - b[0], a[1] - b[1], a[2] - b[2]);
+/** What the eye sees is judged against the white of the table: the white paint on its own is the
+ * brightest white, so it becomes the white of the screen (255, 255, 255). A photo has no fixed
+ * exposure, so only this relative reading makes sense. */
+const FACTOR = (() => {
+	const white = xyzOf(spectrumOf(PAINTS.map((_, i) => (i === 0 ? 1 : 0))));
+	return [0, 1, 2].map((k) => (D65_WHITE[k] as number) / (white[k] as number));
+})();
+
+const seen = (w: readonly number[]): Lab => {
+	const xyz = xyzOf(spectrumOf(w));
+	return [
+		xyz[0] * (FACTOR[0] as number),
+		xyz[1] * (FACTOR[1] as number),
+		xyz[2] * (FACTOR[2] as number),
+	];
+};
+
+/** The CIE L*a*b* color of a recipe. */
+export const labOfMix = (w: readonly number[]): Lab => labOfXyz(seen(w));
+
+/** The screen color of a recipe. */
+export const rgbOfMix = (w: readonly number[]): Rgb => rgbOfXyz(seen(w));
+
+/** The color a paint has on its own, for its dot on the card. */
+export function masstone(i: number): Rgb {
+	const only = Array.from({ length: P }, (_, j) => (j === i ? 1 : 0));
+	return rgbOfMix(only);
+}
+
+/** Every recipe in steps of 1/n, handed to `visit`. */
+function eachRecipe(n: number, visit: (w: number[]) => void) {
+	const w = new Array<number>(P).fill(0);
+	const walk = (i: number, left: number) => {
+		if (i === P - 1) {
+			w[i] = left / n;
+			visit(w);
+			return;
+		}
+		for (let a = 0; a <= left; a++) {
+			w[i] = a / n;
+			walk(i + 1, left - a);
+		}
+	};
+	walk(0, n);
+}
 
 /** The shares as the smallest whole numbers that are close enough: 55%, 18%, 9% is 6, 2, 1. */
 function toParts(w: readonly number[]): number[] {
@@ -107,64 +136,123 @@ export function mixFor(rgb: Rgb): Mix {
 	const hit = cache.get(key);
 	if (hit) return hit;
 
-	const want = lab([lin(rgb[0]), lin(rgb[1]), lin(rgb[2])]);
-	const cost = (w: readonly number[]) => {
-		let used = 0;
-		for (const x of w) if (x > 1e-4) used++;
-		return distance(lab(blend(w)), want) + PER_PAINT * used;
+	const want = labOfRgb(rgb);
+	const error = (w: readonly number[]) => deltaE2000(labOfMix(w), want);
+	const count = (w: readonly number[]) => w.filter((x) => x > 1e-4).length;
+	const total = (w: readonly number[]) => error(w) + PER_PAINT * count(w);
+
+	/** Moves a small share from one allowed paint to another while the error falls, in finer steps. */
+	const refine = (start: number[], allowed: readonly boolean[]) => {
+		let w = start;
+		let e = error(w);
+		// strong colorants (black, phthalo) matter in shares of a tenth of a percent
+		for (const step of [
+			1 / 20,
+			1 / 40,
+			1 / 80,
+			1 / 160,
+			1 / 320,
+			1 / 640,
+			1 / 1280,
+		]) {
+			for (let round = 0; round < 100; round++) {
+				let moved = false;
+				for (let i = 0; i < P; i++)
+					for (let j = 0; j < P; j++) {
+						if (i === j || !allowed[j] || (w[i] as number) < step - 1e-9)
+							continue;
+						const next = [...w];
+						next[i] = (next[i] as number) - step;
+						next[j] = (next[j] as number) + step;
+						const k = error(next);
+						if (k < e - 1e-6) {
+							e = k;
+							w = next;
+							moved = true;
+						}
+					}
+				if (!moved) break;
+			}
+		}
+		return w;
 	};
 
-	// 1. every recipe in steps of 1/GRID
-	let best: number[] = [1, 0, 0, 0, 0];
-	let bestCost = Number.POSITIVE_INFINITY;
-	const w = [0, 0, 0, 0, 0];
-	for (let a = 0; a <= GRID; a++)
-		for (let b = 0; b <= GRID - a; b++)
-			for (let c = 0; c <= GRID - a - b; c++)
-				for (let d = 0; d <= GRID - a - b - c; d++) {
-					w[0] = a / GRID;
-					w[1] = b / GRID;
-					w[2] = c / GRID;
-					w[3] = d / GRID;
-					w[4] = (GRID - a - b - c - d) / GRID;
-					const k = cost(w);
-					if (k < bestCost) {
-						bestCost = k;
-						best = [...w];
-					}
-				}
+	// 1. every recipe in steps of 1/GRID; keep the few with the least color error and the few with
+	// the least cost, so a simple recipe is a start too (a gray starts as white and black)
+	type Start = { w: number[]; e: number; c: number };
+	const keep = (list: Start[], item: Start, by: "e" | "c") => {
+		if (list.length < KEEP || item[by] < (list[list.length - 1] as Start)[by]) {
+			list.push(item);
+			list.sort((x, y) => x[by] - y[by]);
+			if (list.length > KEEP) list.pop();
+		}
+	};
+	const byError: Start[] = [];
+	const byCost: Start[] = [];
+	eachRecipe(GRID, (w) => {
+		const e = error(w);
+		const item = { w: [...w], e, c: e + PER_PAINT * count(w) };
+		keep(byError, item, "e");
+		keep(byCost, item, "c");
+	});
+	const starts = [...byError, ...byCost.filter((x) => !byError.includes(x))];
 
-	// 2. move a small share from one paint to another while it helps, in finer and finer steps
-	for (const step of [1 / 40, 1 / 80, 1 / 160]) {
-		for (let round = 0; round < 200; round++) {
-			let moved = false;
-			for (let i = 0; i < best.length; i++)
-				for (let j = 0; j < best.length; j++) {
-					if (i === j || (best[i] as number) < step - 1e-9) continue;
-					const next = [...best];
-					next[i] = (next[i] as number) - step;
-					next[j] = (next[j] as number) + step;
-					const k = cost(next);
-					if (k < bestCost - 1e-6) {
-						bestCost = k;
-						best = next;
-						moved = true;
-					}
+	// 2. polish each with all paints, then take paints away while a simpler recipe costs less
+	// than the color it loses (`PER_PAINT` is what one more paint costs)
+	let best: number[] = starts[0]?.w ?? [1, 0, 0, 0, 0, 0];
+	let bestCost = Number.POSITIVE_INFINITY;
+	for (const start of starts) {
+		const allowed = new Array<boolean>(P).fill(true);
+		let w = refine(start.w, allowed);
+		for (;;) {
+			const here = total(w);
+			if (here < bestCost) {
+				bestCost = here;
+				best = w;
+			}
+			// try each paint in use, smallest share first, as the one to leave out
+			let better: number[] | null = null;
+			const order = w
+				.map((x, i) => [x, i] as const)
+				.filter(([x]) => x > 1e-4)
+				.sort((a, b) => a[0] - b[0]);
+			if (order.length <= 1) break;
+			for (const [, i] of order) {
+				const rest = allowed.map((a, j) => a && j !== i);
+				const moved = [...w];
+				const give = moved[i] as number;
+				moved[i] = 0;
+				// the share goes to the largest remaining paint, then the search settles it
+				let big = -1;
+				for (let j = 0; j < P; j++)
+					if (
+						rest[j] &&
+						(big < 0 || (moved[j] as number) > (moved[big] as number))
+					)
+						big = j;
+				moved[big] = (moved[big] as number) + give;
+				const cut = refine(moved, rest);
+				if (
+					total(cut) < here - 1e-6 &&
+					(!better || total(cut) < total(better))
+				) {
+					better = cut;
+					for (let j = 0; j < P; j++) allowed[j] = rest[j] as boolean;
+					break;
 				}
-			if (!moved) break;
+			}
+			if (!better) break;
+			w = better;
 		}
 	}
 
-	// 3. drop the pinches and say what the cleaned recipe makes
-	const kept = best.map((x) => (x < MIN_SHARE ? 0 : x));
-	const sum = kept.reduce((s, x) => s + x, 0) || 1;
-	const weights = kept.map((x) => x / sum);
-	const made = blend(weights);
+	// 3. say what the recipe makes; a strong colorant in a touch (a few percent) really matters
+	const weights = best;
 	const mix: Mix = {
 		weights,
 		parts: toParts(weights),
-		result: [enc(made[0]), enc(made[1]), enc(made[2])],
-		error: distance(lab(made), want),
+		result: rgbOfMix(weights),
+		error: error(weights),
 	};
 	if (cache.size >= CACHE_MAX) cache.clear();
 	cache.set(key, mix);

@@ -24,6 +24,8 @@ designs are deleted from main; `git log` keeps them.
   [research/2026-11-04-value-eval-spec.md](research/2026-11-04-value-eval-spec.md): the science
   behind Values and Shapes for oil painting, and the deterministic metrics that judge them
   (`bench/value-eval/`).
+- [research/2026-11-13-acrylic-paint-spectra.md](research/2026-11-13-acrylic-paint-spectra.md): the
+  model and the data limits behind the color picker's paint mix.
 
 ## History
 

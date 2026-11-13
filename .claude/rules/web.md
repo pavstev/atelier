@@ -22,9 +22,10 @@ paths:
   `photo-layout`, `photo-count`, `photo-rename`, `photo-name`, `photo-delete`, `stage-bar`, `logo`, `files-resize`, `panel-scrim`, `photo-card`, `photo-card-image`, `logo-outline`,
   `files`, `files-fold` and `files-expand` (the handle on the stage edge), and the bottom bar:
   `tool-base`, `tool-edges`, `tool-grid` (the bar buttons), `tool-picker` (the color picker toggle;
-  has `aria-pressed`; while on, `picker-card` follows the mouse, has `data-pinned`, `data-color`
-  and `data-mix`, and holds `picker-swatch`, `picker-result`, `picker-parts` and one
-  `picker-white|yellow|red|blue|black` row with `data-share` and `data-parts`; `picker-mark` is the
+  has `aria-pressed`; while on, `picker-card` follows the mouse, has `data-pinned`, `data-color`,
+  `data-mix` and `data-error`, and holds `picker-swatch`, `picker-result`, `picker-parts` and one
+  `picker-verdict` and one `picker-white|yellow|red|lake|phthalo|black` row with `data-share` and
+  `data-parts`; `picker-mark` is the
   pin), `tool-popup` (the open card or sheet;
   has `data-tool`), `tools` (the body inside a card; only one card is open at a time),
   `opacity-base`, `opacity-edges`, `opacity-grid`, `zoom-menu` (the zoom button; has `data-locked`),

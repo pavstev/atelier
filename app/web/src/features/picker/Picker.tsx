@@ -6,7 +6,7 @@
 // base is, so it works in Values and Shapes too. A drag still moves the photo.
 import { type RefObject, useEffect, useState } from "react";
 import type { StageId } from "@/features/tools/settings";
-import { type Mix, mixFor, PAINTS, type Rgb } from "./mix";
+import { type Mix, masstone, mixFor, PAINTS, type Rgb } from "./mix";
 import { colorAt } from "./sample";
 
 type Layers = Record<StageId, { image: ImageData; opacity: number } | null>;
@@ -14,8 +14,8 @@ type Layers = Record<StageId, { image: ImageData; opacity: number } | null>;
 /** A press that moves more than this, in px, is a drag and not a click. */
 const TAP_SLOP = 8;
 /** The card's room, in px, for flipping it away from the edge. */
-const CARD_W = 272;
-const CARD_H = 196;
+const CARD_W = 304;
+const CARD_H = 224;
 /** The gap between the cursor and the card, in px. */
 const GAP = 18;
 
@@ -126,26 +126,43 @@ export default function Picker(p: {
 	);
 }
 
+/** The dot and bar color of each paint: the paint on its own, as the model sees it. */
+const DOTS = PAINTS.map((_, i) => masstone(i));
+
+/** How the match reads: a color difference under 1 cannot be seen, under 3 is close. */
+function verdict(error: number): string {
+	if (error < 1) return "same to the eye";
+	if (error < 3) return "close match";
+	return "nearest mix";
+}
+
 function Card(p: { color: Rgb; pinned: boolean; style: React.CSSProperties }) {
 	const mix: Mix = mixFor(p.color);
 	const used = PAINTS.map((paint, i) => ({
 		paint,
+		dot: DOTS[i] as Rgb,
 		share: mix.weights[i] as number,
 		parts: mix.parts[i] as number,
 	}));
-	const words = used
-		.filter((u) => u.parts > 0)
-		.map((u) => `${u.parts} ${u.paint.name.toLowerCase()}`)
-		.join(", ");
+	// whole parts first, then a touch of any strong paint too small for a part
+	const words = [
+		...used
+			.filter((u) => u.parts > 0)
+			.map((u) => `${u.parts} ${u.paint.name.toLowerCase()}`),
+		...used
+			.filter((u) => u.parts === 0 && u.share >= 0.0003)
+			.map((u) => `a touch of ${u.paint.name.toLowerCase()}`),
+	].join(", ");
 	return (
 		<div
 			data-testid="picker-card"
 			data-pinned={p.pinned}
 			data-color={hex(p.color)}
 			data-mix={hex(mix.result)}
+			data-error={mix.error.toFixed(2)}
 			role={p.pinned ? "status" : undefined}
 			aria-hidden={p.pinned ? undefined : true}
-			className="floating-card absolute flex w-68 gap-3 rounded-(--radius-card) p-3 text-xs"
+			className="floating-card absolute flex w-76 gap-3 rounded-(--radius-card) p-3 text-xs"
 			style={p.style}
 		>
 			<div className="flex w-14 shrink-0 flex-col gap-1">
@@ -164,32 +181,35 @@ function Card(p: { color: Rgb; pinned: boolean; style: React.CSSProperties }) {
 				<span className="font-mono text-[0.65rem] leading-tight text-muted">
 					{hex(p.color)}
 				</span>
-				<span className="text-[0.65rem] leading-tight text-muted">
-					{mix.error < 3 ? "close match" : "nearest mix"}
+				<span
+					data-testid="picker-verdict"
+					className="text-[0.65rem] leading-tight text-muted"
+				>
+					{verdict(mix.error)}
 				</span>
 			</div>
 			<div className="flex min-w-0 flex-1 flex-col gap-1.5">
 				<ul className="flex flex-col gap-1" aria-label="Paint mix">
-					{used.map(({ paint, share, parts }) => (
+					{used.map(({ paint, dot, share, parts }) => (
 						<li
 							key={paint.id}
 							data-testid={`picker-${paint.id}`}
 							data-share={share.toFixed(3)}
 							data-parts={parts}
-							className="flex items-center gap-1.5"
+							className={`flex items-center gap-1.5 ${share === 0 ? "opacity-40" : ""}`}
 						>
 							<span
 								aria-hidden="true"
 								className="size-3 shrink-0 rounded-full border border-separator"
-								style={{ backgroundColor: css(paint.rgb) }}
+								style={{ backgroundColor: css(dot) }}
 							/>
-							<span className="w-11 shrink-0">{paint.name}</span>
+							<span className="w-[4.6rem] shrink-0">{paint.name}</span>
 							<span className="h-1.5 flex-1 overflow-hidden rounded-full bg-default">
 								<span
 									className="block h-full rounded-full"
 									style={{
 										width: `${Math.round(share * 100)}%`,
-										backgroundColor: css(paint.rgb),
+										backgroundColor: css(dot),
 										boxShadow: "inset 0 0 0 1px rgb(0 0 0 / 0.25)",
 									}}
 								/>
@@ -200,7 +220,7 @@ function Card(p: { color: Rgb; pinned: boolean; style: React.CSSProperties }) {
 						</li>
 					))}
 				</ul>
-				<p data-testid="picker-parts" className="text-muted">
+				<p data-testid="picker-parts" className="font-medium">
 					{words ? `Parts: ${words}` : ""}
 				</p>
 				{!p.pinned && <p className="text-muted">Click to hold this color.</p>}

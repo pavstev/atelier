@@ -15,7 +15,7 @@ Atelier is a photo study tool for painters: a Rust core (wasm) behind a React we
 | `app/web/src/` | `main.tsx` and `App.tsx` (the window) and five folders: | changing the page |
 | `app/web/src/features/photos/` | the photo list and its on-device store: `usePhotos.ts` (the photo on screen), `useDocsList.ts`, `addPhotos.ts`, `loadStored.ts`, `restoreSession.ts`, `missing.ts`, `search.ts`, `thumb.ts`, `Files.tsx`, `PhotoRow.tsx`, `PhotoCard.tsx` and `store/` (the IndexedDB store: `schema.ts`, `reducer.ts`, `idb.ts`) | changing the photo list |
 | `app/web/src/features/stage/` | the middle: `StageArea.tsx`, `Stage.tsx`, `StageBar.tsx`, `useViewport.ts`, `useShortcuts.ts`, `lockZoom.ts`, `Swatches.tsx` | changing the stage or zoom |
-| `app/web/src/features/picker/` | the color picker: `mix.ts` (white, yellow, red, blue, black recipe; the tube colors are `PAINTS`), `sample.ts`, `Picker.tsx` | changing the picker |
+| `app/web/src/features/picker/` | the color picker: `spectral.ts` (Kubelka-Munk, the eye, CIEDE2000), `paints.ts` (the six paints; edit them for your tubes), `mix.ts` (the recipe search), `sample.ts`, `Picker.tsx` | changing the picker |
 | `app/web/src/features/tools/` | the pop-up cards of the bottom bar and `settings.ts` (the start values and ranges of every part) | changing a tool |
 | `app/web/src/draw/` | the draw pipeline: `worker.ts` (the layers worker), `coreClient.ts`, `calls.ts`, `useLayers.ts`, `facts.ts` | changing how a layer is drawn |
 | `app/web/src/ui/` | parts that know nothing about photos: `fields.tsx`, `icons.tsx` (`Icon`, `IconButton`, `Tip`), `PanelShell.tsx`, `Logo.tsx` | changing a shared control |
