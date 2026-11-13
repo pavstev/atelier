@@ -44,13 +44,20 @@ Left to right:
    - **Keyboard and screen reader.** With the picker on, the stage takes the focus: the arrow keys
      move a probe (Shift for big steps), Enter holds the color and Esc lets go. A held recipe is read
      out as a status message, and the stage says how to use it.
-   - **Skin without black.** A skin-like color (warm hue, soft color, not near white or black) is
-     mixed from white, yellow, red and the two blues first. Black turns skin gray and muddy. Black
-     comes in only when the match is not "close" without it (a CIEDE2000 difference of 3 or more).
-   - **Skin string.** A held skin color also shows three mixes of the same lightness: Warm, Same
-     and Cool, for the places where the light turns the skin warmer or cooler. None holds black.
+   - **Skin without black.** A skin-like color (a warm hue from red to yellow-orange, a soft color,
+     from very dark to very pale; the limits are `SKIN` in `mix.ts`) is mixed from white, yellow,
+     red and the two blues first. Black turns skin gray and muddy. Black comes in only when the
+     match is not "close" without it (a CIEDE2000 difference of 3 or more) and black is clearly
+     better. Grays, blues and colors darker than dark skin keep the normal search.
+   - **Skin string.** A held skin color also shows three mixes of about the same lightness: Warm,
+     Same and Cool, for the places where the light turns the skin warmer or cooler. None holds
+     black, ever. A very saturated tone may match less closely without black; the string does not
+     add it.
    - **Dry hint.** A held card says that acrylic dries a little darker, so mix it a little
      lighter than the photo. The size of the shift is not measured, so the card gives no number.
+   - A screen reader hears the held recipe, the skin string and the dry hint in the status
+     message, and the Copy button puts the same text on the clipboard. A held card that is taller
+     than the stage scrolls inside the stage.
    - The white paint is taken as the white of the screen, so the card reads relative to your white.
    - The prediction is physical: each paint is a spectrum and a tinting strength, a mix adds their
      absorption and scattering (Kubelka-Munk), and the result is read under daylight. How it works,

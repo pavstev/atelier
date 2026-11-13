@@ -3,7 +3,9 @@
 // bottom half is what the recipe makes) and, on the right, how much of each paint to mix for it.
 // A click or a tap holds the card at that spot of the photo (it stays there while you zoom or move
 // the photo). A held card is a real control: copy the recipe, let it go, pick how big an area to
-// average. Esc lets it go. A swatch of the Values or Shapes legend holds its color in the card too.
+// average. A held skin color also shows its skin string (a warm, a same and a cool mix), and every
+// held card says that acrylic dries darker. Esc lets it go. A swatch of the Values or Shapes legend
+// holds its color in the card too.
 // The card reads the shown picture, whatever the base is. A drag still moves the photo.
 // Keyboard: the stage takes the focus, the arrow keys move the probe (Shift for big steps) and
 // Enter holds the color. A screen reader hears the held recipe as a status message.
@@ -12,7 +14,7 @@ import {
 	useEffect,
 	useEffectEvent,
 	useId,
-	useMemo,
+	useLayoutEffect,
 	useRef,
 	useState,
 } from "react";
@@ -25,6 +27,8 @@ import {
 	mixFor,
 	PAINTS,
 	type Rgb,
+	recipeWords,
+	type SkinString,
 	skinString,
 } from "./mix";
 import { colorAround } from "./sample";
@@ -46,12 +50,11 @@ export const AREA_START = 1;
 
 /** A press that moves more than this, in px, is a drag and not a click. */
 const TAP_SLOP = 8;
-/** The card's room, in px, for flipping it away from the edge. */
+/** The card's width, in px, and a first guess of its height; the real height is measured. */
 const CARD_W = 304;
 const CARD_H = 290;
-/** The extra height of a held card: the dry hint, and with it the skin string. */
-const HELD = 50;
-const HELD_SKIN = 130;
+/** The space, in px, the card keeps from the edge of the stage. */
+const EDGE = 4;
 /** The gap between the cursor and the card, in px. */
 const GAP = 18;
 /** A key step of the probe, in px; with Shift the big one. */
@@ -76,20 +79,25 @@ function verdict(error: number): string {
 	return "nearest mix";
 }
 
-/** The recipe in words: whole parts first, then a touch of any strong paint too small for a part. */
-function recipeWords(mix: Mix): string {
+/** The note on a held card: acrylic dries darker than it looks wet. */
+const DRY =
+	"Acrylic dries a little darker. Mix it a little lighter than the photo.";
+
+/** The held card in words, for a screen reader and for the copy button. */
+function heldWords(
+	title: string,
+	color: Rgb,
+	mix: Mix,
+	skin: SkinString | null,
+): string {
 	return [
-		...PAINTS.flatMap((p, i) =>
-			(mix.parts[i] as number) > 0
-				? [`${mix.parts[i]} ${p.name.toLowerCase()}`]
-				: [],
-		),
-		...PAINTS.flatMap((p, i) =>
-			(mix.parts[i] as number) === 0 && (mix.weights[i] as number) >= 0.0003
-				? [`a touch of ${p.name.toLowerCase()}`]
-				: [],
-		),
-	].join(", ");
+		`${title}, color ${hex(color)}: ${recipeWords(mix)}. ${verdict(mix.error)}.`,
+		skin &&
+			`Skin string, one lightness, no black: warm ${recipeWords(skin.warm)}; same ${recipeWords(skin.same)}; cool ${recipeWords(skin.cool)}.`,
+		DRY,
+	]
+		.filter(Boolean)
+		.join(" ");
 }
 
 export default function Picker(p: {
@@ -116,6 +124,7 @@ export default function Picker(p: {
 	const [pin, setPin] = useState<Pin | null>(null);
 	const [focused, setFocused] = useState(false);
 	const [copied, setCopied] = useState<"yes" | "no" | null>(null);
+	const [cardH, setCardH] = useState(CARD_H);
 
 	const radius = () => (AREAS[area]?.px ?? 0) / view.zoom;
 	const toPhoto = (s: Spot): Spot => ({
@@ -251,14 +260,17 @@ export default function Picker(p: {
 	}
 	const mix = color ? mixFor(color) : null;
 	const pinned = pin !== null || fixed !== null;
+	// a held skin color also has its skin string (the memory in `mix.ts` keeps it between renders)
+	const skin = pinned && color && mix?.skin ? skinString(color) : null;
 	const summary =
-		color && mix
-			? `${title}, color ${hex(color)}: ${recipeWords(mix) || "white"}. ${verdict(mix.error)}.`
-			: "";
+		pinned && color && mix ? heldWords(title, color, mix, skin) : "";
 
+	// the real height of the card (it grows with a held card, a skin string and a wrapped recipe)
+	useLayoutEffect(() => {
+		const h = card.current?.offsetHeight;
+		if (h && h !== cardH) setCardH(h);
+	});
 	const room = box.current;
-	// a held card is taller: the dry hint, and for skin the three mixes of the skin string
-	const cardH = pinned ? CARD_H + (mix?.skin ? HELD_SKIN : HELD) : CARD_H;
 	let style: React.CSSProperties | null = null;
 	if (fixed) style = { right: 12, top: 12 };
 	else if (at) {
@@ -266,12 +278,15 @@ export default function Picker(p: {
 			room && at.x + GAP + CARD_W > room.clientWidth
 				? at.x - GAP - CARD_W
 				: at.x + GAP;
-		const top =
-			room && at.y + GAP + cardH > room.clientHeight
-				? at.y - GAP - cardH
-				: at.y + GAP;
-		style = { left: Math.max(4, left), top: Math.max(4, top) };
+		// under the cursor, above it when it does not fit, and always inside the stage
+		let top = at.y + GAP;
+		if (room && top + cardH > room.clientHeight) top = at.y - GAP - cardH;
+		if (room) top = Math.min(top, room.clientHeight - cardH - EDGE);
+		style = { left: Math.max(EDGE, left), top: Math.max(EDGE, top) };
 	}
+	// a stage shorter than the card: the card scrolls and never leaves the stage
+	if (style && room)
+		style.maxHeight = room.clientHeight - (fixed ? 12 : EDGE) - EDGE;
 
 	const copy = async () => {
 		try {
@@ -318,6 +333,7 @@ export default function Picker(p: {
 					ref={card}
 					color={color}
 					mix={mix}
+					skin={skin}
 					pinned={pinned}
 					title={title}
 					style={style}
@@ -343,6 +359,8 @@ function Card(p: {
 	ref: RefObject<HTMLDivElement | null>;
 	color: Rgb;
 	mix: Mix;
+	/** The three skin mixes of a held skin color; null for any other card. */
+	skin: SkinString | null;
 	pinned: boolean;
 	title: string;
 	style: React.CSSProperties;
@@ -354,7 +372,6 @@ function Card(p: {
 	onArea: (i: number) => void;
 }) {
 	const { mix } = p;
-	const words = recipeWords(mix);
 	const used = PAINTS.map((paint, i) => ({
 		paint,
 		dot: DOTS[i] as Rgb,
@@ -374,7 +391,7 @@ function Card(p: {
 			data-color={hex(p.color)}
 			data-mix={hex(mix.result)}
 			data-error={mix.error.toFixed(2)}
-			className={`floating-card absolute flex w-76 flex-col gap-2 rounded-(--radius-card) p-3 text-xs outline-none ${p.pinned ? "pointer-events-auto" : ""}`}
+			className={`floating-card absolute flex w-76 flex-col gap-2 overflow-y-auto rounded-(--radius-card) p-3 text-xs outline-none ${p.pinned ? "pointer-events-auto" : ""}`}
 			style={p.style}
 		>
 			<div className="flex min-h-6 items-center justify-between gap-2">
@@ -449,10 +466,9 @@ function Card(p: {
 								data-parts={parts}
 								className={`flex items-center gap-1.5 ${share === 0 ? "text-muted" : ""}`}
 							>
-								<span
-									aria-hidden="true"
-									className={`size-3 shrink-0 rounded-full border border-separator ${share === 0 ? "opacity-50" : ""}`}
-									style={{ backgroundColor: css(dot) }}
+								<Dot
+									color={dot}
+									className={`size-3 rounded-full ${share === 0 ? "opacity-50" : ""}`}
 								/>
 								<span className="w-[4.6rem] shrink-0">{paint.name}</span>
 								<span
@@ -475,7 +491,7 @@ function Card(p: {
 						))}
 					</ul>
 					<p data-testid="picker-parts" className="font-medium">
-						{words ? `Parts: ${words}` : ""}
+						Parts: {recipeWords(mix)}
 					</p>
 				</div>
 			</div>
@@ -495,13 +511,12 @@ function Card(p: {
 			)}
 			{p.pinned && (
 				<div className="flex flex-col gap-1.5 border-t border-separator pt-2">
-					{mix.skin && <SkinString color={p.color} />}
+					{p.skin && <SkinRows string={p.skin} />}
 					<p
 						data-testid="picker-dry"
 						className="text-[0.7rem] leading-tight text-muted"
 					>
-						Acrylic dries a little darker. Mix it a little lighter than the
-						photo.
+						{DRY}
 					</p>
 				</div>
 			)}
@@ -509,13 +524,23 @@ function Card(p: {
 	);
 }
 
-/** Three mixes of this skin tone, warm, same and cool, of one lightness and with no black. */
-function SkinString(p: { color: Rgb }) {
-	const string = useMemo(() => skinString(p.color), [p.color]);
+/** A small color dot or chip. It says nothing to a screen reader; the text of its row does. */
+function Dot(p: { color: Rgb; className: string }) {
+	return (
+		<span
+			aria-hidden="true"
+			className={`shrink-0 border border-separator ${p.className}`}
+			style={{ backgroundColor: css(p.color) }}
+		/>
+	);
+}
+
+/** Three mixes of one skin tone, warm, same and cool, of one lightness and with no black. */
+function SkinRows(p: { string: SkinString }) {
 	const rows = [
-		["Warm", string.warm],
-		["Same", string.same],
-		["Cool", string.cool],
+		["Warm", p.string.warm],
+		["Same", p.string.same],
+		["Cool", p.string.cool],
 	] as const;
 	return (
 		<ul
@@ -530,15 +555,9 @@ function SkinString(p: { color: Rgb }) {
 					data-mix={hex(m.result)}
 					className="flex items-center gap-1.5"
 				>
-					<span
-						aria-hidden="true"
-						className="size-4 shrink-0 rounded-(--radius-chip) border border-separator"
-						style={{ backgroundColor: css(m.result) }}
-					/>
+					<Dot color={m.result} className="size-4 rounded-(--radius-chip)" />
 					<span className="w-9 shrink-0 font-medium">{name}</span>
-					<span className="min-w-0 flex-1 leading-tight">
-						{recipeWords(m) || "white"}
-					</span>
+					<span className="min-w-0 flex-1 leading-tight">{recipeWords(m)}</span>
 				</li>
 			))}
 		</ul>

@@ -5,13 +5,16 @@
 // recipe. Then the pixel sampler, then the page: the bar toggle, the hover card, a click that pins
 // it and Esc that lets it go.
 import {
+	isSkin,
 	labOfMix,
 	type Mix,
 	masstone,
 	mixFor,
 	PAINTS,
 	type Rgb,
+	recipeWords,
 	rgbOfMix,
+	SKIN,
 	skinString,
 } from "../src/features/picker/mix";
 import { colorAround, colorAt } from "../src/features/picker/sample";
@@ -186,33 +189,147 @@ test("test_a_gray_is_white_and_black_and_never_a_color_paint", () => {
 	}
 });
 
-test("test_skin_is_mixed_without_black_when_the_match_stays_close", () => {
-	// light, medium and tan skin: black turns skin gray, so the recipe must not hold any
-	for (const c of [
-		[236, 196, 168],
-		[210, 160, 124],
-		[176, 124, 90],
-	] as Rgb[]) {
+/** Skin from very pale to very dark, and a cheek, an olive tone and a deep tan. */
+const SKINS: Rgb[] = [
+	[245, 214, 190],
+	[236, 196, 168],
+	[210, 160, 124],
+	[190, 150, 100],
+	[176, 124, 90],
+	[198, 134, 66],
+	[141, 85, 36],
+	[98, 60, 40],
+	[70, 44, 30],
+	[214, 130, 112],
+	[255, 224, 196],
+];
+
+test("test_skin_from_pale_to_dark_is_mixed_without_black", () => {
+	// black turns skin gray, so the recipe must not hold any, and it must still match
+	for (const c of SKINS) {
 		const m = mixFor(c);
 		expect(m.skin).toBe(true);
 		expect(share(m, "black")).toBe(0);
 		expect(m.error).toBeLessThan(3);
 	}
-	// a blue is not skin, and a gray is not skin: both keep the old search
+});
+
+test("test_a_blue_a_gray_and_a_very_dark_color_keep_black_and_are_not_skin", () => {
 	expect(mixFor([60, 90, 200]).skin).toBe(false);
-	expect(mixFor([128, 128, 128]).skin).toBe(false);
+	// a gray is white and black, never a color paint
+	const gray = mixFor([128, 128, 128]);
+	expect(gray.skin).toBe(false);
+	expect(share(gray, "black")).toBeGreaterThan(0.02);
+	// a color darker than skin can be: black is the way to make it
+	for (const c of [
+		[38, 24, 18],
+		[20, 18, 18],
+	] as Rgb[]) {
+		const m = mixFor(c);
+		expect(m.skin).toBe(false);
+		expect(share(m, "black")).toBeGreaterThan(0.2);
+	}
+});
+
+test("test_the_skin_window_ends_where_it_says", () => {
+	// a color with this lightness, chroma and hue (degrees), the other two in the middle of skin
+	const lch = (l = 60, c = 25, h = 55): [number, number, number] => [
+		l,
+		c * Math.cos((h * Math.PI) / 180),
+		c * Math.sin((h * Math.PI) / 180),
+	];
+	expect(isSkin(lch())).toBe(true);
+	const eps = 0.5;
+	const [l0, l1] = SKIN.lightness;
+	const [c0, c1] = SKIN.chroma;
+	const [h0, h1] = SKIN.hue;
+	for (const [inner, outer] of [
+		[lch(l0 + eps), lch(l0 - eps)],
+		[lch(l1 - eps), lch(l1 + eps)],
+		[lch(60, c0 + eps), lch(60, c0 - eps)],
+		[lch(60, c1 - eps), lch(60, c1 + eps)],
+		[lch(60, 25, h0 + eps), lch(60, 25, h0 - eps)],
+		[lch(60, 25, h1 - eps), lch(60, 25, h1 + eps)],
+	]) {
+		expect(isSkin(inner as [number, number, number])).toBe(true);
+		expect(isSkin(outer as [number, number, number])).toBe(false);
+	}
+	// a green and a blue hue are never skin, whatever the lightness and chroma
+	expect(isSkin(lch(60, 25, 140))).toBe(false);
+	expect(isSkin(lch(60, 25, 260))).toBe(false);
+	expect(isSkin(lch(60, 25, -50))).toBe(false);
 });
 
 test("test_a_skin_string_has_a_warm_a_same_and_a_cool_mix_of_one_lightness", () => {
-	const { warm, same, cool } = skinString([210, 160, 124]);
-	for (const m of [warm, same, cool]) expect(share(m, "black")).toBe(0);
-	const [lw, , bw] = labOfMix(warm.weights);
-	const [ls, , bs] = labOfMix(same.weights);
-	const [lc, , bc] = labOfMix(cool.weights);
-	expect(bw).toBeGreaterThan(bs);
-	expect(bs).toBeGreaterThan(bc);
-	expect(Math.abs(lw - ls)).toBeLessThan(4);
-	expect(Math.abs(lc - ls)).toBeLessThan(4);
+	for (const c of SKINS) {
+		const { warm, same, cool } = skinString(c);
+		// no black in any of the three, and each is a fair match of its target
+		for (const m of [warm, same, cool]) {
+			expect(share(m, "black")).toBe(0);
+			expect(m.skin).toBe(true);
+			expect(m.error).toBeLessThan(3);
+		}
+		const [lw, , bw] = labOfMix(warm.weights);
+		const [ls, , bs] = labOfMix(same.weights);
+		const [lc, , bc] = labOfMix(cool.weights);
+		expect(bw).toBeGreaterThan(bs);
+		expect(bs).toBeGreaterThan(bc);
+		expect(Math.abs(lw - ls)).toBeLessThan(4);
+		expect(Math.abs(lc - ls)).toBeLessThan(4);
+		expect(Math.abs(lw - lc)).toBeLessThan(4);
+	}
+	// the same row is the held color itself
+	expect(skinString([210, 160, 124]).same).toEqual(mixFor([210, 160, 124]));
+});
+
+test("test_a_skin_string_near_the_edge_of_the_screen_keeps_its_rows_at_one_lightness_and_no_black", () => {
+	// saturated, dark tones: their warm shift leaves the screen, and a recipe cannot match them
+	// closely without black. The string must still hold no black and keep one lightness.
+	for (const c of [
+		[95, 47, 6],
+		[82, 54, 0],
+		[255, 205, 148],
+		[253, 231, 220],
+	] as Rgb[]) {
+		const rows = Object.values(skinString(c));
+		const ls = rows.map((m) => labOfMix(m.weights)[0]);
+		expect(Math.max(...ls) - Math.min(...ls)).toBeLessThan(4);
+		for (const m of rows) expect(share(m, "black")).toBe(0);
+	}
+});
+
+test("test_the_memory_gives_equal_answers_also_after_it_is_cleared", () => {
+	const c: Rgb = [201, 143, 106];
+	const first = mixFor(c);
+	const string = skinString(c);
+	expect(mixFor(c)).toBe(first);
+	expect(skinString(c)).toBe(string);
+	// 450 other colors fill the memory and empty it; the answers are made again, and are equal
+	for (let i = 0; i < 450; i++) mixFor([i % 256, Math.floor(i / 256), 100]);
+	expect(mixFor(c)).not.toBe(first);
+	expect(mixFor(c)).toEqual(first);
+});
+
+test("test_the_recipe_in_words_names_parts_then_touches_and_is_never_empty", () => {
+	const mix = (parts: number[], weights: number[]) =>
+		({ parts, weights, result: [0, 0, 0], error: 0, skin: false }) as Mix;
+	expect(recipeWords(mix([6, 2, 1, 0, 0, 0], [0.6, 0.2, 0.2, 0, 0, 0]))).toBe(
+		"6 white, 2 yellow, 1 red",
+	);
+	// a share too small for a part is a touch; a share too small to matter is left out
+	expect(
+		recipeWords(mix([9, 0, 0, 0, 0, 0], [0.9, 0.0001, 0, 0, 0.009, 0.0009])),
+	).toBe("9 white, a touch of phthalo blue, a touch of black");
+	expect(recipeWords(mix([0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0]))).toBe(
+		"white",
+	);
+	for (const c of [
+		...SKINS,
+		[128, 128, 128],
+		[10, 10, 10],
+		[60, 90, 200],
+	] as Rgb[])
+		expect(recipeWords(mixFor(c))).toMatch(/\d|touch/);
 });
 
 test("test_mix_shares_add_up_to_one_and_parts_are_whole_numbers", () => {
@@ -235,7 +352,12 @@ test("test_the_search_is_fast_enough_to_follow_the_mouse", () => {
 	const t = performance.now();
 	for (let i = 0; i < 30; i++)
 		mixFor([(i * 37) % 256, (i * 91 + 40) % 256, (i * 53 + 90) % 256]);
-	expect((performance.now() - t) / 30).toBeLessThan(80);
+	// about 3 ms on a laptop; the bound leaves room for four busy workers
+	expect((performance.now() - t) / 30).toBeLessThan(25);
+	// the skin string is three searches, made once when a skin color is held
+	const s = performance.now();
+	for (let i = 0; i < 10; i++) skinString([200 + i, 140 + i, 100]);
+	expect((performance.now() - s) / 10).toBeLessThan(60);
 });
 
 /** A small picture, in the shape of `ImageData`. */
@@ -431,4 +553,83 @@ test("test_the_picker_works_from_the_keyboard", async ({ studio }) => {
 	// the picker off gives the stage back its normal keys
 	await page.getByTestId("tool-picker").click();
 	await expect(stage).not.toHaveAttribute("tabindex", /.*/);
+});
+
+/** A spot of the synthetic photo, as a share of its width and height, in page px. */
+async function spot(
+	page: import("@playwright/test").Page,
+	fx: number,
+	fy: number,
+) {
+	const b = await box(page, "photo-canvas");
+	return { x: b.x + b.width * fx, y: b.y + b.height * fy };
+}
+
+test("test_a_held_skin_color_has_a_skin_string_and_any_color_has_the_dry_hint", async ({
+	studio,
+}) => {
+	const { page } = studio;
+	await studio.openSynthetic(240, 320, "skin.png");
+	await page.getByTestId("tool-picker").click();
+	// the face of the synthetic photo is a skin color; click holds it
+	const face = await spot(page, 190 / 480, 340 / 640);
+	await page.mouse.click(face.x, face.y);
+	await expect(page.getByTestId("picker-card")).toHaveAttribute(
+		"data-pinned",
+		"true",
+	);
+	const skin = page.getByTestId("picker-skin");
+	await expect(skin).toBeVisible();
+	await expect(skin).toHaveAccessibleName(/skin string/i);
+	await expect(skin.getByRole("listitem")).toHaveCount(3);
+	for (const row of ["warm", "same", "cool"]) {
+		const r = page.getByTestId(`picker-skin-${row}`);
+		await expect(r).toHaveAttribute("data-mix", /^#[0-9a-f]{6}$/);
+		await expect(r).toContainText(/\d (white|yellow|red|lake|phthalo)/i);
+		await expect(r).not.toContainText("black");
+	}
+	await expect(page.getByTestId("picker-dry")).toBeVisible();
+	// a screen reader hears the skin string and the dry hint, not only the recipe
+	const status = page.getByRole("status").filter({ hasText: "Paint mix" });
+	await expect(status).toContainText("Skin string");
+	await expect(status).toContainText("dries a little darker");
+
+	// the sky is not skin: no skin string, and the dry hint is still there
+	await page.keyboard.press("Escape");
+	const sky = await spot(page, 0.1, 0.05);
+	await page.mouse.move(sky.x, sky.y);
+	await page.mouse.click(sky.x, sky.y);
+	await expect(page.getByTestId("picker-card")).toHaveAttribute(
+		"data-pinned",
+		"true",
+	);
+	await expect(page.getByTestId("picker-skin")).toHaveCount(0);
+	await expect(page.getByTestId("picker-dry")).toBeVisible();
+	await expect(
+		page.getByRole("status").filter({ hasText: "Paint mix" }),
+	).not.toContainText("Skin string");
+});
+
+test("test_a_tall_held_skin_card_stays_inside_a_short_stage", async ({
+	studio,
+}) => {
+	const { page } = studio;
+	await page.setViewportSize({ width: 1100, height: 400 });
+	await studio.openSynthetic(240, 320, "short.png");
+	await page.getByTestId("tool-picker").click();
+	const face = await spot(page, 190 / 480, 340 / 640);
+	await page.mouse.click(face.x, face.y);
+	const card = page.getByTestId("picker-card");
+	await expect(page.getByTestId("picker-skin")).toBeVisible();
+	const stage = await box(page, "stage");
+	const c = await box(page, "picker-card");
+	expect(c.y).toBeGreaterThanOrEqual(stage.y - 1);
+	expect(c.y + c.height).toBeLessThanOrEqual(stage.y + stage.height + 1);
+	// when the card is taller than the stage it scrolls, so the dry hint can still be reached
+	const hint = page.getByTestId("picker-dry");
+	await hint.scrollIntoViewIfNeeded();
+	const h = await box(page, "picker-dry");
+	expect(h.y).toBeGreaterThanOrEqual(stage.y - 1);
+	expect(h.y + h.height).toBeLessThanOrEqual(stage.y + stage.height + 1);
+	await expect(card).toHaveAttribute("data-pinned", "true");
 });
