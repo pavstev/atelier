@@ -26,7 +26,18 @@ Left to right:
      then its settings, then Opacity last. The Edges and Grid pop-ups also have an on/off switch. The Values and Shapes legend is in the Base pop-up. Pressing a legend
      swatch closes the open pop-up.
    - Swiping down also closes the phone sheet.
-3. **Zoom.** One button that shows the zoom now (for example "62%", with a chevron). Its menu has:
+3. **Color picker.** A pipette toggle. While it is on, the cursor is a crosshair and a card
+   follows the mouse over the photo. It reads the picture you see now, so it works in Photo, Values,
+   Shapes and Paper, with Edges and Grid over them. On the left of the card is the color (the top
+   half is the photo, the bottom half is what the recipe makes). On the right is how much white,
+   yellow, red, blue and black to mix for it, as percent bars and as small whole parts. The label says
+   "close match" when the recipe is within a color difference of 3, and "nearest mix" when your five
+   paints cannot reach the color. A click or a tap pins the card to that spot (it stays there while
+   you zoom or move the photo); the next click moves it; Esc lets it go. A drag still moves the
+   photo. The mix is an estimate: paint takes light away, so the sums use a weighted geometric mean of
+   the five paints in linear light. The tube colors are in `PAINTS` in
+   `app/web/src/features/picker/mix.ts`; set them to your tubes.
+4. **Zoom.** One button that shows the zoom now (for example "62%", with a chevron). Its menu has:
    - **Fit**, **100%** and **200%**.
    - **Real size (cm)...** opens a small card where you type the photo width in cm. On a built-in
      MacBook screen the app fills in the screen width itself. On any other screen, type the width
@@ -111,6 +122,8 @@ has five folders. Paths below are under `src/`.
 - `features/photos/`: the photo list on this device and the photo on screen.
 - `features/stage/`: the stage, the bottom bar, zoom and pan, shortcuts, the real size lock and the
   color swatches.
+- `features/picker/`: the color picker: `mix.ts` (the paint recipe of a color), `sample.ts` (the
+  color the stage shows at a photo pixel) and `Picker.tsx` (the card).
 - `features/tools/`: the pop-up cards of the bottom bar and the settings (`settings.ts`: the start
   values and ranges of every knob).
 - `draw/`: the layers worker, its client, the typed calls and the draw hook.

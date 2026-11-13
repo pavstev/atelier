@@ -27,6 +27,7 @@ file -> browser decoder -> RGBA pixels -> layers worker (wasm Photo) -> layer pi
 | Client | `app/web/src/draw/coreClient.ts`, `calls.ts`, `useLayers.ts` | Sends typed calls to the worker and hands the pictures to the stage. |
 | Stage | `app/web/src/features/stage/` | The canvases, zoom and pan, the bottom bar, shortcuts. |
 | Photo list | `app/web/src/features/photos/` | The photos on this device (IndexedDB), search, sort, thumbs. |
+| Picker | `app/web/src/features/picker/` | The color picker: reads the shown picture and gives a paint recipe (TypeScript, one color at a time; the pixel work stays in the core). |
 | Tools | `app/web/src/features/tools/` | The settings (start values and ranges) and the pop-up cards of the bottom bar. |
 | Shared UI | `app/web/src/ui/`, `lib/`, `styles/` | Fields, icons, the logo, storage helpers, the theme. |
 

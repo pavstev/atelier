@@ -1,6 +1,7 @@
 // The bar at the bottom center of the stage, left to right: See photo (hold) | Base, Edges and Grid
-// buttons | the zoom button. A tool button opens its controls in a card over the bar (a bottom sheet
-// on a phone), one card at a time. The zoom button shows the zoom now; its menu has Fit, 100%,
+// buttons and the color picker toggle | the zoom button. A tool button opens its controls in a card
+// over the bar (a bottom sheet on a phone), one card at a time. The picker has no card: it is a
+// toggle, and its mix card follows the mouse over the photo (`features/picker`). The zoom button shows the zoom now; its menu has Fit, 100%,
 // 200% and "Real size (cm)...", which locks the zoom to a real width and opens a small card for the
 // two widths (the photo, the screen). While locked, the button shows a lock, Fit, 100% and 200%
 // are off and the menu has "Unlock". A press outside the card or Esc closes it (the lock stays on).
@@ -9,7 +10,7 @@ import { type ReactNode, useEffect, useRef, useState } from "react";
 import { baseName, ToolBody, ToolHead } from "@/features/tools/Panel";
 import type { Look, StageId } from "@/features/tools/settings";
 import { NumberBox } from "@/ui/fields";
-import { Icon, type IconName, Tip } from "@/ui/icons";
+import { Icon, IconButton, type IconName, Tip } from "@/ui/icons";
 import type { Lock } from "./lockZoom";
 import Popup from "./Popup";
 import { guessScreen } from "./screens";
@@ -39,6 +40,9 @@ export default function StageBar(p: {
 	onLook: (f: (s: Look) => Look) => void;
 	/** The color legend of Values and Shapes, shown in the Base card. */
 	legend?: ReactNode;
+	/** The color picker is on. */
+	picking: boolean;
+	onPicking: (on: boolean) => void;
 }) {
 	const [open, setOpen] = useState<Open>(null);
 	const { lock } = p;
@@ -137,6 +141,21 @@ export default function StageBar(p: {
 						/>
 					</Popup>
 				))}
+				<span className="h-5 w-px bg-separator" />
+				<IconButton
+					icon="pipette"
+					label="Color picker"
+					tip="Color picker: the paint mix of a color"
+					testid="tool-picker"
+					pressed={p.picking}
+					placement="top"
+					className="touch-none rounded-full select-none"
+					data-bar-button
+					onPress={() => {
+						setOpen(null);
+						p.onPicking(!p.picking);
+					}}
+				/>
 				<span className="h-5 w-px bg-separator" />
 				<div className="relative">
 					{lock.on && open === "lock" && (

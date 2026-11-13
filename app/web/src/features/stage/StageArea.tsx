@@ -4,6 +4,7 @@
 import { Button } from "@heroui/react";
 import { type ReactNode, type RefObject, useState } from "react";
 import { useFacts } from "@/draw/facts";
+import Picker from "@/features/picker/Picker";
 import {
 	LAYOUT,
 	type Layout,
@@ -56,6 +57,7 @@ export default function StageArea(p: {
 	const drawn = useFacts();
 	const [lock, setLock] = useLock();
 	const [hold, setHold] = useState(false);
+	const [picking, setPicking] = useState(false);
 	const viewport = useViewport(photo, p.photoId, lock.on, lockedWidth(lock));
 	const toggle = () =>
 		p.onLayout((l) => ({ ...l, panels: { left: !l.panels.left } }));
@@ -110,6 +112,16 @@ export default function StageArea(p: {
 					onOpen={p.onOpen}
 					onFiles={p.onFiles}
 				/>
+				{photo && picking && (
+					<Picker
+						box={viewport.box}
+						photo={photo}
+						layers={p.layers}
+						paper={look.base.kind === "paper"}
+						hold={hold}
+						view={viewport.view}
+					/>
+				)}
 				<EdgeHandle hidden={layout.panels.left} onToggle={toggle} />
 				{!layout.panels.left && (
 					<ResizeHandle
@@ -133,6 +145,8 @@ export default function StageArea(p: {
 						look={look}
 						onLook={p.onLook}
 						legend={p.legend}
+						picking={picking}
+						onPicking={setPicking}
 					/>
 				)}
 				{p.zoomAt !== null && toned && p.tones && (
