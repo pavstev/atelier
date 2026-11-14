@@ -1,6 +1,6 @@
 // The page side of the layers worker (`worker.ts`, line in `connect.ts`). The worker keeps the
 // photo and draws. A photo goes to the worker once; a draw sends only the numbers.
-import type { Call, Rgb } from "./calls";
+import type { Call, PencilAuto, Rgb } from "./calls";
 import { connect } from "./connect";
 import { PHOTO_GONE } from "./messages";
 
@@ -89,7 +89,12 @@ export async function draw(
 	call: Call,
 	long: number,
 	wanted: () => boolean = () => true,
-): Promise<{ layer: ImageData; tones?: Rgb[]; shares?: number[] }> {
+): Promise<{
+	layer: ImageData;
+	tones?: Rgb[];
+	shares?: number[];
+	mark?: number;
+}> {
 	// A draw for a photo that left the screen must not send it back and push the new one out.
 	if (!wanted()) throw new Error("the photo left the screen");
 	const r = await withPhoto(
@@ -101,5 +106,37 @@ export async function draw(
 		layer: new ImageData(new Uint8ClampedArray(r.rgba), r.width, r.height),
 		tones: r.tones,
 		shares: r.shares,
+		mark: r.mark,
 	};
+}
+
+/** What Auto finds in `img` (read at the work size): the start of Key, Contrast and Highlights, and
+ * the numbers behind them. */
+export async function pencilAuto(
+	img: ImageData,
+	wanted: () => boolean = () => true,
+): Promise<PencilAuto> {
+	if (!wanted()) throw new Error("the photo left the screen");
+	const r = await withPhoto(
+		img,
+		(photo) => link({ kind: "pencilAuto", photo, long: WORK_LONG_SIDE }),
+		wanted,
+	);
+	return r.auto;
+}
+
+/** The mask of the best `count` pencils (3 to 6) of the eight for `img`. */
+export async function suggestPencils(
+	img: ImageData,
+	count: number,
+	wanted: () => boolean = () => true,
+): Promise<number> {
+	if (!wanted()) throw new Error("the photo left the screen");
+	const r = await withPhoto(
+		img,
+		(photo) =>
+			link({ kind: "pencilSuggest", photo, long: WORK_LONG_SIDE, count }),
+		wanted,
+	);
+	return r.mask;
 }

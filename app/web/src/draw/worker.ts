@@ -3,7 +3,7 @@
 
 import { keepNewest } from "@/lib/lru";
 import init, { Photo } from "../../wasm/atelier_wasm.js";
-import type { Call, Rgb } from "./calls";
+import { type Call, pencilAutoOf, pencilNumbers, type Rgb } from "./calls";
 import {
 	PHOTO_GONE,
 	type WorkerRequest,
@@ -43,16 +43,19 @@ function draw(p: Photo, long: number, c: Call): Uint8Array {
 		case "values":
 			return p.values(long, c.preset, c.detail, c.tint);
 		case "pencil":
-			return p.pencil(long, c.look, c.mask, c.detail);
+			return p.pencil(long, c.look, c.mask, pencilNumbers(c));
 		case "grid":
 			return p.grid(long, c.mode, c.cells, c.width, c.group, c.color, c.center);
 	}
 }
 
+/** The mark byte of a Pencil answer when no level is marked. */
+const NO_MARK = 255;
+
 /**
  * Splits a core answer: `[w u32][h u32][w*h*4 rgba]`, and for Values and Shapes one count byte
  * and 3 bytes per tone (or pile) after the pixels. Pencil adds one byte per tone after those: its
- * share of the photo in percent.
+ * share of the photo in percent, then one byte for the marked level (255 for none).
  */
 function splitDraw(out: Uint8Array): {
 	width: number;
@@ -60,6 +63,7 @@ function splitDraw(out: Uint8Array): {
 	rgba: Uint8Array<ArrayBuffer>;
 	tones?: Rgb[];
 	shares?: number[];
+	mark?: number;
 } {
 	const head = new DataView(out.buffer, out.byteOffset, 8);
 	const width = head.getUint32(0, true);
@@ -75,12 +79,15 @@ function splitDraw(out: Uint8Array): {
 	}
 	const at = end + 1 + count * 3;
 	if (out.length < at + count) return { width, height, rgba, tones };
+	const mark = out[at + count];
 	return {
 		width,
 		height,
 		rgba,
 		tones,
 		shares: Array.from(out.slice(at, at + count)),
+		// 255 is "no level marked"; an answer without the byte has none either
+		mark: mark === undefined || mark === NO_MARK ? undefined : mark,
 	};
 }
 
@@ -97,10 +104,25 @@ self.onmessage = async (e: MessageEvent<WorkerRequest>) => {
 			return;
 		}
 		const p = current(r.photo);
+		if (r.kind === "pencilAuto") {
+			const auto = pencilAutoOf(p.pencil_auto(r.long));
+			if (!auto) throw new Error("the core gave a wrong Auto answer");
+			reply({ id: r.id, ok: true, kind: "pencilAuto", auto });
+			return;
+		}
+		if (r.kind === "pencilSuggest") {
+			reply({
+				id: r.id,
+				ok: true,
+				kind: "pencilSuggest",
+				mask: p.pencil_suggest(r.long, r.count),
+			});
+			return;
+		}
 		const t = performance.now();
 		const out = draw(p, r.long, r.call);
 		const ms = performance.now() - t;
-		const { width, height, rgba: pixels, tones, shares } = splitDraw(out);
+		const { width, height, rgba: pixels, tones, shares, mark } = splitDraw(out);
 		reply(
 			{
 				id: r.id,
@@ -111,6 +133,7 @@ self.onmessage = async (e: MessageEvent<WorkerRequest>) => {
 				rgba: pixels.buffer,
 				tones,
 				shares,
+				mark,
 				ms,
 			},
 			[pixels.buffer],

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # The one check. It runs on your machine. The Cloudflare build only builds and deploys.
-# Rust: fmt, clippy, tests, cargo-deny, cargo-shear, typos. Then the web app: types and Biome
-# (the same `lint` as app/web/package.json).
+# Rust: fmt, clippy, tests, cargo-deny, cargo-shear, typos. Then the web app: types, Biome
+# (the same `lint` as app/web/package.json) and the unit tests (`node --test`, pure code only).
 # `--fast` (mise run check:fast) skips cargo-deny, cargo-shear and typos.
 # The browser tests are `mise run web:e2e`.
 # Setup once: AGENTS.md, "Commands".
@@ -31,3 +31,4 @@ fi
 pnpm --dir app/web install --frozen-lockfile --silent
 pnpm --dir app/web exec tsc --noEmit
 pnpm --dir app/web lint
+pnpm --dir app/web exec node --test "src/**/*.test.ts"

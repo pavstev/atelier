@@ -1,5 +1,10 @@
 // The base, Edges and Grid switches, opacities and knobs, their start values, labels and the call each sends.
 import type { Call, LayerId } from "@/draw/calls";
+import {
+	cleanPencil,
+	PENCIL_START,
+	type PencilLook,
+} from "@/features/pencil/knobs";
 import { isRecord } from "@/lib/clean";
 import { KEYS, loadJson, loadText, usePersisted } from "@/lib/storage";
 
@@ -50,13 +55,7 @@ export type Look = {
 	base: { kind: BaseKind; opacity: number };
 	values: { preset: number; detail: number; tint: number };
 	shapes: { step: number; detail: number };
-	pencil: {
-		/** 0 the flat map of the zones, 1 the drawing with grain and hatching. */
-		look: number;
-		/** The pencils the painter has, one bit each: bit 0 the 9B up to bit 7 the 4H (255 all). */
-		mask: number;
-		detail: number;
-	};
+	pencil: PencilLook;
 	edges: {
 		on: boolean;
 		opacity: number;
@@ -91,7 +90,7 @@ export const LOOK: Look = {
 	base: { kind: "photo", opacity: 100 },
 	values: { preset: 1, detail: 50, tint: 0 },
 	shapes: { step: 3, detail: 50 },
-	pencil: { look: 0, mask: 255, detail: 50 },
+	pencil: { ...PENCIL_START },
 	edges: {
 		on: false,
 		opacity: 100,
@@ -151,7 +150,7 @@ function cleanLook(raw: unknown): Look {
 	const r = isRecord(raw) ? raw : {};
 	const values = pick(r.values, LOOK.values);
 	const shapes = pick(r.shapes, LOOK.shapes);
-	const pencil = pick(r.pencil, LOOK.pencil);
+	const pencil = cleanPencil(r.pencil);
 	const edges = pick(r.edges, LOOK.edges);
 	const base = pick(r.base, LOOK.base);
 	if (!BASES.some((b) => b.id === base.kind)) base.kind = LOOK.base.kind;
@@ -177,9 +176,6 @@ function cleanLook(raw: unknown): Look {
 	fit(values, LOOK.values, "tint", 0, 1);
 	fit(shapes, LOOK.shapes, "step", 0, 3);
 	fit(shapes, LOOK.shapes, "detail", 0, 100);
-	fit(pencil, LOOK.pencil, "look", 0, 2);
-	fit(pencil, LOOK.pencil, "mask", 1, 255);
-	fit(pencil, LOOK.pencil, "detail", 0, 100);
 	fit(edges, LOOK.edges, "opacity", OPACITY_MIN, 100);
 	fit(edges, LOOK.edges, "mode", EDGES_MODE.lines, EDGES_MODE.masses);
 	fit(edges, LOOK.edges, "amount", 0, 100);
@@ -215,7 +211,8 @@ export const LABELS = {
 	],
 	shapesStep: ["1 Shadows", "2 Halftones", "3 Lights", "4 Accents"],
 	valuesTint: ["Gray", "Umber"],
-	pencilLook: ["Tone", "Drawing", "Zones"],
+	pencilLook: ["Tone", "Drawing", "Zones", "Hatch", "By pencil"],
+	pencilPaper: ["Smooth", "Medium", "Rough"],
 	edgesMode: ["Lines", "Transfer", "Masses"],
 	gridMode: ["Thirds", "Grid", "Both"],
 	gridGroup: ["2 × 2", "4 × 4"],
@@ -249,9 +246,7 @@ export function callFor(id: LayerId, s: Look): Call {
 		case "pencil":
 			return {
 				layer: "pencil",
-				look: s.pencil.look,
-				mask: s.pencil.mask,
-				detail: s.pencil.detail,
+				...s.pencil,
 			};
 		case "grid":
 			return {

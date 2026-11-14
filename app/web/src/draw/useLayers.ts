@@ -11,9 +11,10 @@ const SETTLE_MS = 250;
 type Slot = "base" | "edges" | "grid";
 
 /** What a legend belongs to: the layer, and for Pencil also its set of pencils (a legend row is a
- * pencil, so the rows of an old set must not be read as the rows of a new one). */
+ * pencil, so the rows of an old set must not be read as the rows of a new one), its look and its
+ * step (the marked level of By pencil moves with both, so an old mark never shows). */
 const legendOf = (c: Call) =>
-	c.layer === "pencil" ? `pencil:${c.mask}` : c.layer;
+	c.layer === "pencil" ? `pencil:${c.mask}:${c.look}:${c.step}` : c.layer;
 
 type Drawn = {
 	photo: ImageData;
@@ -22,8 +23,14 @@ type Drawn = {
 	image: ImageData;
 	tones?: Rgb[];
 	shares?: number[];
+	mark?: number;
 };
-type One = { image: ImageData; tones?: Rgb[]; shares?: number[] } | null;
+type One = {
+	image: ImageData;
+	tones?: Rgb[];
+	shares?: number[];
+	mark?: number;
+} | null;
 
 /** The picture of one layer, or null while it is off or not drawn yet. */
 function useOne(
@@ -54,7 +61,7 @@ function useOne(
 		const timer = setTimeout(
 			() => {
 				draw(photo, c, WORK_LONG_SIDE, () => live)
-					.then(({ layer: image, tones, shares }) => {
+					.then(({ layer: image, tones, shares, mark }) => {
 						if (!live) return;
 						setDone({
 							photo,
@@ -63,6 +70,7 @@ function useOne(
 							image,
 							tones,
 							shares,
+							mark,
 						});
 						drawn();
 					})
@@ -87,6 +95,7 @@ function useOne(
 		image: done.image,
 		tones: same ? done.tones : undefined,
 		shares: same ? done.shares : undefined,
+		mark: same ? done.mark : undefined,
 	};
 }
 
@@ -95,14 +104,19 @@ type Pictures = Record<Slot, ImageData | null>;
 /**
  * The pictures of the base, Edges and Grid; a null call is off. `tones` are the Values tones
  * or the Shapes piles, darkest first, when the base is drawn. Pencil adds `shares`, the percent of
- * the photo at each tone.
+ * the photo at each tone, and `mark` the level By pencil is drawn up to.
  */
 export function useLayers(
 	photo: ImageData | null,
 	calls: Record<Slot, Call | null>,
 	onDone: () => void,
 	onError: (message: string) => void,
-): { pictures: Pictures; tones: Rgb[] | null; shares: number[] | null } {
+): {
+	pictures: Pictures;
+	tones: Rgb[] | null;
+	shares: number[] | null;
+	mark: number | null;
+} {
 	const base = useOne(photo, calls.base, onDone, onError);
 	const edges = useOne(photo, calls.edges, onDone, onError);
 	const grid = useOne(photo, calls.grid, onDone, onError);
@@ -114,5 +128,6 @@ export function useLayers(
 		},
 		tones: base?.tones ?? null,
 		shares: base?.shares ?? null,
+		mark: base?.mark ?? null,
 	};
 }

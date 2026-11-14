@@ -35,15 +35,36 @@ export class Photo {
      */
     constructor(rgba: Uint8Array | number[], width: number, height: number);
     /**
-     * The Pencil layer: the photo as a graphite study, opaque. `look` 0 is the smooth tone picture, 1 the
-     * drawing. `mask` is the pencils, bit 0 the 9B up to bit 7 the 4H (255 is all). After the layer
-     * come one byte with the level count (the pencils of the set, then paper, darkest first), 3
-     * bytes (RGB) per level, and one byte per level with the share of the picture in percent.
+     * The Pencil layer: the photo as a graphite study, opaque. `look` 0 is the smooth tone picture, 1
+     * the drawing, 2 the flat zones, 3 hatch, 4 by pencil. `mask` is the pencils, bit 0 the 9B up to
+     * bit 7 the 4H (255 is all). `numbers` is a `Float64Array` of 11 numbers, in the order
+     * `detail`, `key`, `contrast`, `highlights`, `darks`, `local`, `grain`, `paper`, `angle`,
+     * `density`, `step` (their ranges are in `atelier_core::render`). After the layer come one byte
+     * with the level count (the pencils of the set, then paper, darkest first), 3 bytes (RGB) per
+     * level, one byte per level with the share of the picture in percent, and one byte with the
+     * marked level (255 for none).
      *
      * # Errors
-     * A `long`, `look`, `mask` or `detail` out of range.
+     * A `long`, `look`, `mask` or number out of range, or `numbers` of the wrong length.
      */
-    pencil(long: number, look: number, mask: number, detail: number): Uint8Array;
+    pencil(long: number, look: number, mask: number, numbers: Float64Array | number[]): Uint8Array;
+    /**
+     * What Auto reads from the photo, as 9 numbers: `key`, `contrast`, `highlights` (the knobs it
+     * sets), the median L*, the key class (0 low, 1 mid, 2 high), the IQR, eta, bimodal (0 or 1)
+     * and spike (0 or 1).
+     *
+     * # Errors
+     * A `long` out of range.
+     */
+    pencil_auto(long: number): Float64Array;
+    /**
+     * The pencil `mask` (bit 0 the 9B up to bit 7 the 4H) of the best `count` pencils, 3 to 6, of
+     * the eight for the photo.
+     *
+     * # Errors
+     * A `long` or `count` out of range.
+     */
+    pencil_suggest(long: number, count: number): number;
     /**
      * The Shapes layer: flat shapes in a paint order, opaque. `step` is 0 to 3 (Shadows,
      * Halftones, Lights, Accents); each step adds to the ones before. After the layer come one
@@ -71,7 +92,9 @@ export interface InitOutput {
     readonly photo_edges: (a: number, b: number, c: number, d: number, e: number, f: number, g: number) => void;
     readonly photo_grid: (a: number, b: number, c: number, d: number, e: number, f: number, g: number, h: number, i: number) => void;
     readonly photo_new: (a: number, b: number, c: number, d: number, e: number) => void;
-    readonly photo_pencil: (a: number, b: number, c: number, d: number, e: number, f: number) => void;
+    readonly photo_pencil: (a: number, b: number, c: number, d: number, e: number, f: number, g: number) => void;
+    readonly photo_pencil_auto: (a: number, b: number, c: number) => void;
+    readonly photo_pencil_suggest: (a: number, b: number, c: number, d: number) => void;
     readonly photo_shapes: (a: number, b: number, c: number, d: number, e: number) => void;
     readonly photo_values: (a: number, b: number, c: number, d: number, e: number, f: number) => void;
     readonly __wbindgen_externrefs: WebAssembly.Table;

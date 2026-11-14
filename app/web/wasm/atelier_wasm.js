@@ -113,23 +113,32 @@ export class Photo {
         }
     }
     /**
-     * The Pencil layer: the photo as a graphite study, opaque. `look` 0 is the smooth tone picture, 1 the
-     * drawing. `mask` is the pencils, bit 0 the 9B up to bit 7 the 4H (255 is all). After the layer
-     * come one byte with the level count (the pencils of the set, then paper, darkest first), 3
-     * bytes (RGB) per level, and one byte per level with the share of the picture in percent.
+     * The Pencil layer: the photo as a graphite study, opaque. `look` 0 is the smooth tone picture, 1
+     * the drawing, 2 the flat zones, 3 hatch, 4 by pencil. `mask` is the pencils, bit 0 the 9B up to
+     * bit 7 the 4H (255 is all). `numbers` is a `Float64Array` of 11 numbers, in the order
+     * `detail`, `key`, `contrast`, `highlights`, `darks`, `local`, `grain`, `paper`, `angle`,
+     * `density`, `step` (their ranges are in `atelier_core::render`). After the layer come one byte
+     * with the level count (the pencils of the set, then paper, darkest first), 3 bytes (RGB) per
+     * level, one byte per level with the share of the picture in percent, and one byte with the
+     * marked level (255 for none).
      *
      * # Errors
-     * A `long`, `look`, `mask` or `detail` out of range.
+     * A `long`, `look`, `mask` or number out of range, or `numbers` of the wrong length.
      * @param {number} long
      * @param {number} look
      * @param {number} mask
-     * @param {number} detail
+     * @param {Float64Array | number[]} numbers
      * @returns {Uint8Array}
      */
-    pencil(long, look, mask, detail) {
+    pencil(long, look, mask, numbers) {
         try {
             const retptr = wasm.__wbindgen_add_to_stack_pointer(-16) >>> 0;
-            wasm.photo_pencil(retptr, this.__wbg_ptr, long, look, mask, detail);
+            const val2 = +long;
+            const val3 = +look;
+            const val4 = +mask;
+            const ptr0 = passArrayF64ToWasm0(numbers, wasm.__wbindgen_export3);
+            const len0 = WASM_VECTOR_LEN;
+            wasm.photo_pencil(retptr, this.__wbg_ptr, val2, val3, val4, ptr0, len0);
             var r0 = getDataViewMemory0().getInt32(retptr + 4 * 0, true);
             var r1 = getDataViewMemory0().getInt32(retptr + 4 * 1, true);
             var r2 = getDataViewMemory0().getInt32(retptr + 4 * 2, true);
@@ -137,9 +146,62 @@ export class Photo {
             if (r3) {
                 throw takeFromExternrefTable0(r2);
             }
-            var v1 = getArrayU8FromWasm0(r0, r1).slice();
+            var v5 = getArrayU8FromWasm0(r0, r1).slice();
             wasm.__wbindgen_export2(r0, r1 * 1, 1);
+            return v5;
+        } finally {
+            wasm.__wbindgen_add_to_stack_pointer(16);
+        }
+    }
+    /**
+     * What Auto reads from the photo, as 9 numbers: `key`, `contrast`, `highlights` (the knobs it
+     * sets), the median L*, the key class (0 low, 1 mid, 2 high), the IQR, eta, bimodal (0 or 1)
+     * and spike (0 or 1).
+     *
+     * # Errors
+     * A `long` out of range.
+     * @param {number} long
+     * @returns {Float64Array}
+     */
+    pencil_auto(long) {
+        try {
+            const retptr = wasm.__wbindgen_add_to_stack_pointer(-16) >>> 0;
+            wasm.photo_pencil_auto(retptr, this.__wbg_ptr, long);
+            var r0 = getDataViewMemory0().getInt32(retptr + 4 * 0, true);
+            var r1 = getDataViewMemory0().getInt32(retptr + 4 * 1, true);
+            var r2 = getDataViewMemory0().getInt32(retptr + 4 * 2, true);
+            var r3 = getDataViewMemory0().getInt32(retptr + 4 * 3, true);
+            if (r3) {
+                throw takeFromExternrefTable0(r2);
+            }
+            var v1 = getArrayF64FromWasm0(r0, r1).slice();
+            wasm.__wbindgen_export2(r0, r1 * 8, 8);
             return v1;
+        } finally {
+            wasm.__wbindgen_add_to_stack_pointer(16);
+        }
+    }
+    /**
+     * The pencil `mask` (bit 0 the 9B up to bit 7 the 4H) of the best `count` pencils, 3 to 6, of
+     * the eight for the photo.
+     *
+     * # Errors
+     * A `long` or `count` out of range.
+     * @param {number} long
+     * @param {number} count
+     * @returns {number}
+     */
+    pencil_suggest(long, count) {
+        try {
+            const retptr = wasm.__wbindgen_add_to_stack_pointer(-16) >>> 0;
+            wasm.photo_pencil_suggest(retptr, this.__wbg_ptr, long, count);
+            var r0 = getDataViewMemory0().getInt32(retptr + 4 * 0, true);
+            var r1 = getDataViewMemory0().getInt32(retptr + 4 * 1, true);
+            var r2 = getDataViewMemory0().getInt32(retptr + 4 * 2, true);
+            if (r2) {
+                throw takeFromExternrefTable0(r1);
+            }
+            return r0 >>> 0;
         } finally {
             wasm.__wbindgen_add_to_stack_pointer(16);
         }
@@ -235,6 +297,11 @@ const PhotoFinalization = (typeof FinalizationRegistry === 'undefined')
     ? { register: () => {}, unregister: () => {} }
     : new FinalizationRegistry(ptr => wasm.__wbg_photo_free(ptr, 1));
 
+function getArrayF64FromWasm0(ptr, len) {
+    ptr = ptr >>> 0;
+    return getFloat64ArrayMemory0().subarray(ptr / 8, ptr / 8 + len);
+}
+
 function getArrayU8FromWasm0(ptr, len) {
     ptr = ptr >>> 0;
     return getUint8ArrayMemory0().subarray(ptr / 1, ptr / 1 + len);
@@ -246,6 +313,14 @@ function getDataViewMemory0() {
         cachedDataViewMemory0 = new DataView(wasm.memory.buffer);
     }
     return cachedDataViewMemory0;
+}
+
+let cachedFloat64ArrayMemory0 = null;
+function getFloat64ArrayMemory0() {
+    if (cachedFloat64ArrayMemory0 === null || cachedFloat64ArrayMemory0.byteLength === 0) {
+        cachedFloat64ArrayMemory0 = new Float64Array(wasm.memory.buffer);
+    }
+    return cachedFloat64ArrayMemory0;
 }
 
 function getStringFromWasm0(ptr, len) {
@@ -264,6 +339,13 @@ function getUint8ArrayMemory0() {
 function passArray8ToWasm0(arg, malloc) {
     const ptr = malloc(arg.length * 1, 1) >>> 0;
     getUint8ArrayMemory0().set(arg, ptr / 1);
+    WASM_VECTOR_LEN = arg.length;
+    return ptr;
+}
+
+function passArrayF64ToWasm0(arg, malloc) {
+    const ptr = malloc(arg.length * 8, 8) >>> 0;
+    getFloat64ArrayMemory0().set(arg, ptr / 8);
     WASM_VECTOR_LEN = arg.length;
     return ptr;
 }
@@ -296,6 +378,7 @@ function __wbg_finalize_init(instance, module) {
     wasm = instance.exports;
     wasmModule = module;
     cachedDataViewMemory0 = null;
+    cachedFloat64ArrayMemory0 = null;
     cachedUint8ArrayMemory0 = null;
     wasm.__wbindgen_start();
     return wasm;
