@@ -4,8 +4,8 @@
 //! make on paper. The same picture says which pencil each tone is: the legend names one pencil per
 //! tone of the set, and the lightest tone is bare paper.
 //!
-//! One small module per idea: `grades` (the levels), `tone` (the curve, Key and Contrast), `darks`
-//! (the accent rule, Deep darks) and `drawing` (the grain).
+//! One small module per idea: `grades` (the levels), `tone` (the curve, Key and Contrast), `local`
+//! (Local contrast), `darks` (the accent rule, Deep darks) and `drawing` (the grain).
 //!
 //! The steps:
 //!
@@ -17,8 +17,9 @@
 //!    becomes paper. A middle grade is used as much as a soft one, because the curve leans a
 //!    little toward equal shares of pixels ([`tone::TONE_SPREAD`]).
 //!    The curve passes through each pencil's tone at the middle of its zone, so a spot of that
-//!    tone is exactly that pencil. `key` lifts or drops the middle of the photo and `contrast`
-//!    steepens or flattens it, before the curve.
+//!    tone is exactly that pencil. Before the curve, `local` boosts the detail of the photo (what is
+//!    left after a smooth base is taken away), `key` lifts or drops the middle of the photo and
+//!    `contrast` steepens or flattens it.
 //! 4. Looks: Tone is the curve's picture. Drawing is the same picture with graphite grain and
 //!    hatching, mean zero, so the tones hold; `grain` sets its strength. Hatch draws as Drawing
 //!    until it has its own strokes. Zones is the old flat map: one flat tone per pencil, cut where
@@ -33,6 +34,7 @@
 mod darks;
 mod drawing;
 mod grades;
+mod local;
 mod tone;
 
 #[cfg(test)]
@@ -110,7 +112,7 @@ impl Paper {
 #[derive(Debug, Clone, PartialEq)]
 #[allow(
     dead_code,
-    reason = "local, paper, angle, density and step are read by later modules"
+    reason = "paper, angle, density and step are read by later modules"
 )]
 pub(crate) struct Knobs {
     /// The picture to draw.
@@ -256,10 +258,11 @@ fn tone_picture(work: &Rgb, k: &Knobs, tones: &[f32]) -> Result<Painting> {
         k.key,
         k.contrast,
     );
-    let tone: Vec<f32> = lightness(&f.smooth, &f.fine, k.detail)
-        .iter()
-        .map(|&v| map.map(v))
-        .collect();
+    let mut v = lightness(&f.smooth, &f.fine, k.detail);
+    if k.local > 0.0 {
+        v = local::boost(&v, w, h, k.local);
+    }
+    let tone: Vec<f32> = v.iter().map(|&v| map.map(v)).collect();
     let mids = mids(tones);
     // no tone is darker than the pencil an over-big accent mass moves up to
     let floor = darks::floor(&tone, tones, &mids, k.accent_share());

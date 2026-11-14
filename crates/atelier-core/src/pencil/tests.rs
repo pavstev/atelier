@@ -304,6 +304,39 @@ fn test_deep_darks_sets_how_much_the_soft_pencils_may_cover() {
 }
 
 #[test]
+fn test_local_contrast_is_off_at_zero_and_adds_texture_when_on() {
+    // a mid-gray with a faint texture, about 4 L* either way
+    let mut img = Rgb::new(64, 64, 3);
+    for (i, px) in img.data.chunks_exact_mut(3).enumerate() {
+        let v = 110 + (hash(i % 64, i / 64) * 8.0) as i32;
+        px.copy_from_slice(&[v as u8; 3]);
+    }
+    let draw = |local: f32| {
+        let k = Knobs {
+            local,
+            detail: 1.0,
+            ..Knobs::default()
+        };
+        view(&img, &k).unwrap()
+    };
+    let spread = |p: &Pencil| {
+        let m = mean(&p.image);
+        let g: Vec<f64> = p
+            .image
+            .data
+            .chunks_exact(3)
+            .map(|c| f64::from(c[1]))
+            .collect();
+        g.iter().map(|v| (v - m).powi(2)).sum::<f64>() / g.len() as f64
+    };
+    let (off, some, full) = (draw(0.0), draw(0.5), draw(1.0));
+    assert_eq!(off, view_of(&img, 255, 1.0, TONE).unwrap());
+    assert!(spread(&off) < spread(&some) && spread(&some) < spread(&full));
+    // the tones and the picture's ends are still the pencils
+    assert_eq!(off.tones, full.tones);
+}
+
+#[test]
 fn test_hatch_draws_as_drawing_until_it_has_its_own_strokes() {
     let w = ramp(64, 32);
     assert_eq!(
