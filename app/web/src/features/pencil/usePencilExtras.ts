@@ -77,7 +77,11 @@ export function usePencilExtras(photo: ImageData | null): PencilExtras {
 		note: mine ? held.note : null,
 		suggested: mine ? held.suggested : null,
 		count,
-		setCount,
+		// a suggestion answers one count; another count drops it until Suggest runs again
+		setCount: (n) => {
+			setCount(n);
+			keep({ suggested: null });
+		},
 		busy,
 		error,
 		runAuto: (apply) =>

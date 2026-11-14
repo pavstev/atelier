@@ -680,6 +680,8 @@ test("test_suggest_pencils_gives_three_to_six_and_apply_shows_only_those", async
 	for (const [i, n] of [3, 4, 5, 6].entries()) {
 		const before = await legendGrades(page);
 		await count.nth(i).click();
+		// a new count drops the old suggestion, so the chips that show next are the new answer
+		await expect(page.getByTestId("pencil-suggested")).toHaveCount(0);
 		await page.getByTestId("pencil-suggest").click();
 		const chips = page.getByTestId("pencil-suggested");
 		await expect(chips).toBeVisible();
@@ -769,8 +771,14 @@ test("test_the_picker_names_a_grade_of_the_legend_in_every_look", async ({
 	await studio.base("pencil");
 	const picker = page.getByTestId("tool-picker");
 	for (const [i, name] of LOOK_NAMES.entries()) {
-		if ((await picker.getAttribute("aria-pressed")) === "true")
+		if ((await picker.getAttribute("aria-pressed")) === "true") {
 			await picker.click();
+			// that click may land outside the Base card and start closing it; close any card for
+			// sure, so the knob opens a fresh one
+			const popup = page.getByTestId("tool-popup");
+			if ((await popup.count()) > 0) await page.keyboard.press("Escape");
+			await expect(popup).toHaveCount(0);
+		}
 		if (i !== LOOK.tone) await studio.knob("pencil-look", i);
 		const order = await legendGrades(page);
 		await picker.click();

@@ -8,8 +8,9 @@ const CLASS_NAMES = ["Low key", "Mid key", "High key"];
 /** A knob within this many points of 50 counts as unchanged. */
 const NEAR = 3;
 
-/** A key move of at most this many points is "a little". */
-const LITTLE = 25;
+/** A key move of at most this many points is "a little": half a stop (the Key scale is 25 points
+ * per stop, and Auto moves the key one stop at most). */
+const LITTLE = 12;
 
 /** The key sentence: which way Auto moved the key and how far. */
 function keyWords(a: PencilAuto): string {

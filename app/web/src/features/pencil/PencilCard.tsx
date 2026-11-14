@@ -156,8 +156,9 @@ export default function PencilCard({ pencil: s, onChange, extras }: Props) {
 				className="m-0 flex min-w-0 flex-col gap-1.5 border-0 p-0"
 			>
 				<Heading id={toneId}>Tone</Heading>
-				{!zones && knob("key", "Key", "pencil-key")}
-				{!zones && knob("contrast", "Contrast", "pencil-contrast")}
+				{/* steps of 1: Auto sets any whole number, and the slider must show it */}
+				{!zones && knob("key", "Key", "pencil-key", 1)}
+				{!zones && knob("contrast", "Contrast", "pencil-contrast", 1)}
 				{knob("highlights", "Highlights", "pencil-highlights", 1)}
 				{knob("darks", "Deep darks", "pencil-darks")}
 				{!zones && knob("local", "Local contrast", "pencil-local")}
