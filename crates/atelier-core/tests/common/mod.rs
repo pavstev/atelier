@@ -3,7 +3,7 @@
 //! come from the examples' `support` module.
 
 // Each test file uses a different part of these helpers.
-#![allow(dead_code)]
+#![allow(dead_code, unused_imports)]
 
 use atelier_core::img::Rgb;
 use atelier_core::render::prepare_work;
