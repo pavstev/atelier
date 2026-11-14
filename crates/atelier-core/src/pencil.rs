@@ -25,7 +25,7 @@
 //! clock.
 
 use crate::error::{Error, Result};
-use crate::filters::percentile;
+use crate::filters::Sorted;
 use crate::img::Rgb;
 use crate::oklab;
 use crate::values::{fields_with, ok_l};
@@ -167,9 +167,9 @@ fn levels(mask: u32) -> Result<Vec<f32>> {
 
 /// The photo lightness that becomes the darkest pencil and paper: the [`LOW_Q`] and [`HIGH_Q`]
 /// percentiles of `smooth`, at least [`MIN_RANGE`] apart.
-fn range(smooth: &[f32]) -> (f32, f32) {
-    let lo = percentile(smooth, LOW_Q);
-    let hi = percentile(smooth, HIGH_Q);
+fn range(smooth: &Sorted) -> (f32, f32) {
+    let lo = smooth.at(LOW_Q);
+    let hi = smooth.at(HIGH_Q);
     if hi - lo < MIN_RANGE {
         let mid = f32::midpoint(hi, lo);
         (mid - MIN_RANGE / 2.0, mid + MIN_RANGE / 2.0)
@@ -180,7 +180,7 @@ fn range(smooth: &[f32]) -> (f32, f32) {
 
 /// The cuts between the levels, in the L* of the smoothed photo. They blend the plain stretch
 /// (the [`range`] of the photo onto the range of the set) with equal shares of pixels.
-fn cuts(smooth: &[f32], tones: &[f32], spread: f32) -> Vec<f32> {
+fn cuts(smooth: &Sorted, tones: &[f32], spread: f32) -> Vec<f32> {
     let (lo, hi) = range(smooth);
     let (first, last) = (tones[0], tones[tones.len() - 1]);
     let n = tones.len();
@@ -189,7 +189,7 @@ fn cuts(smooth: &[f32], tones: &[f32], spread: f32) -> Vec<f32> {
         .map(|i| {
             let mid = f32::midpoint(tones[i], tones[i + 1]);
             let stretch = lo + (mid - first) / (last - first) * (hi - lo);
-            let equal = percentile(smooth, (i + 1) as f64 / n as f64);
+            let equal = smooth.at((i + 1) as f64 / n as f64);
             let cut = ((1.0 - spread) * stretch + spread * equal).max(prev);
             prev = cut;
             cut
@@ -243,7 +243,9 @@ pub fn view(work: &Rgb, mask: u32, detail: f32, look: u8) -> Result<Pencil> {
         return Err(Error::bad("pencil look must be 0 to 2"));
     }
     let tones = levels(mask)?;
-    let f = fields_with(work, detail, |smooth| cuts(smooth, &tones, SPREAD))?;
+    let f = fields_with(work, detail, |smooth| {
+        cuts(&Sorted::new(smooth), &tones, SPREAD)
+    })?;
     let (w, h) = (work.width, work.height);
     let n = tones.len();
     let flat: Vec<[u8; 3]> = tones.iter().map(|&l| tint(l)).collect();
@@ -261,8 +263,9 @@ pub fn view(work: &Rgb, mask: u32, detail: f32, look: u8) -> Result<Pencil> {
             px.copy_from_slice(&flat[zone]);
         }
     } else {
-        let (lo, hi) = range(&f.smooth);
-        let at = anchors(lo, hi, &cuts(&f.smooth, &tones, TONE_SPREAD));
+        let sorted = Sorted::new(&f.smooth);
+        let (lo, hi) = range(&sorted);
+        let at = anchors(lo, hi, &cuts(&sorted, &tones, TONE_SPREAD));
         let retain = RETAIN_MIN + (1.0 - RETAIN_MIN) * detail;
         let mids: Vec<f32> = tones
             .windows(2)

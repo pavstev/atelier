@@ -1,6 +1,6 @@
 //! Shared filters, one copy each: the Otsu cut of a histogram, the box mean, the guided
-//! filter, the percentile, the Sobel gradient and the mode (majority) filter. The Gaussian blur is
-//! `edges::field::blur`.
+//! filter, the percentile (and `Sorted`, one sort for many percentiles), the Sobel gradient and the
+//! mode (majority) filter. The Gaussian blur is `edges::field::blur`.
 
 /// The Otsu cut of a 256 bin histogram: the first bin whose split into a dark and a light group
 /// has the largest between class variance. `None` when the values fill one bin only.
@@ -144,15 +144,44 @@ pub(crate) fn guided_with(stats: &GuideStats, guide: &[f32], plane: &[f32], eps:
     (0..n).map(|k| ma[k] * guide[k] + mb[k]).collect()
 }
 
+/// The 1 based rank of the share `q` (0..1) in a list of `len` (at least 1): `ceil(len * q)`, at
+/// least the first.
+fn rank(len: usize, q: f64) -> usize {
+    ((len as f64 * q).ceil() as usize).clamp(1, len)
+}
+
 /// The value at the share `q` (0..1) of `v`: the one at rank `ceil(len * q)`, at least the first.
-/// 0 for an empty list.
+/// 0 for an empty list. One select per call (O(n)): for one or two lookups. For many lookups on
+/// one list, sort it once with [`Sorted`].
 pub(crate) fn percentile(v: &[f32], q: f64) -> f32 {
     if v.is_empty() {
         return 0.0;
     }
-    let rank = ((v.len() as f64 * q).ceil() as usize).clamp(1, v.len());
     let mut copy = v.to_vec();
-    *copy.select_nth_unstable_by(rank - 1, f32::total_cmp).1
+    *copy
+        .select_nth_unstable_by(rank(v.len(), q) - 1, f32::total_cmp)
+        .1
+}
+
+/// A list sorted once, for many [`percentile`] lookups with the same rank rule and the same values
+/// (the k-th order statistic does not depend on how it is found).
+pub(crate) struct Sorted(Vec<f32>);
+
+impl Sorted {
+    /// `v` sorted.
+    pub(crate) fn new(v: &[f32]) -> Self {
+        let mut sorted = v.to_vec();
+        sorted.sort_unstable_by(f32::total_cmp);
+        Self(sorted)
+    }
+
+    /// The value at the share `q` (0..1), as [`percentile`] gives it. 0 for an empty list.
+    pub(crate) fn at(&self, q: f64) -> f32 {
+        if self.0.is_empty() {
+            return 0.0;
+        }
+        self.0[rank(self.0.len(), q) - 1]
+    }
 }
 
 /// The 3x3 Sobel gradient `(gx, gy)` of a plane, unscaled, the border replicated.
@@ -335,5 +364,16 @@ mod tests {
         assert_eq!(percentile(&v, 0.5), 3.0);
         assert_eq!(percentile(&v, 0.0), 1.0);
         assert_eq!(percentile(&v, 1.0), 5.0);
+    }
+
+    #[test]
+    fn test_sorted_gives_the_values_percentile_gives() {
+        let v = lcg(11, 997);
+        let sorted = Sorted::new(&v);
+        for q in [0.0, 0.001, 0.01, 0.2, 0.333, 0.5, 0.99, 0.999, 1.0] {
+            assert_eq!(sorted.at(q), percentile(&v, q), "q {q}");
+        }
+        assert_eq!(Sorted::new(&[]).at(0.5), 0.0);
+        assert_eq!(Sorted::new(&[4.0]).at(0.0), 4.0);
     }
 }
