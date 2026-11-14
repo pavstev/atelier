@@ -26,6 +26,9 @@ designs are deleted from main; `git log` keeps them.
   (`bench/value-eval/`).
 - [research/2026-11-14-graphite-pencil-grades.md](research/2026-11-14-graphite-pencil-grades.md): what
   painters say about each graphite grade, for the Pencil view.
+- [research/2026-11-14-graphite-pencil-science.md](research/2026-11-14-graphite-pencil-science.md):
+  graphite on paper, the pencil rendering literature, tone mapping, pencil choice and the metrics
+  behind the Pencil looks and knobs, with a table of decisions.
 - [research/2026-11-13-acrylic-paint-spectra.md](research/2026-11-13-acrylic-paint-spectra.md): the
   model and the data limits behind the color picker's paint mix.
 
