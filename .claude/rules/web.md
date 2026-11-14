@@ -15,10 +15,22 @@ paths:
   `edges-mode`, `edges-amount`, `edges-even`, `edges-width`, `grid-mode`, `grid-cells`, `grid-width`,
   `grid-group`, `grid-center`, `grid-paint`, `grid-color`, `values-detail`, `values-tint`,
   `shapes-detail`, `layer-edges`, `layer-grid`,
-  Pencil base: `pencil-look` (a row of buttons, Tone, Drawing and Zones), `pencil-detail`, `pencil-grades`
-  (the row) with one `pencil-grade` per pencil (`data-grade`, `aria-pressed`); the legend
+  Pencil base: `pencil-look` (a select with Tone, Drawing, Zones, Hatch and By pencil; set it like the
+  other hidden selects) and `pencil-look-hint` (the line under it); the Tone group `pencil-tone-group`
+  with the sliders `pencil-key`, `pencil-contrast`, `pencil-highlights`, `pencil-darks`,
+  `pencil-local` and `pencil-detail`; the Texture group `pencil-texture-group` (Drawing and Hatch only)
+  with `pencil-grain`, `pencil-paper` (a row of radios: Smooth, Medium, Rough), `pencil-hatch-angle`
+  and `pencil-hatch-density` (Hatch only); `pencil-step` (a slider, By pencil only) and
+  `pencil-step-line` ("Step 4 of 8: HB"); `pencil-reset`; `pencil-auto` (not in Zones) and
+  `pencil-auto-note` (`aria-live` polite; empty when there is no note); `pencil-suggest-count` (radios
+  3 to 6), `pencil-suggest`, `pencil-suggested` (`data-mask`) with one `pencil-suggested-grade`
+  (`data-grade`) per chip, `pencil-suggest-apply` (disabled when the suggestion is the set) and
+  `pencil-error`; `pencil-grades` (the row) with one `pencil-grade` per pencil (`data-grade`,
+  `aria-pressed`); the legend
   (`legend`, label "Pencil legend") has a `legend-swatch` per level with `data-grade` and
-  `data-share`; on a pencil picker card `picker-grade` (`data-grade`), `picker-hint` and
+  `data-share`, and in By pencil the row of the step has `data-step="true"`, `aria-current="step"` and
+  a `legend-step` badge; on a pencil picker card `picker-grade` (`data-grade`; `data-step="true"`
+  when it names the step pencil), `picker-step`, `picker-hint` and
   `picker-pressure` replace the paint rows; while Pencil is the base `tool-edges` is disabled
   (`aria-disabled`),
   `stage`, `facts`, `file`, `error`, `legend`, `legend-swatch`, `lock-width`, `screen-width`, `screen-found`, `lock-card`

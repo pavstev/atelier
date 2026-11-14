@@ -48,7 +48,8 @@ Left to right:
      the level of the Pencil legend nearest in lightness, as a big grade ("2B"), a short hint and how
      hard to press. The sample area is never smaller than Small, because the drawing look has grain
      that only a patch averages out. A held card has Copy ("2B, medium pressure") and close, and the
-     status message says the same.
+     status message says the same. It works in every look. In By pencil a spot at or darker than the
+     step shows the pencil of the step, because that is how the picture draws it.
    - **Keyboard and screen reader.** With the picker on, the stage takes the focus: the arrow keys
      move a probe (Shift for big steps), Enter holds the color and Esc lets go. A held recipe is read
      out as a status message, and the stage says how to use it.
@@ -98,16 +99,39 @@ Grid.
     picker in the bottom bar).
   - **Shapes:** Step and Detail. Step is the paint order: 1 Shadows, 2 Halftones, 3 Lights,
     4 Accents. The legend lists the piles of paint to mix in that step.
-  - **Pencil:** the photo as a study for graphite pencils, easy to copy by hand. Look is Tone (the
-    photo as a smooth gray picture, a little simplified, in graphite tones; the start look),
-    Drawing (Tone with graphite grain and hatching) or Zones (flat zones, one tone per pencil).
-    Detail is how much fine detail Tone and Drawing keep (and the smallest zone in Zones).
-    Pencils is a row of eight toggles, 9B, 7B, 5B, 2B, HB, H, 3H and 4H: tick the pencils you own.
-    The tones of the picture are the tones of those pencils and bare paper. At least one pencil stays on. The legend has one row per level, darkest first
-    and Paper last, with the tone, the grade, a short hint and its share of the photo (a grade the
-    photo does not use says "not used"). Pencil is a base of its own, so Edges is off while it is
-    shown; the Edges switch you saved stays and comes back with another base. Grid works as on any
-    base, with the dark Contrast lines of Paper.
+  - **Pencil:** the photo as a study for graphite pencils, easy to copy by hand. How each look and
+    knob draws, with its numbers: [how-it-works/pencil.md](how-it-works/pencil.md). The card has
+    these controls, top to bottom. A control that a look does not use is hidden.
+    - **Look** (a select): Tone (the photo as a smooth gray picture in graphite tones; the start),
+      Drawing (Tone on a paper tooth), Zones (flat zones, one tone per pencil), Hatch (lines that
+      follow the form; the heaviest look) and By pencil (only the lightest pencils up to a step).
+      A line under the select says what the look is for.
+    - **Tone** group: **Key** (lighter or darker), **Contrast**, **Highlights** (the percent of the
+      photo left as bare paper), **Deep darks** (the most of the picture the 9B and 7B may cover),
+      **Local contrast** (more texture, 0 is off) and **Detail** (how much fine detail stays). Zones
+      shows only Detail, Highlights and Deep darks.
+    - **Texture** group (Drawing and Hatch only): **Grain**, **Paper** (Smooth, Medium or Rough),
+      **Hatch angle** and, in Hatch only, **Hatch density**.
+    - **Step** (By pencil only): how many pencils are down, from the lightest. A line says which pencil
+      the step is ("Step 4 of 8: HB"). The legend marks that pencil, and the slider stops at the
+      number of pencils in the set.
+    - **Auto** (every look but Zones): sets Key, Contrast and Highlights from the photo and says in a
+      note what it did and why. The note goes away when you move one of the three by hand or open
+      another photo. It is not saved.
+    - **Suggest pencils:** a count row (3, 4, 5 or 6), the **Suggest** button, the suggested pencils
+      as chips, and **Apply**, which sets them as your set (the legend then shows only those pencils).
+      Not saved.
+    - **Reset:** every knob back to its start. The look and the set of pencils stay.
+    - **Pencils** is a row of eight toggles, 9B, 7B, 5B, 2B, HB, H, 3H and 4H: tick the pencils you
+      own. The tones of the picture are the tones of those pencils and bare paper. At least one
+      pencil stays on.
+    - **Legend:** one row per level, darkest first and Paper last, with the tone, the grade, a short
+      hint and its share of the photo (a grade the photo does not use says "not used"). In By pencil
+      the row of the step has a mark.
+    - Pencil is a base of its own, so Edges is off while it is shown; the Edges switch you saved stays
+      and comes back with another base. Grid works as on any base, with the dark Contrast lines of
+      Paper. On a phone the card is a bottom sheet whose body scrolls inside it, so every control can
+      be reached.
 - **Edges:** Lines, Transfer or Masses. Amount 0 to 100 (starts at 67). Width 1 to 10 (starts at 5).
   Even 0 to 100 (starts at 50; Lines only).
 - **Grid:** Thirds, Grid or Both. Cells 3, 4, 6, 8, 9, 10, 12, 18, 20, 24, 30, 40 or 50. Center.
@@ -142,8 +166,8 @@ The left panel is the photo list and nothing else, full height.
 
 Everything stays in your browser, on this device.
 
-- **Settings.** The base, the switches, opacities and knobs (for Pencil: the look, the detail and
-  the set of pencils), and the panel width and state. They are shared by every photo.
+- **Settings.** The base, the switches, opacities and knobs (for Pencil: the look, every knob and
+  the set of pencils; not the Auto note or a suggestion), and the panel width and state. They are shared by every photo.
 - **Photos.** The file of each photo is kept in IndexedDB, so a reload brings the list and the
   photo on screen back. A photo stays until you delete it. Nothing is uploaded.
 - **View.** Each photo keeps its own zoom and pan. The picture can be moved until at most 500 px of
@@ -172,7 +196,8 @@ has five folders. Paths below are under `src/`.
   paints), `mix.ts` (the recipe of a color), `sample.ts` (the color the stage shows at a photo
   pixel) and `Picker.tsx` (the card).
 - `features/pencil/`: the list of pencils in the core's bit order (`grades.ts`: names, hints, the
-  set a mask picks, the level nearest a color) and the Pencils toggle row (`GradeRow.tsx`).
+  set a mask picks, the level nearest a color), the Pencils toggle row (`GradeRow.tsx`), the
+  settings and their ranges (`knobs.ts`), the Auto note (`explain.ts`) and the card (`PencilCard.tsx`).
 - `features/tools/`: the pop-up cards of the bottom bar and the settings (`settings.ts`: the start
   values and ranges of every knob).
 - `draw/`: the layers worker, its client, the typed calls and the draw hook.

@@ -50,8 +50,12 @@ compares it with `crates/atelier-core/tests/reference` (size, range, a mean diff
 ## Dropped for good
 
 Pencil came back on 2026-11-14, by the owner's request, as a Base choice that draws the photo as a gray
-picture in the tones of the graphite grades 4H to 9B (`crates/atelier-core/src/pencil.rs`). It is not the old Line drawing or
+picture in the tones of the graphite grades 4H to 9B (`crates/atelier-core/src/pencil/`). It is not the old Line drawing or
 Pencil model tool. Those stay dropped.
+
+2026-11-14, Pencil v2 (five looks, Tone and Texture knobs, Auto, Suggest pencils): Hatch is a texture
+of the tone, and By pencil is a view of the tone by pencil. Neither is the dropped Stroke order or a
+line drawing. A Sketch look stays out, because Edges is the line tool (`docs/LEFTOVERS.md` row 64).
 
 Do not bring these back.
 

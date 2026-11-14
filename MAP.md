@@ -7,7 +7,7 @@ Atelier is a photo study tool for painters: a Rust core (wasm) behind a React we
 | Path | Holds | Open it to |
 |---|---|---|
 | `crates/atelier-core/` | all pixel work in Rust | changing what a part draws |
-| `crates/atelier-core/src/` | the typed calls (in `crates/atelier-core/src/render.rs`), `pencil.rs`, `grid.rs` and `edges/` | changing a part |
+| `crates/atelier-core/src/` | the typed calls (in `crates/atelier-core/src/render.rs`), `pencil/`, `grid.rs` and `edges/` | changing a part |
 | `crates/atelier-core/tests/` | the reference tests, their helpers, the reference pictures and fixtures | changing or blessing a reference |
 | `crates/atelier-core/examples/` | the bench (`bench.rs`: real photos, before and after sheets) and `edge_score.rs` (the Edges F-score) | running the bench |
 | `crates/atelier-wasm/` | the wasm edge: `Photo` (kept between draws, one call per layer) | changing what the page can call |
@@ -26,6 +26,7 @@ Atelier is a photo study tool for painters: a Rust core (wasm) behind a React we
 | `app/web/brand/` | the logo source for favicons and share images | changing the brand |
 | `app/web/scripts/` | the wasm build and brand scripts; the glue it writes is `app/web/wasm/` (committed at release) | changing the web build |
 | `xtask/` | `cargo xtask refs [--bless]` | changing the reference check |
+| `bench/pencil-eval/` | scores the Pencil looks on real photos with fixed metrics (MS-SSIM, tone error, range use, banding, grain mean), never shipped ([README](bench/pencil-eval/README.md)) | judging a Pencil change |
 | `bench/value-eval/` | scores Values and Shapes with fixed metrics, never shipped ([spec](docs/research/2026-11-04-value-eval-spec.md)) | judging a Values or Shapes change |
 | `scripts/` | check, deploy, release and docs-check shell scripts (`lib.sh` is their shared setup) | changing the check or deploy |
 | `docs/` | which docs are current: [docs/README.md](docs/README.md) | looking for a decision or history |
