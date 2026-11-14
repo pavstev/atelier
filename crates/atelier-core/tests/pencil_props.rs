@@ -300,13 +300,14 @@ fn box_error(look: u32) -> (f64, f64) {
 
 #[test]
 fn test_drawing_and_hatch_keep_the_tone_of_a_16_px_box() {
-    // The texture must not move the tone. Drawing: measured worst 0.4 L*, so the limits are tight.
-    // Hatch: three or four lines fall in a box, so a box can be off by a line. The limits are those of
-    // the ramp test in `src/pencil/hatch.rs` (mean 2.5, worst 12) with a little room: measured on this
-    // ramp, mean 1.6 and worst 12.5 (a band near tone 56). Tighten them if Hatch gets better.
+    // The texture must not move the tone. Drawing: measured mean 0.10 and worst 0.38 L*; the limits
+    // are those of its unit test (mean 0.5, worst 2.0). Hatch: three or four lines fall in a box, so
+    // a box can be off by a line. The limits are those of the ramp test in `src/pencil/hatch.rs`
+    // (mean 2.5, worst 12) with a little room: measured on this ramp, mean 1.61 and worst 12.48 (a
+    // band near tone 56). Tighten them if Hatch gets better.
     let (mean, worst) = box_error(DRAWING);
     assert!(
-        mean <= 1.0 && worst <= 3.0,
+        mean <= 0.5 && worst <= 2.0,
         "Drawing: mean {mean:.2}, worst {worst:.2}"
     );
     let (mean, worst) = box_error(HATCH);
