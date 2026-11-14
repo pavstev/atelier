@@ -21,7 +21,7 @@ const LOOK_HINTS = [
 	"Smooth gray tones. Good for judging the values.",
 	"The tones with paper grain, like a pencil drawing.",
 	"Flat zones, one pencil each. The simplest map.",
-	"The tones drawn as pencil strokes.",
+	"Lines that follow the form, crossed in the darks. The slowest look.",
 	"The drawing built up one pencil at a time, lightest first.",
 ];
 

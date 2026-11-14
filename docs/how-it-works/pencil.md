@@ -118,17 +118,22 @@ not from the set in use.
 
 ## Timing
 
-A 1024 px work picture, native release build, mean of three, in ms.
+A 1024 px work picture, in ms. The browser row is the wasm build in headless Chromium on one
+portrait photo, mean of three; the native rows are release builds, the mean and the slowest of 16
+photos.
 
-| | Tone | Drawing | Zones | Hatch | By pencil |
-|---|---|---|---|---|---|
-| Core, start knobs | 222 | 237 | 174 | 237 | 213 |
+| | Shapes, step 3 | Tone | Drawing | Zones | Hatch | By pencil |
+|---|---|---|---|---|---|---|
+| Browser (wasm), one photo | 630 | 234 | 287 | 194 | 439 | 220 |
+| Native, mean of 16 photos | | 233 | 278 | 183 | 387 | 231 |
+| Native, slowest photo | | 324 | 381 | 259 | 526 | 318 |
 
-- Key, Contrast and Local contrast at 70 together: Tone 296, Drawing 308. Auto 94. Suggest 93.
-- Shapes at step 3 is the slowest of the other parts (629 ms); every Pencil look stays under it.
-- After the paper tooth and the real Hatch (measured on its own): Drawing about 318 and Hatch about
-  444, the heaviest look.
-- wasm: measured at the end.
+- Every Pencil look stays under Shapes, the slowest of the other parts. Hatch is the heaviest look
+  (its card hint says so).
+- Key 60, Contrast 70 and Local contrast 70 together: Tone 307 native on average; Hatch with them
+  and density 100: 509 in the browser, 625 native on the slowest photo.
+- Auto and Suggest pencils: 94 ms each in the browser.
+- Native and wasm give the same bytes for every look (checked on a made-up picture).
 
 ## What stays a guess
 
