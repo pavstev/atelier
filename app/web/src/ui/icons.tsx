@@ -113,6 +113,8 @@ type IconButtonProps = {
 	variant?: ComponentProps<typeof Button>["variant"];
 	/** A toggle: sets `aria-pressed` and tints the button when on. */
 	pressed?: boolean;
+	/** Off, but still hoverable and focusable, so its tip can say why. Sets `aria-disabled`; a press does nothing. */
+	disabled?: boolean;
 	onPress?: () => void;
 	/** Where the tooltip opens. */
 	placement?: Place;
@@ -133,6 +135,7 @@ export function IconButton(p: IconButtonProps) {
 		testid,
 		variant,
 		pressed,
+		disabled,
 		placement,
 		size,
 		...rest
@@ -147,7 +150,8 @@ export function IconButton(p: IconButtonProps) {
 				aria-pressed={pressed}
 				data-testid={testid}
 				{...rest}
-				className={`${ICON_BUTTON[size ?? "bar"]} ${p.className ?? ""}`}
+				{...(disabled ? { "aria-disabled": true, onPress: undefined } : {})}
+				className={`${ICON_BUTTON[size ?? "bar"]} ${p.className ?? ""} ${disabled ? "pointer-events-auto! cursor-not-allowed opacity-50" : ""}`}
 			>
 				<Icon name={icon} size={size} />
 			</Button>

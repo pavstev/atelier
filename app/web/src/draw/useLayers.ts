@@ -10,13 +10,20 @@ const SETTLE_MS = 250;
 /** The three see-through slots of the stage, bottom first. */
 type Slot = "base" | "edges" | "grid";
 
+/** What a legend belongs to: the layer, and for Pencil also its set of pencils (a legend row is a
+ * pencil, so the rows of an old set must not be read as the rows of a new one). */
+const legendOf = (c: Call) =>
+	c.layer === "pencil" ? `pencil:${c.mask}` : c.layer;
+
 type Drawn = {
 	photo: ImageData;
 	layer: Call["layer"];
+	legend: string;
 	image: ImageData;
 	tones?: Rgb[];
+	shares?: number[];
 };
-type One = { image: ImageData; tones?: Rgb[] } | null;
+type One = { image: ImageData; tones?: Rgb[]; shares?: number[] } | null;
 
 /** The picture of one layer, or null while it is off or not drawn yet. */
 function useOne(
@@ -47,9 +54,16 @@ function useOne(
 		const timer = setTimeout(
 			() => {
 				draw(photo, c, WORK_LONG_SIDE, () => live)
-					.then(({ layer: image, tones }) => {
+					.then(({ layer: image, tones, shares }) => {
 						if (!live) return;
-						setDone({ photo, layer: c.layer, image, tones });
+						setDone({
+							photo,
+							layer: c.layer,
+							legend: legendOf(c),
+							image,
+							tones,
+							shares,
+						});
 						drawn();
 					})
 					.catch((e: unknown) => {
@@ -67,26 +81,28 @@ function useOne(
 	// The last picture stays while the next one draws, so a layer never blinks out on a knob. The
 	// legend tones of another kind of base (Values after Shapes) do not: they would be read as the
 	// new kind's tones or piles.
-	return key !== "" && done?.photo === photo
-		? {
-				image: done.image,
-				tones: done.layer === call?.layer ? done.tones : undefined,
-			}
-		: null;
+	if (key === "" || done?.photo !== photo) return null;
+	const same = call !== null && done.legend === legendOf(call);
+	return {
+		image: done.image,
+		tones: same ? done.tones : undefined,
+		shares: same ? done.shares : undefined,
+	};
 }
 
 type Pictures = Record<Slot, ImageData | null>;
 
 /**
  * The pictures of the base, Edges and Grid; a null call is off. `tones` are the Values tones
- * or the Shapes piles, darkest first, when the base is drawn.
+ * or the Shapes piles, darkest first, when the base is drawn. Pencil adds `shares`, the percent of
+ * the photo at each tone.
  */
 export function useLayers(
 	photo: ImageData | null,
 	calls: Record<Slot, Call | null>,
 	onDone: () => void,
 	onError: (message: string) => void,
-): { pictures: Pictures; tones: Rgb[] | null } {
+): { pictures: Pictures; tones: Rgb[] | null; shares: number[] | null } {
 	const base = useOne(photo, calls.base, onDone, onError);
 	const edges = useOne(photo, calls.edges, onDone, onError);
 	const grid = useOne(photo, calls.grid, onDone, onError);
@@ -97,5 +113,6 @@ export function useLayers(
 			grid: grid?.image ?? null,
 		},
 		tones: base?.tones ?? null,
+		shares: base?.shares ?? null,
 	};
 }

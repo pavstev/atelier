@@ -17,6 +17,7 @@ test("test_base_is_one_choice", async ({ studio }) => {
 		"Values",
 		"Shapes",
 		"Paper",
+		"Pencil",
 	]);
 	await expect(page.getByTestId("values-tint")).toHaveCount(0);
 	await studio.base("values");

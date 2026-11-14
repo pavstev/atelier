@@ -23,7 +23,8 @@ export type WorkerRequest =
 /** A good answer to a `load`: how many photos the worker holds now. */
 export type LoadAnswer = { id: number; ok: true; kind: "load"; held: number };
 
-/** A good answer to a `draw`: the picture, and for Values and Shapes its tones or piles. */
+/** A good answer to a `draw`: the picture, for Values and Shapes its tones or piles, and for
+ * Pencil its tones and the share of each in percent. */
 export type DrawAnswer = {
 	id: number;
 	ok: true;
@@ -32,6 +33,7 @@ export type DrawAnswer = {
 	height: number;
 	rgba: ArrayBuffer;
 	tones?: Rgb[];
+	shares?: number[];
 	ms: number;
 };
 

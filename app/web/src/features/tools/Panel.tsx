@@ -4,6 +4,7 @@
 // the main choice at full width, its settings one line each, then Opacity.
 import { Switch } from "@heroui/react";
 import type { ReactNode } from "react";
+import GradeRow from "@/features/pencil/GradeRow";
 import { Choice, ColorField, Knob, Row, Segment } from "@/ui/fields";
 import {
 	BASES,
@@ -22,7 +23,7 @@ import {
 const BASE_NAMES = BASES.map((b) => b.label);
 const baseIndex = (kind: string) => BASES.findIndex((b) => b.id === kind);
 
-/** The name of the base now on show (Photo, Values, Shapes or Paper). */
+/** The name of the base now on show (Photo, Values, Shapes, Paper or Pencil). */
 export const baseName = (look: Look) => BASE_NAMES[baseIndex(look.base.kind)];
 
 type Props = {
@@ -85,7 +86,7 @@ export function ToolHead(p: Props & { id: StageId }) {
 const Rule = () => <div className="my-0.5 h-px bg-separator" />;
 
 /** The controls of one tool, in three groups: the main choice at full width, its settings, then
- * Opacity last. `legend` is the color legend of Values and Shapes (Base only). */
+ * Opacity last. `legend` is the legend of Values, Shapes or Pencil (Base only). */
 export function ToolBody(p: Props & { id: StageId; legend?: ReactNode }) {
 	const s = p.look;
 	const set = setter(p);
@@ -108,7 +109,10 @@ export function ToolBody(p: Props & { id: StageId; legend?: ReactNode }) {
 	);
 	const dim = p.id !== "base" && !s[p.id].on;
 	const thirds = s.grid.mode === GRID_MODE.thirds;
-	const toned = s.base.kind === "values" || s.base.kind === "shapes";
+	const toned =
+		s.base.kind === "values" ||
+		s.base.kind === "shapes" ||
+		s.base.kind === "pencil";
 	return (
 		<div
 			data-testid="tools"
@@ -158,6 +162,25 @@ export function ToolBody(p: Props & { id: StageId; legend?: ReactNode }) {
 								testid="shapes-detail"
 								label="Detail"
 								{...bind("shapes", "detail")}
+							/>
+						</>
+					)}
+					{s.base.kind === "pencil" && (
+						<>
+							<Segment
+								testid="pencil-look"
+								label="Look"
+								options={LABELS.pencilLook}
+								{...bind("pencil", "look")}
+							/>
+							<Knob
+								testid="pencil-detail"
+								label="Detail"
+								{...bind("pencil", "detail")}
+							/>
+							<GradeRow
+								mask={s.pencil.mask}
+								onChange={(mask) => set("pencil", { mask })}
 							/>
 						</>
 					)}

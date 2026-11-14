@@ -7,7 +7,7 @@ Atelier is a photo study tool for painters: a Rust core (wasm) behind a React we
 | Path | Holds | Open it to |
 |---|---|---|
 | `crates/atelier-core/` | all pixel work in Rust | changing what a part draws |
-| `crates/atelier-core/src/` | the typed calls (in `crates/atelier-core/src/render.rs`), `grid.rs` and `edges/` | changing a part |
+| `crates/atelier-core/src/` | the typed calls (in `crates/atelier-core/src/render.rs`), `pencil.rs`, `grid.rs` and `edges/` | changing a part |
 | `crates/atelier-core/tests/` | the reference tests, their helpers, the reference pictures and fixtures | changing or blessing a reference |
 | `crates/atelier-core/examples/` | the bench (`bench.rs`: real photos, before and after sheets) and `edge_score.rs` (the Edges F-score) | running the bench |
 | `crates/atelier-wasm/` | the wasm edge: `Photo` (kept between draws, one call per layer) | changing what the page can call |
@@ -29,7 +29,7 @@ Atelier is a photo study tool for painters: a Rust core (wasm) behind a React we
 | `bench/value-eval/` | scores Values and Shapes with fixed metrics, never shipped ([spec](docs/research/2026-11-04-value-eval-spec.md)) | judging a Values or Shapes change |
 | `scripts/` | check, deploy, release and docs-check shell scripts (`lib.sh` is their shared setup) | changing the check or deploy |
 | `docs/` | which docs are current: [docs/README.md](docs/README.md) | looking for a decision or history |
-| `docs/how-it-works/` | one page per part: Values, Shapes, Edges, Grid | learning how a part draws |
+| `docs/how-it-works/` | one page per part: Values, Shapes, Pencil, Edges, Grid | learning how a part draws |
 | `docs/web-app.md` | what the app does, control by control, and how the web app is built | changing the UI |
 | `docs/development/` | testing, release and the bench | running tests or a release |
 | `docs/design/` | brand and theme sources | changing the look |

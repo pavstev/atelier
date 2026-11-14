@@ -1,15 +1,16 @@
 // The whole screen: the photo list on the left; the photo takes the rest, with the tools in the
 // bar at the bottom of it.
-// A base (Photo, Values, Shapes or Paper) with Edges and Grid over it. The photos live in
+// A base (Photo, Values, Shapes, Paper or Pencil) with Edges and Grid over it; Pencil turns Edges off. The photos live in
 // `usePhotos`, the layers in `useLayers`, the middle in `StageArea`.
 import { useMemo, useRef, useState } from "react";
 import type { Call } from "@/draw/calls";
 import { useLayers } from "@/draw/useLayers";
+import { levelsOf } from "@/features/pencil/grades";
 import Files from "@/features/photos/Files";
 import { usePhotos } from "@/features/photos/usePhotos";
 import type { Fixed } from "@/features/picker/Picker";
 import StageArea from "@/features/stage/StageArea";
-import { Legend } from "@/features/stage/Swatches";
+import { Legend, PencilLegend } from "@/features/stage/Swatches";
 import {
 	callFor,
 	type Look,
@@ -28,7 +29,8 @@ const callsOf = (s: Look): Record<StageId, Call | null> => ({
 		s.base.kind === "photo" || s.base.kind === "paper"
 			? null
 			: callFor(s.base.kind, s),
-	edges: s.edges.on ? callFor("edges", s) : null,
+	// Edges is off in Pencil mode; its saved switch stays, so Photo brings it back
+	edges: s.edges.on && s.base.kind !== "pencil" ? callFor("edges", s) : null,
 	grid: s.grid.on ? callFor("grid", s) : null,
 });
 
@@ -43,7 +45,7 @@ export default function App() {
 	const [picked, setPicked] = useState<Fixed | null>(null);
 
 	const calls = useMemo(() => callsOf(look), [look]);
-	const { pictures, tones } = useLayers(
+	const { pictures, tones, shares } = useLayers(
 		ph.photo,
 		calls,
 		ph.bump,
@@ -64,6 +66,11 @@ export default function App() {
 		(look.base.kind === "values" || look.base.kind === "shapes") &&
 		tones !== null &&
 		tones.length > 0;
+	// the Pencil levels (grade, tone, share), once a draw of the set of pencils on show has landed
+	const levels =
+		ph.photo !== null && look.base.kind === "pencil"
+			? levelsOf(look.pencil.mask, tones, shares)
+			: null;
 	const openPicker = () => input.current?.click();
 	const closePanel = () => setLayout((l) => ({ ...l, panels: { left: true } }));
 
@@ -120,7 +127,9 @@ export default function App() {
 				look={look}
 				onLook={setLook}
 				legend={
-					toned && tones ? (
+					levels ? (
+						<PencilLegend levels={levels} />
+					) : toned && tones ? (
 						<Legend
 							tones={tones}
 							label={look.base.kind === "values" ? "Value legend" : "Mix piles"}
@@ -128,6 +137,7 @@ export default function App() {
 						/>
 					) : undefined
 				}
+				levels={levels}
 				layout={layout}
 				onLayout={setLayout}
 				facts={{
@@ -136,7 +146,7 @@ export default function App() {
 				}}
 				errors={ph.errors}
 				onDismissError={() => ph.dismissErrors()}
-				picked={picked}
+				picked={look.base.kind === "pencil" ? null : picked}
 				onPicked={setPicked}
 				onOpen={openPicker}
 				onFiles={(f) => void ph.open(f)}

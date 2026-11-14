@@ -1,4 +1,4 @@
-//! Reference check of the study tools (values, shapes, edges, grid): each view of the synthetic fixture at 128 px must stay
+//! Reference check of the study tools (values, shapes, pencil, edges, grid): each view of the synthetic fixture at 128 px must stay
 //! within a small mean difference of a PNG in `tests/reference`. `ATELIER_BLESS=1` writes the PNGs.
 
 mod common;
@@ -43,6 +43,26 @@ fn test_shapes_reference() {
         let got = render::shapes_view(&img, step, 50.0).unwrap().0;
         assert_eq!((got.width, got.height), (w.width, w.height));
         check(&format!("shapes_{step}"), &got);
+    }
+}
+
+#[test]
+fn test_pencil_reference() {
+    let w = work();
+    // the map and the drawing, with all eight pencils and with a set of three
+    for (look, mask, name) in [
+        (0, 255, "map"),
+        (1, 255, "drawing"),
+        (0, 0b1001_0100, "map_three"),
+    ] {
+        let (layer, tones, shares) = render::pencil_layer(&w, look, mask, 50.0).unwrap();
+        assert_eq!(tones.len(), mask.count_ones() as usize + 1);
+        assert_eq!(shares.len(), tones.len());
+        let mut got = Rgb::new(w.width, w.height, 3);
+        for (d, p) in got.data.chunks_exact_mut(3).zip(layer.rgba.chunks_exact(4)) {
+            d.copy_from_slice(&p[..3]);
+        }
+        check(&format!("pencil_{name}"), &got);
     }
 }
 

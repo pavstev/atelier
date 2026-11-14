@@ -24,6 +24,7 @@ own, with the bench in [development/bench.md](development/bench.md).
 | 52 | Each Edges Lines or Transfer draw makes the edge map of the kept work picture again (`edges::map::strength`). The core does not hand the map out, so the wasm `Photo` cannot keep it. | `crates/atelier-core/src/render.rs` `edges_view`, `crates/atelier-wasm/src/lib.rs` `Prepared` |
 | 56 | Speed: the Values smoothing (median 5x5, then two guided filter passes) could be the Fast Global Smoother of OpenCV ximgproc (Apache-2.0, about 150 lines to port). On the sunset portrait it gave nearly the same Three picture in 3 ms. | `crates/atelier-core/src/values.rs` `analyze` |
 | 57 | Speed: `fast_image_resize` 6 (MIT or Apache-2.0, builds for wasm32 with simd128) was about 3 times faster than Pillow for Lanczos3 natively. Its bytes differ by up to 5 levels, so the refs and goldens would move. Not timed against our `resize_lanczos` yet. | `crates/atelier-core/src/resize.rs` |
+| 63 | Pencil: the tone of each grade (L* 17 for the 9B up to 86 for the 4H) and the accent rule (9B and 7B at most 20 percent of the picture) are chosen from painter guides, not measured on real pencils and paper. The Drawing look is grain and hatching, not strokes that follow the form. Check a printed or scanned strip of your own pencils, then change `TONES` in `pencil.rs`. | `crates/atelier-core/src/pencil.rs` `TONES`, `ACCENT_SHARE`, `swing` |
 
 ## Web app (`app/web`)
 

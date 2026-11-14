@@ -1,5 +1,5 @@
 // One typed call per see-through layer, as the page sends it to the core in the worker.
-export type LayerId = "edges" | "shapes" | "values" | "grid";
+export type LayerId = "edges" | "shapes" | "values" | "pencil" | "grid";
 
 /** A color as red, green and blue, 0 to 255. */
 export type Rgb = [number, number, number];
@@ -14,6 +14,7 @@ export type Call =
 	  }
 	| { layer: "shapes"; step: number; detail: number }
 	| { layer: "values"; preset: number; detail: number; tint: number }
+	| { layer: "pencil"; look: number; mask: number; detail: number }
 	| {
 			layer: "grid";
 			mode: number;

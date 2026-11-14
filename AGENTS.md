@@ -49,6 +49,10 @@ compares it with `crates/atelier-core/tests/reference` (size, range, a mean diff
 
 ## Dropped for good
 
+Pencil came back on 2026-11-14, by the owner's request, as a Base choice that draws zones for the
+graphite grades 4H to 9B (`crates/atelier-core/src/pencil.rs`). It is not the old Line drawing or
+Pencil model tool. Those stay dropped.
+
 Do not bring these back.
 
 - Back on 2026-11-13, by the owner's request: a color picker, in the bottom bar. It is not the old

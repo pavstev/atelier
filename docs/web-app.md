@@ -21,14 +21,17 @@ Left to right:
    bar. Only one pop-up is open at a time. Press the button again, press Esc, or press outside the
    card to close it. On a phone (under 768 px) the pop-up is a bottom sheet.
    - Edges and Grid look pressed when they are on. The Base button shows the current base (photo,
-     values, shapes or paper) and looks pressed when the base is not Photo.
+     values, shapes, paper or pencil) and looks pressed when the base is not Photo. While the base
+     is Pencil, the Edges button is dimmed and does not open; its tip says "Off in Pencil mode".
    - A pop-up has the tool name and the controls, one line each: the main choice at full width,
-     then its settings, then Opacity last. The Edges and Grid pop-ups also have an on/off switch. The Values and Shapes legend is in the Base pop-up. Pressing a legend
-     swatch closes the open pop-up and holds that color in the color picker card (see 3).
+     then its settings, then Opacity last. The Edges and Grid pop-ups also have an on/off switch. The
+     legend of Values, Shapes or Pencil is in the Base pop-up. Pressing a Values or Shapes legend
+     swatch closes the open pop-up and holds that color in the color picker card (see 3). A Pencil
+     legend row is not pressable.
    - Swiping down also closes the phone sheet.
 3. **Color picker.** A pipette toggle. While it is on, the cursor is a crosshair and a card
    follows the mouse over the photo. It reads the picture you see now, so it works in Photo, Values,
-   Shapes and Paper, with Edges and Grid over them. On the left of the card is the color (the top
+   Shapes, Paper and Pencil, with Edges and Grid over them (on Pencil the card is different, see below). On the left of the card is the color (the top
    half is the photo, the bottom half is what the recipe makes). On the right is how much white,
    yellow, red, lake blue, phthalo blue and black to mix for it, as percent bars and as small whole
    parts, with "a touch of" for a strong paint in a tiny share. The label says "same to the eye"
@@ -41,6 +44,11 @@ Left to right:
      A drag still moves the photo.
    - **Legend swatches.** Pressing a swatch of the Values or Shapes legend holds that color in the
      same card (it has no sample area). The Base pop-up closes.
+   - **Pencil.** With the Pencil base the card shows no paint mix. It names the pencil of the spot:
+     the level of the Pencil legend nearest in lightness, as a big grade ("2B"), a short hint and how
+     hard to press. The sample area is never smaller than Small, because the drawing look has grain
+     that only a patch averages out. A held card has Copy ("2B, medium pressure") and close, and the
+     status message says the same.
    - **Keyboard and screen reader.** With the picker on, the stage takes the focus: the arrow keys
      move a probe (Shift for big steps), Enter holds the color and Esc lets go. A held recipe is read
      out as a status message, and the stage says how to use it.
@@ -82,14 +90,23 @@ A double click or a double tap on the photo toggles Fit and 100% (not while the 
 The order is fixed ([ARCHITECTURE.md](../ARCHITECTURE.md#the-layers)): one base, then Edges, then
 Grid.
 
-- **Base:** Photo, Values, Shapes or Paper. Values and Shapes have one opacity. Paper is white with
-  no photo, so only the lines show (hold See photo to see the photo).
+- **Base:** Photo, Values, Shapes, Paper or Pencil. Values, Shapes and Pencil have one opacity.
+  Paper is white with no photo, so only the lines show (hold See photo to see the photo).
   - **Values:** six presets (Notan, Three, Five, Shadow family, Light family, Families), Detail,
     and Gray or Umber. The legend in the Base pop-up shows the Munsell value of each tone, V1
     (dark) to V9 (light). Press a swatch to hold that color in the paint mix card (see the color
     picker in the bottom bar).
   - **Shapes:** Step and Detail. Step is the paint order: 1 Shadows, 2 Halftones, 3 Lights,
     4 Accents. The legend lists the piles of paint to mix in that step.
+  - **Pencil:** the photo as a study for graphite pencils, easy to copy by hand. Look is Map (flat
+    zones, one tone per pencil) or Drawing (the same zones with graphite grain and light hatching;
+    the start look). Detail is the smallest zone that stays. Pencils is a row of eight toggles, 9B,
+    7B, 5B, 2B, HB, H, 3H and 4H: tick the pencils you own, and the photo is cut into those grades
+    and bare paper. At least one pencil stays on. The legend has one row per level, darkest first
+    and Paper last, with the tone, the grade, a short hint and its share of the photo (a grade the
+    photo does not use says "not used"). Pencil is a base of its own, so Edges is off while it is
+    shown; the Edges switch you saved stays and comes back with another base. Grid works as on any
+    base, with the dark Contrast lines of Paper.
 - **Edges:** Lines, Transfer or Masses. Amount 0 to 100 (starts at 67). Width 1 to 10 (starts at 5).
   Even 0 to 100 (starts at 50; Lines only).
 - **Grid:** Thirds, Grid or Both. Cells 3, 4, 6, 8, 9, 10, 12, 18, 20, 24, 30, 40 or 50. Center.
@@ -124,8 +141,8 @@ The left panel is the photo list and nothing else, full height.
 
 Everything stays in your browser, on this device.
 
-- **Settings.** The base, the switches, opacities and knobs, and the panel width and state. They
-  are shared by every photo.
+- **Settings.** The base, the switches, opacities and knobs (for Pencil: the look, the detail and
+  the set of pencils), and the panel width and state. They are shared by every photo.
 - **Photos.** The file of each photo is kept in IndexedDB, so a reload brings the list and the
   photo on screen back. A photo stays until you delete it. Nothing is uploaded.
 - **View.** Each photo keeps its own zoom and pan. The picture can be moved until at most 500 px of
@@ -153,6 +170,8 @@ has five folders. Paths below are under `src/`.
 - `features/picker/`: the color picker: `spectral.ts` (the color science), `paints.ts` (the six
   paints), `mix.ts` (the recipe of a color), `sample.ts` (the color the stage shows at a photo
   pixel) and `Picker.tsx` (the card).
+- `features/pencil/`: the list of pencils in the core's bit order (`grades.ts`: names, hints, the
+  set a mask picks, the level nearest a color) and the Pencils toggle row (`GradeRow.tsx`).
 - `features/tools/`: the pop-up cards of the bottom bar and the settings (`settings.ts`: the start
   values and ranges of every knob).
 - `draw/`: the layers worker, its client, the typed calls and the draw hook.

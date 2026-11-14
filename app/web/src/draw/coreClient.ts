@@ -82,13 +82,14 @@ export async function loadPhoto(img: ImageData): Promise<void> {
 	await toLayers(img);
 }
 
-/** Draws one layer over `img`; Values also returns its tones and Shapes its piles, darkest first. Rejects with an Error that holds the core's message. */
+/** Draws one layer over `img`; Values also returns its tones and Shapes its piles, darkest first,
+ * and Pencil its tones with their shares. Rejects with an Error that holds the core's message. */
 export async function draw(
 	img: ImageData,
 	call: Call,
 	long: number,
 	wanted: () => boolean = () => true,
-): Promise<{ layer: ImageData; tones?: Rgb[] }> {
+): Promise<{ layer: ImageData; tones?: Rgb[]; shares?: number[] }> {
 	// A draw for a photo that left the screen must not send it back and push the new one out.
 	if (!wanted()) throw new Error("the photo left the screen");
 	const r = await withPhoto(
@@ -99,5 +100,6 @@ export async function draw(
 	return {
 		layer: new ImageData(new Uint8ClampedArray(r.rgba), r.width, r.height),
 		tones: r.tones,
+		shares: r.shares,
 	};
 }

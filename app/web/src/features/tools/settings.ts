@@ -6,12 +6,14 @@ import { KEYS, loadJson, loadText, usePersisted } from "@/lib/storage";
 /** The least opacity a layer can have, in percent. */
 export const OPACITY_MIN = 10;
 
-/** The base: the bare photo, Values, Shapes, or Paper (white, no photo). */
+/** The base: the bare photo, Values, Shapes, Paper (white, no photo), or Pencil (a graphite study;
+ * Edges is off while it is the base). */
 export const BASES = [
 	{ id: "photo", label: "Photo" },
 	{ id: "values", label: "Values" },
 	{ id: "shapes", label: "Shapes" },
 	{ id: "paper", label: "Paper" },
+	{ id: "pencil", label: "Pencil" },
 ] as const;
 type BaseKind = (typeof BASES)[number]["id"];
 
@@ -48,6 +50,13 @@ export type Look = {
 	base: { kind: BaseKind; opacity: number };
 	values: { preset: number; detail: number; tint: number };
 	shapes: { step: number; detail: number };
+	pencil: {
+		/** 0 the flat map of the zones, 1 the drawing with grain and hatching. */
+		look: number;
+		/** The pencils the painter has, one bit each: bit 0 the 9B up to bit 7 the 4H (255 all). */
+		mask: number;
+		detail: number;
+	};
 	edges: {
 		on: boolean;
 		opacity: number;
@@ -82,6 +91,7 @@ export const LOOK: Look = {
 	base: { kind: "photo", opacity: 100 },
 	values: { preset: 1, detail: 50, tint: 0 },
 	shapes: { step: 3, detail: 50 },
+	pencil: { look: 1, mask: 255, detail: 50 },
 	edges: {
 		on: false,
 		opacity: 100,
@@ -113,7 +123,7 @@ export const GRID_WIDTH_MAX = 16;
 export const GRID_GROUPS: readonly number[] = [2, 4];
 /** The Grid color value that asks the core for Contrast lines (`CONTRAST` in `grid.rs`). */
 const GRID_CONTRAST = 0x1000000;
-/** A Contrast Grid line on Paper: the dark Contrast line of the core (OKLab L 0.2), as on any light patch. */
+/** A Contrast Grid line on Paper or Pencil: the dark Contrast line of the core (OKLab L 0.2), as on any light patch. */
 const GRID_ON_PAPER = 0x1a1a1a;
 /** The widest Edges line; 3 is the width before the knob (`EDGES_WIDTH_MAX` in `render.rs`). */
 export const EDGES_WIDTH_MAX = 10;
@@ -141,6 +151,7 @@ function cleanLook(raw: unknown): Look {
 	const r = isRecord(raw) ? raw : {};
 	const values = pick(r.values, LOOK.values);
 	const shapes = pick(r.shapes, LOOK.shapes);
+	const pencil = pick(r.pencil, LOOK.pencil);
 	const edges = pick(r.edges, LOOK.edges);
 	const base = pick(r.base, LOOK.base);
 	if (!BASES.some((b) => b.id === base.kind)) base.kind = LOOK.base.kind;
@@ -166,6 +177,9 @@ function cleanLook(raw: unknown): Look {
 	fit(values, LOOK.values, "tint", 0, 1);
 	fit(shapes, LOOK.shapes, "step", 0, 3);
 	fit(shapes, LOOK.shapes, "detail", 0, 100);
+	fit(pencil, LOOK.pencil, "look", 0, 1);
+	fit(pencil, LOOK.pencil, "mask", 1, 255);
+	fit(pencil, LOOK.pencil, "detail", 0, 100);
 	fit(edges, LOOK.edges, "opacity", OPACITY_MIN, 100);
 	fit(edges, LOOK.edges, "mode", EDGES_MODE.lines, EDGES_MODE.masses);
 	fit(edges, LOOK.edges, "amount", 0, 100);
@@ -174,7 +188,7 @@ function cleanLook(raw: unknown): Look {
 	fit(grid, LOOK.grid, "opacity", OPACITY_MIN, 100);
 	fit(grid, LOOK.grid, "mode", GRID_MODE.thirds, GRID_MODE.both);
 	fit(grid, LOOK.grid, "width", 1, GRID_WIDTH_MAX);
-	return { base, values, shapes, edges, grid };
+	return { base, values, shapes, pencil, edges, grid };
 }
 
 /** The saved layout, cleaned the same way: wrong types and out-of-range sizes give the start values. */
@@ -201,6 +215,7 @@ export const LABELS = {
 	],
 	shapesStep: ["1 Shadows", "2 Halftones", "3 Lights", "4 Accents"],
 	valuesTint: ["Gray", "Umber"],
+	pencilLook: ["Map", "Drawing"],
 	edgesMode: ["Lines", "Transfer", "Masses"],
 	gridMode: ["Thirds", "Grid", "Both"],
 	gridGroup: ["2 × 2", "4 × 4"],
@@ -231,6 +246,13 @@ export function callFor(id: LayerId, s: Look): Call {
 				detail: s.values.detail,
 				tint: s.values.tint,
 			};
+		case "pencil":
+			return {
+				layer: "pencil",
+				look: s.pencil.look,
+				mask: s.pencil.mask,
+				detail: s.pencil.detail,
+			};
 		case "grid":
 			return {
 				layer: "grid",
@@ -241,7 +263,7 @@ export function callFor(id: LayerId, s: Look): Call {
 				center: s.grid.center ? 1 : 0,
 				color: !s.grid.contrast
 					? Number.parseInt(s.grid.color.slice(1), 16)
-					: s.base.kind === "paper"
+					: s.base.kind === "paper" || s.base.kind === "pencil"
 						? GRID_ON_PAPER
 						: GRID_CONTRAST,
 			};

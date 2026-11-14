@@ -43,6 +43,7 @@ Then open http://localhost:5173/. More commands: [CONTRIBUTING.md](CONTRIBUTING.
 |---|---|
 | 🌗 **Values** | The photo in 2 to 5 flat tones, each named as a Munsell value (V1 dark to V9 light). Six presets, from Notan to Families. Press a tone to see it big, to match a paint chip. |
 | 🎨 **Shapes** | The photo cut into the shapes you paint, in the order you paint them: shadows, halftones, lights, accents. Each step lists the piles of paint to mix. |
+| ✍️ **Pencil** | The photo as zones for your graphite pencils (4H to 9B, drop any you do not own), as a flat map or a grain-and-hatching drawing. The legend says how much of each pencil to use. Only the Grid works over it. |
 | ✏️ **Edges** | A line drawing traced from the photo: Lines, Transfer or Masses. Big forms get heavy lines, detail gets light ones. |
 | 📐 **Grid** | Thirds, a square grid or both, to copy proportions. Contrast lines stay visible on any part of the photo. |
 | 📏 **Real size** | Lock the zoom to a width in cm and hold a brush or a canvas next to the screen. |
@@ -57,7 +58,7 @@ The bottom bar holds everything.
 | Control | What it does |
 |---|---|
 | **See photo** | Hold it, or hold `Space`, to see the bare photo. |
-| **Base** | Photo, Values, Shapes or Paper (only the lines on white). |
+| **Base** | Photo, Values, Shapes, Paper (only the lines on white) or Pencil. |
 | **Edges**, **Grid** | Turn a see-through layer on and set it. One card opens at a time; `Esc` closes it. |
 | **Zoom** | Fit, 100%, 200% or Real size (cm). A double click toggles Fit and 100%. |
 | Arrow keys | Move the photo 10 px, or 100 px with `Shift`. |

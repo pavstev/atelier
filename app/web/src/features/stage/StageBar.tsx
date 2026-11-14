@@ -23,6 +23,7 @@ const BASE_ICON: Record<Look["base"]["kind"], IconName> = {
 	values: "tones",
 	shapes: "shapes",
 	paper: "paper",
+	pencil: "pen",
 };
 
 const STAGE_IDS_IN_BAR: readonly StageId[] = ["base", "edges", "grid"];
@@ -38,7 +39,7 @@ export default function StageBar(p: {
 	onZoomTo: (zoom: number) => void;
 	look: Look;
 	onLook: (f: (s: Look) => Look) => void;
-	/** The color legend of Values and Shapes, shown in the Base card. */
+	/** The legend of Values, Shapes or Pencil, shown in the Base card. */
 	legend?: ReactNode;
 	/** The color picker is on. */
 	picking: boolean;
@@ -91,6 +92,8 @@ export default function StageBar(p: {
 		}
 	};
 
+	// Pencil is a drawing of its own: Edges is off while it is the base (its saved switch stays)
+	const noEdges = p.look.base.kind === "pencil";
 	const info: Record<StageId, { label: string; icon: IconName; tip: string }> =
 		{
 			base: {
@@ -98,7 +101,11 @@ export default function StageBar(p: {
 				icon: BASE_ICON[p.look.base.kind],
 				tip: `Base: ${baseName(p.look)}`,
 			},
-			edges: { label: "Edges", icon: "edges", tip: "Edges" },
+			edges: {
+				label: "Edges",
+				icon: "edges",
+				tip: noEdges ? "Off in Pencil mode" : "Edges",
+			},
 			grid: { label: "Grid", icon: "grid", tip: "Grid" },
 		};
 
@@ -128,14 +135,21 @@ export default function StageBar(p: {
 						key={id}
 						id={id}
 						title={info[id].label}
-						open={open === id}
-						onOpenChange={(o) => setOpen(o ? id : open === id ? null : open)}
+						open={open === id && !(id === "edges" && noEdges)}
+						onOpenChange={(o) => {
+							if (id === "edges" && noEdges) return;
+							setOpen(o ? id : open === id ? null : open);
+						}}
 						button={{
 							icon: info[id].icon,
 							label: info[id].label,
 							tip: info[id].tip,
 							testid: `tool-${id}`,
-							on: id === "base" ? p.look.base.kind !== "photo" : p.look[id].on,
+							on:
+								id === "base"
+									? p.look.base.kind !== "photo"
+									: p.look[id].on && !(id === "edges" && noEdges),
+							disabled: id === "edges" && noEdges,
 						}}
 					>
 						<ToolHead id={id} look={p.look} onLook={p.onLook} />

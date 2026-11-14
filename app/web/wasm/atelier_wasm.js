@@ -113,6 +113,38 @@ export class Photo {
         }
     }
     /**
+     * The Pencil layer: the photo as a graphite study, opaque. `look` 0 is the flat map, 1 the
+     * drawing. `mask` is the pencils, bit 0 the 9B up to bit 7 the 4H (255 is all). After the layer
+     * come one byte with the level count (the pencils of the set, then paper, darkest first), 3
+     * bytes (RGB) per level, and one byte per level with the share of the picture in percent.
+     *
+     * # Errors
+     * A `long`, `look`, `mask` or `detail` out of range.
+     * @param {number} long
+     * @param {number} look
+     * @param {number} mask
+     * @param {number} detail
+     * @returns {Uint8Array}
+     */
+    pencil(long, look, mask, detail) {
+        try {
+            const retptr = wasm.__wbindgen_add_to_stack_pointer(-16) >>> 0;
+            wasm.photo_pencil(retptr, this.__wbg_ptr, long, look, mask, detail);
+            var r0 = getDataViewMemory0().getInt32(retptr + 4 * 0, true);
+            var r1 = getDataViewMemory0().getInt32(retptr + 4 * 1, true);
+            var r2 = getDataViewMemory0().getInt32(retptr + 4 * 2, true);
+            var r3 = getDataViewMemory0().getInt32(retptr + 4 * 3, true);
+            if (r3) {
+                throw takeFromExternrefTable0(r2);
+            }
+            var v1 = getArrayU8FromWasm0(r0, r1).slice();
+            wasm.__wbindgen_export2(r0, r1 * 1, 1);
+            return v1;
+        } finally {
+            wasm.__wbindgen_add_to_stack_pointer(16);
+        }
+    }
+    /**
      * The Shapes layer: flat shapes in a paint order, opaque. `step` is 0 to 3 (Shadows,
      * Halftones, Lights, Accents); each step adds to the ones before. After the layer come one
      * byte with the pile count and 3 bytes (RGB) per pile to mix in that step, darkest first.

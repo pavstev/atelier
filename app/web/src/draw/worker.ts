@@ -42,6 +42,8 @@ function draw(p: Photo, long: number, c: Call): Uint8Array {
 			return p.shapes(long, c.step, c.detail);
 		case "values":
 			return p.values(long, c.preset, c.detail, c.tint);
+		case "pencil":
+			return p.pencil(long, c.look, c.mask, c.detail);
 		case "grid":
 			return p.grid(long, c.mode, c.cells, c.width, c.group, c.color, c.center);
 	}
@@ -49,13 +51,15 @@ function draw(p: Photo, long: number, c: Call): Uint8Array {
 
 /**
  * Splits a core answer: `[w u32][h u32][w*h*4 rgba]`, and for Values and Shapes one count byte
- * and 3 bytes per tone (or pile) after the pixels.
+ * and 3 bytes per tone (or pile) after the pixels. Pencil adds one byte per tone after those: its
+ * share of the photo in percent.
  */
 function splitDraw(out: Uint8Array): {
 	width: number;
 	height: number;
 	rgba: Uint8Array<ArrayBuffer>;
 	tones?: Rgb[];
+	shares?: number[];
 } {
 	const head = new DataView(out.buffer, out.byteOffset, 8);
 	const width = head.getUint32(0, true);
@@ -69,7 +73,15 @@ function splitDraw(out: Uint8Array): {
 		const at = end + 1 + i * 3;
 		tones.push([out[at], out[at + 1], out[at + 2]]);
 	}
-	return { width, height, rgba, tones };
+	const at = end + 1 + count * 3;
+	if (out.length < at + count) return { width, height, rgba, tones };
+	return {
+		width,
+		height,
+		rgba,
+		tones,
+		shares: Array.from(out.slice(at, at + count)),
+	};
 }
 
 const reply = (msg: WorkerResponse, transfer: Transferable[] = []) =>
@@ -88,7 +100,7 @@ self.onmessage = async (e: MessageEvent<WorkerRequest>) => {
 		const t = performance.now();
 		const out = draw(p, r.long, r.call);
 		const ms = performance.now() - t;
-		const { width, height, rgba: pixels, tones } = splitDraw(out);
+		const { width, height, rgba: pixels, tones, shares } = splitDraw(out);
 		reply(
 			{
 				id: r.id,
@@ -98,6 +110,7 @@ self.onmessage = async (e: MessageEvent<WorkerRequest>) => {
 				height,
 				rgba: pixels.buffer,
 				tones,
+				shares,
 				ms,
 			},
 			[pixels.buffer],

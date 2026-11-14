@@ -1,6 +1,6 @@
 [package]
 name = "atelier-wasm"
-description = "The browser edge of atelier-core: a kept photo with four layer calls over wasm-bindgen."
+description = "The browser edge of atelier-core: a kept photo with one layer call per part over wasm-bindgen."
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true

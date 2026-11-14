@@ -21,7 +21,7 @@ file -> browser decoder -> RGBA pixels -> layers worker (wasm Photo) -> layer pi
 
 | Part | Where | Job |
 |---|---|---|
-| Core | `crates/atelier-core` | All pixel work: Values, Shapes, Edges, Grid. Deterministic, no clock, no randomness. A number out of range is `Error::BadInput`, never a panic. |
+| Core | `crates/atelier-core` | All pixel work: Values, Shapes, Pencil, Edges, Grid. Deterministic, no clock, no randomness. A number out of range is `Error::BadInput`, never a panic. |
 | Wasm edge | `crates/atelier-wasm` | `Photo`, kept between draws, and one call per layer, over wasm-bindgen. The JS glue is built into `app/web/wasm/`. |
 | Worker | `app/web/src/draw/worker.ts` | Holds the wasm and the photo. Draws on request. |
 | Client | `app/web/src/draw/coreClient.ts`, `calls.ts`, `useLayers.ts` | Sends typed calls to the worker and hands the pictures to the stage. |
@@ -38,8 +38,8 @@ The import rule: `ui/` and `lib/` import no feature. A feature imports `ui/`, `l
 
 The order is fixed, bottom first:
 
-1. **Base.** One of Photo, Values, Shapes or Paper (white, no photo).
-2. **Edges.** See-through lines, traced from the core's own edge map (a blurred Sobel gradient).
+1. **Base.** One of Photo, Values, Shapes, Paper (white, no photo) or Pencil (zones for graphite pencils).
+2. **Edges.** See-through lines, traced from the core's own edge map (a blurred Sobel gradient). Off while the base is Pencil.
 3. **Grid.** See-through lines.
 
 Each layer has an on/off switch (the base is always there), an opacity and its own knobs. How each

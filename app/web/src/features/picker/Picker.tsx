@@ -6,6 +6,9 @@
 // average. A held skin color also shows its skin string (a warm, a same and a cool mix), and every
 // held card says that acrylic dries darker. Esc lets it go. A swatch of the Values or Shapes legend
 // holds its color in the card too.
+// With the Pencil base the card is a pencil card instead: no paint mix, but the grade of the spot
+// (the nearest level of the Pencil legend by lightness), a hint and how hard to press. The area is
+// never smaller than Small there, because the drawing look has grain that only a patch averages out.
 // The card reads the shown picture, whatever the base is. A drag still moves the photo.
 // Keyboard: the stage takes the focus, the arrow keys move the probe (Shift for big steps) and
 // Enter holds the color. A screen reader hears the held recipe as a status message.
@@ -18,6 +21,12 @@ import {
 	useRef,
 	useState,
 } from "react";
+import {
+	gradeWords,
+	type Level,
+	nearestLevel,
+	pressureWords,
+} from "@/features/pencil/grades";
 import type { StageId } from "@/features/tools/settings";
 import { Segment } from "@/ui/fields";
 import { IconButton } from "@/ui/icons";
@@ -32,6 +41,7 @@ import {
 	skinString,
 } from "./mix";
 import { colorAround } from "./sample";
+import { labOfRgb } from "./spectral";
 
 type Layers = Record<StageId, { image: ImageData; opacity: number } | null>;
 
@@ -109,6 +119,10 @@ export default function Picker(p: {
 	hold: boolean;
 	/** The view of the photo: where it sits in the box and how big. */
 	view: { zoom: number; x: number; y: number };
+	/** The base is Pencil: the card names a pencil grade and not a paint mix. */
+	pencil: boolean;
+	/** The levels of the Pencil legend, once drawn; no card while a new set of pencils draws. */
+	levels: Level[] | null;
 	/** A color held from a legend swatch; it takes the card until a click or Esc. */
 	fixed: Fixed | null;
 	onFixed: (f: Fixed | null) => void;
@@ -116,7 +130,11 @@ export default function Picker(p: {
 	area: number;
 	onArea: (i: number) => void;
 }) {
-	const { box, photo, layers, paper, hold, view, fixed, onFixed, area } = p;
+	const { box, photo, layers, paper, hold, view, fixed, onFixed } = p;
+	const { pencil, levels } = p;
+	// the least area: Point, or Small for Pencil
+	const areaFloor = pencil ? AREA_START : 0;
+	const area = Math.max(p.area, areaFloor);
 	const helpId = useId();
 	const card = useRef<HTMLDivElement>(null);
 	// the mouse or the keyboard probe, in px from the top left of the box
@@ -244,10 +262,11 @@ export default function Picker(p: {
 	let color: Rgb | null = null;
 	let at: Spot | null = null;
 	let ring = 0;
-	let title = "Paint mix";
+	const kind = pencil ? "Pencil grade" : "Paint mix";
+	let title = kind;
 	if (fixed) {
 		color = fixed.rgb;
-		title = `Paint mix · ${fixed.label}`;
+		title = `${kind} · ${fixed.label}`;
 	} else if (pin) {
 		color = colorAround(photo, layers, paper, hold, pin.x, pin.y, pin.r);
 		at = { x: view.x + pin.x * view.zoom, y: view.y + pin.y * view.zoom };
@@ -258,12 +277,19 @@ export default function Picker(p: {
 		at = mouse;
 		ring = AREAS[area]?.px ?? 0;
 	}
-	const mix = color ? mixFor(color) : null;
+	// a Pencil card needs no paint search: it names the nearest level of the legend
+	const mix = color && !pencil ? mixFor(color) : null;
+	const level = color && pencil && levels ? nearestLevel(color, levels) : null;
 	const pinned = pin !== null || fixed !== null;
 	// a held skin color also has its skin string (the memory in `mix.ts` keeps it between renders)
 	const skin = pinned && color && mix?.skin ? skinString(color) : null;
-	const summary =
-		pinned && color && mix ? heldWords(title, color, mix, skin) : "";
+	const summary = !pinned
+		? ""
+		: level
+			? gradeWords(level.grade)
+			: color && mix
+				? heldWords(title, color, mix, skin)
+				: "";
 
 	// the real height of the card (it grows with a held card, a skin string and a wrapped recipe)
 	useLayoutEffect(() => {
@@ -300,7 +326,8 @@ export default function Picker(p: {
 	return (
 		<div className="pointer-events-none absolute inset-0 z-(--z-stage) overflow-hidden">
 			<p id={helpId} className="sr-only">
-				Color picker is on. Point at the photo to see the paint mix of a color.
+				Color picker is on. Point at the photo to see{" "}
+				{pencil ? "the pencil grade of a spot" : "the paint mix of a color"}.
 				Click, or press Enter, to hold it. Arrow keys move the probe, with Shift
 				in bigger steps. Escape lets it go.
 			</p>
@@ -328,11 +355,12 @@ export default function Picker(p: {
 					}}
 				/>
 			)}
-			{color && mix && style && (
+			{color && (mix || level) && style && (
 				<Card
 					ref={card}
 					color={color}
 					mix={mix}
+					level={level}
 					skin={skin}
 					pinned={pinned}
 					title={title}
@@ -341,6 +369,7 @@ export default function Picker(p: {
 					onCopy={copy}
 					onRelease={release}
 					area={fixed ? null : area}
+					areaFloor={areaFloor}
 					onArea={(i) => {
 						p.onArea(i);
 						// the held ring takes the new size at the zoom of now
@@ -358,7 +387,10 @@ const DOTS = PAINTS.map((_, i) => masstone(i));
 function Card(p: {
 	ref: RefObject<HTMLDivElement | null>;
 	color: Rgb;
-	mix: Mix;
+	/** The paint mix; null on a Pencil card. */
+	mix: Mix | null;
+	/** The pencil level of the spot; null on a paint mix card. */
+	level: Level | null;
 	/** The three skin mixes of a held skin color; null for any other card. */
 	skin: SkinString | null;
 	pinned: boolean;
@@ -369,15 +401,22 @@ function Card(p: {
 	onRelease: () => void;
 	/** Index in `AREAS`; null when the color did not come from the photo. */
 	area: number | null;
+	/** The first `AREAS` entry the card offers (Pencil starts at Small). */
+	areaFloor: number;
 	onArea: (i: number) => void;
 }) {
-	const { mix } = p;
+	const { mix, level } = p;
 	const used = PAINTS.map((paint, i) => ({
 		paint,
 		dot: DOTS[i] as Rgb,
-		share: mix.weights[i] as number,
-		parts: mix.parts[i] as number,
+		share: mix?.weights[i] ?? 0,
+		parts: mix?.parts[i] ?? 0,
 	}));
+	// what the card says it measured: the paint mix, or the Pencil tone, and how far off it is
+	const made = mix ? mix.result : (level?.tone ?? p.color);
+	const off = mix
+		? mix.error
+		: Math.abs(labOfRgb(made)[0] - labOfRgb(p.color)[0]);
 	return (
 		// biome-ignore lint/a11y/useSemanticElements: a floating card, not a form group
 		<div
@@ -389,8 +428,8 @@ function Card(p: {
 			data-testid="picker-card"
 			data-pinned={p.pinned}
 			data-color={hex(p.color)}
-			data-mix={hex(mix.result)}
-			data-error={mix.error.toFixed(2)}
+			data-mix={hex(made)}
+			data-error={off.toFixed(2)}
 			className={`floating-card absolute flex w-76 flex-col gap-2 overflow-y-auto rounded-(--radius-card) p-3 text-xs outline-none ${p.pinned ? "pointer-events-auto" : ""}`}
 			style={p.style}
 		>
@@ -408,7 +447,7 @@ function Card(p: {
 						)}
 						<IconButton
 							icon="copy"
-							label="Copy the recipe"
+							label={level ? "Copy the grade" : "Copy the recipe"}
 							size="row"
 							testid="picker-copy"
 							placement="bottom"
@@ -439,61 +478,69 @@ function Card(p: {
 							data-testid="picker-result"
 							className="flex h-9 items-end px-1 pb-0.5 text-[0.6rem] leading-none"
 							style={{
-								backgroundColor: css(mix.result),
-								color: ink(mix.result),
+								backgroundColor: css(made),
+								color: ink(made),
 							}}
 						>
-							Mix
+							{level ? "Pencil" : "Mix"}
 						</div>
 					</div>
 					<span className="font-mono text-[0.65rem] leading-tight text-muted">
 						{hex(p.color)}
 					</span>
-					<span
-						data-testid="picker-verdict"
-						className="text-[0.65rem] leading-tight text-muted"
-					>
-						{verdict(mix.error)}
-					</span>
+					{mix && (
+						<span
+							data-testid="picker-verdict"
+							className="text-[0.65rem] leading-tight text-muted"
+						>
+							{verdict(mix.error)}
+						</span>
+					)}
 				</div>
-				<div className="flex min-w-0 flex-1 flex-col gap-1.5">
-					<ul className="flex flex-col gap-1" aria-label="Paint mix">
-						{used.map(({ paint, dot, share, parts }) => (
-							<li
-								key={paint.id}
-								data-testid={`picker-${paint.id}`}
-								data-share={share.toFixed(3)}
-								data-parts={parts}
-								className={`flex items-center gap-1.5 ${share === 0 ? "text-muted" : ""}`}
-							>
-								<Dot
-									color={dot}
-									className={`size-3 rounded-full ${share === 0 ? "opacity-50" : ""}`}
-								/>
-								<span className="w-[4.6rem] shrink-0">{paint.name}</span>
-								<span
-									aria-hidden="true"
-									className="h-1.5 flex-1 overflow-hidden rounded-full bg-default"
-								>
-									<span
-										className="block h-full rounded-full"
-										style={{
-											width: `${Math.round(share * 100)}%`,
-											backgroundColor: css(dot),
-											boxShadow: "inset 0 0 0 1px rgb(0 0 0 / 0.25)",
-										}}
-									/>
-								</span>
-								<span className="w-8 shrink-0 text-end tabular-nums">
-									{Math.round(share * 100)}%
-								</span>
-							</li>
-						))}
-					</ul>
-					<p data-testid="picker-parts" className="font-medium">
-						Parts: {recipeWords(mix)}
-					</p>
-				</div>
+				{level ? (
+					<GradeText level={level} />
+				) : (
+					mix && (
+						<div className="flex min-w-0 flex-1 flex-col gap-1.5">
+							<ul className="flex flex-col gap-1" aria-label="Paint mix">
+								{used.map(({ paint, dot, share, parts }) => (
+									<li
+										key={paint.id}
+										data-testid={`picker-${paint.id}`}
+										data-share={share.toFixed(3)}
+										data-parts={parts}
+										className={`flex items-center gap-1.5 ${share === 0 ? "text-muted" : ""}`}
+									>
+										<Dot
+											color={dot}
+											className={`size-3 rounded-full ${share === 0 ? "opacity-50" : ""}`}
+										/>
+										<span className="w-[4.6rem] shrink-0">{paint.name}</span>
+										<span
+											aria-hidden="true"
+											className="h-1.5 flex-1 overflow-hidden rounded-full bg-default"
+										>
+											<span
+												className="block h-full rounded-full"
+												style={{
+													width: `${Math.round(share * 100)}%`,
+													backgroundColor: css(dot),
+													boxShadow: "inset 0 0 0 1px rgb(0 0 0 / 0.25)",
+												}}
+											/>
+										</span>
+										<span className="w-8 shrink-0 text-end tabular-nums">
+											{Math.round(share * 100)}%
+										</span>
+									</li>
+								))}
+							</ul>
+							<p data-testid="picker-parts" className="font-medium">
+								Parts: {recipeWords(mix)}
+							</p>
+						</div>
+					)
+				)}
 			</div>
 			{p.pinned ? (
 				p.area !== null && (
@@ -501,15 +548,15 @@ function Card(p: {
 						bare
 						label="Sample area"
 						testid="picker-area"
-						options={AREAS.map((a) => a.name)}
-						value={p.area}
-						onChange={p.onArea}
+						options={AREAS.slice(p.areaFloor).map((a) => a.name)}
+						value={p.area - p.areaFloor}
+						onChange={(i) => p.onArea(i + p.areaFloor)}
 					/>
 				)
 			) : (
 				<p className="text-muted">Click to hold this color. Esc lets it go.</p>
 			)}
-			{p.pinned && (
+			{p.pinned && mix && (
 				<div className="flex flex-col gap-1.5 border-t border-separator pt-2">
 					{p.skin && <SkinRows string={p.skin} />}
 					<p
@@ -520,6 +567,28 @@ function Card(p: {
 					</p>
 				</div>
 			)}
+		</div>
+	);
+}
+
+/** The right side of a Pencil card: the grade big, what it is for and how hard to press. */
+function GradeText(p: { level: Level }) {
+	const { grade } = p.level;
+	return (
+		<div className="flex min-w-0 flex-1 flex-col gap-1">
+			<p
+				data-testid="picker-grade"
+				data-grade={grade.id}
+				className="text-3xl leading-none font-semibold"
+			>
+				{grade.id}
+			</p>
+			<p data-testid="picker-hint" className="leading-tight">
+				{grade.hint}
+			</p>
+			<p data-testid="picker-pressure" className="font-medium">
+				{pressureWords(grade)}
+			</p>
 		</div>
 	);
 }

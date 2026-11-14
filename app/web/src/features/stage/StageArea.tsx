@@ -4,6 +4,7 @@
 import { Button } from "@heroui/react";
 import { type ReactNode, type RefObject, useState } from "react";
 import { useFacts } from "@/draw/facts";
+import type { Level } from "@/features/pencil/grades";
 import Picker, { AREA_START, type Fixed } from "@/features/picker/Picker";
 import {
 	LAYOUT,
@@ -38,7 +39,9 @@ export default function StageArea(p: {
 	layers: Layers;
 	look: Look;
 	onLook: (f: (s: Look) => Look) => void;
-	/** The color legend of Values and Shapes, for the Base card. */
+	/** The Pencil levels once drawn; the picker names the grade of a spot from them. */
+	levels?: Level[] | null;
+	/** The legend of Values, Shapes or Pencil, for the Base card. */
 	legend?: ReactNode;
 	layout: Layout;
 	onLayout: (f: (s: Layout) => Layout) => void;
@@ -119,6 +122,8 @@ export default function StageArea(p: {
 						paper={look.base.kind === "paper"}
 						hold={hold}
 						view={viewport.view}
+						pencil={look.base.kind === "pencil"}
+						levels={p.levels ?? null}
 						fixed={p.picked}
 						onFixed={p.onPicked}
 						area={area}

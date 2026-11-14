@@ -35,6 +35,16 @@ export class Photo {
      */
     constructor(rgba: Uint8Array | number[], width: number, height: number);
     /**
+     * The Pencil layer: the photo as a graphite study, opaque. `look` 0 is the flat map, 1 the
+     * drawing. `mask` is the pencils, bit 0 the 9B up to bit 7 the 4H (255 is all). After the layer
+     * come one byte with the level count (the pencils of the set, then paper, darkest first), 3
+     * bytes (RGB) per level, and one byte per level with the share of the picture in percent.
+     *
+     * # Errors
+     * A `long`, `look`, `mask` or `detail` out of range.
+     */
+    pencil(long: number, look: number, mask: number, detail: number): Uint8Array;
+    /**
      * The Shapes layer: flat shapes in a paint order, opaque. `step` is 0 to 3 (Shadows,
      * Halftones, Lights, Accents); each step adds to the ones before. After the layer come one
      * byte with the pile count and 3 bytes (RGB) per pile to mix in that step, darkest first.
@@ -61,6 +71,7 @@ export interface InitOutput {
     readonly photo_edges: (a: number, b: number, c: number, d: number, e: number, f: number, g: number) => void;
     readonly photo_grid: (a: number, b: number, c: number, d: number, e: number, f: number, g: number, h: number, i: number) => void;
     readonly photo_new: (a: number, b: number, c: number, d: number, e: number) => void;
+    readonly photo_pencil: (a: number, b: number, c: number, d: number, e: number, f: number) => void;
     readonly photo_shapes: (a: number, b: number, c: number, d: number, e: number) => void;
     readonly photo_values: (a: number, b: number, c: number, d: number, e: number, f: number) => void;
     readonly __wbindgen_externrefs: WebAssembly.Table;

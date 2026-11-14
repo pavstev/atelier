@@ -2,8 +2,8 @@
 
 mod common;
 use atelier_core::render::{
-    GRID_CONTRAST, edges_layer, edges_view, grid_layer, prepare_work, shapes_layer, shapes_view,
-    values_layer,
+    GRID_CONTRAST, edges_layer, edges_view, grid_layer, pencil_layer, prepare_work, shapes_layer,
+    shapes_view, values_layer,
 };
 use common::{FIXTURE, decode_png, over, work};
 
@@ -39,6 +39,7 @@ fn test_opaque_layers_have_alpha_255() {
     for l in [
         values_layer(&w, 0, 50.0, 0).unwrap().0,
         shapes_layer(&w, 3, 50.0).unwrap().0,
+        pencil_layer(&w, 1, 255, 50.0).unwrap().0,
     ] {
         assert!(l.rgba.chunks(4).all(|o| o[3] == 255));
     }
@@ -64,6 +65,10 @@ fn test_bad_numbers_are_bad_input() {
     assert!(grid_layer(&w, 1, 6, 17, 2, GRID_CONTRAST, 0).is_err());
     assert!(grid_layer(&w, 1, 6, 2, 3, GRID_CONTRAST, 0).is_err());
     assert!(grid_layer(&w, 1, 6, 2, 2, GRID_CONTRAST + 1, 0).is_err());
+    assert!(pencil_layer(&w, 2, 255, 50.0).is_err());
+    assert!(pencil_layer(&w, 0, 0, 50.0).is_err());
+    assert!(pencil_layer(&w, 0, 256, 50.0).is_err());
+    assert!(pencil_layer(&w, 0, 255, 100.1).is_err());
     assert!(edges_layer(&w, 3, 50.0, 3, 0.0).is_err());
     assert!(edges_layer(&w, 0, 100.1, 3, 0.0).is_err());
     for width in [0, 11] {

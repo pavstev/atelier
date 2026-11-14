@@ -29,6 +29,8 @@ type ButtonProps = {
 	testid: string;
 	/** The part is on: the button looks pressed. */
 	on?: boolean;
+	/** The part is off for now: the button stays in the bar, dimmed, and its tip says why. */
+	disabled?: boolean;
 	onPress?: () => void;
 };
 
@@ -41,6 +43,7 @@ function BarButton(p: ButtonProps) {
 			tip={p.tip}
 			testid={p.testid}
 			variant={p.on ? "secondary" : "ghost"}
+			disabled={p.disabled}
 			placement="top"
 			className="touch-none rounded-full select-none"
 			data-bar-button

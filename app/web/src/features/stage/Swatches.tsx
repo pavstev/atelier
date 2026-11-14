@@ -1,5 +1,7 @@
-// The color legend of Values and Shapes: one swatch per tone or pile, with its Munsell value. A
-// press holds that color in the paint mix card of the color picker (`features/picker`).
+// The legends of the base card. Values and Shapes: one swatch per tone or pile, with its Munsell
+// value; a press holds that color in the paint mix card of the color picker (`features/picker`).
+// Pencil: one row per level with its grade, a hint and its share of the photo; no press.
+import type { Level } from "@/features/pencil/grades";
 import type { Fixed } from "@/features/picker/Picker";
 
 /** The CIE L* of each Munsell value V0 to V10. */
@@ -65,6 +67,47 @@ export function Legend(p: {
 					>
 						V{munsellValue(t)}
 					</button>
+				</li>
+			))}
+		</ol>
+	);
+}
+
+/** The share of a level as the legend says it. A level the photo does not use is "not used". */
+const shareWords = (share: number) => (share > 0 ? `${share}%` : "not used");
+
+/**
+ * The Pencil legend: one row per level, darkest first and Paper last (the order of the answer),
+ * with the swatch, the grade, a short hint and the share. A swatch is not a button: a pencil
+ * grade is read from the card of the picker.
+ */
+export function PencilLegend(p: { levels: Level[] }) {
+	return (
+		<ol
+			data-testid="legend"
+			aria-label="Pencil legend"
+			className="flex flex-col gap-1 text-xs"
+		>
+			{p.levels.map(({ grade, tone, share }) => (
+				<li
+					key={grade.id}
+					data-testid="legend-swatch"
+					data-grade={grade.id}
+					data-share={share}
+					className={`flex items-center gap-2 ${share > 0 ? "" : "text-muted opacity-75"}`}
+				>
+					<span
+						aria-hidden="true"
+						className="size-5 shrink-0 rounded-(--radius-chip) border border-separator"
+						style={{ backgroundColor: css(tone) }}
+					/>
+					<span className="w-9 shrink-0 font-medium">{grade.id}</span>
+					<span className="min-w-0 flex-1 leading-tight text-muted">
+						{grade.hint}
+					</span>
+					<span className="shrink-0 text-end tabular-nums">
+						{shareWords(share)}
+					</span>
 				</li>
 			))}
 		</ol>

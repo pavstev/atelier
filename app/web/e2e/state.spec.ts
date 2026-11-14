@@ -12,6 +12,7 @@ test("test_settings_come_back_after_reload", async ({ studio }) => {
 		"base",
 		"edges",
 		"grid",
+		"pencil",
 		"shapes",
 		"values",
 	]);

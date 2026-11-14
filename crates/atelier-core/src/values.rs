@@ -459,7 +459,7 @@ fn absorb(parent: &mut [u32], size: &mut [u32], adj: &mut [BTreeMap<u32, u32>], 
 // Paint
 
 /// `OKLab` lightness of a neutral with CIE lightness `l`.
-fn ok_l(l: f32) -> f32 {
+pub(crate) fn ok_l(l: f32) -> f32 {
     libm::cbrtf(y_from_l(l))
 }
 
@@ -772,6 +772,22 @@ fn paint_tones(labels: &[u8], tones: &[f32], tint: u8, w: usize, h: usize) -> (R
     let mut order: Vec<usize> = (0..tones.len()).filter(|&i| used[i]).collect();
     order.sort_by(|&a, &b| tones[a].total_cmp(&tones[b]));
     (image, order.into_iter().map(|i| colors[i]).collect())
+}
+
+/// The cleaned label map of a photo for the Pencil view: the photo is smoothed as for the
+/// presets (shadow lift, median, guided filter), `cuts_of` gives the cuts from the smoothed L*
+/// (rising, in the same L* scale), and the map is cleaned as the presets do (mode filter,
+/// small shapes merged, `detail` 0 to 1 as in [`view`]). A pixel's label is how many cuts its L* has passed.
+pub(crate) fn labels_with(
+    work: &Rgb,
+    detail: f32,
+    cuts_of: impl FnOnce(&[f32]) -> Vec<f32>,
+) -> Result<Vec<u8>> {
+    unit(detail, "pencil detail is not 0 to 1")?;
+    work.require_rgb("pencil needs a non-empty RGB image")?;
+    let run = ViewRun::new(work, detail, 0);
+    let cuts = cuts_of(&run.a.smooth);
+    Ok(run.labels_for(&cuts))
 }
 
 /// The view of the Values tool: flat tones made of whole shapes.

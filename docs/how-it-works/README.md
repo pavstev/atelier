@@ -1,16 +1,17 @@
 # How it works
 
-Four parts draw over the photo. Each is one function in the Rust core, called by the web app
+Five parts draw over the photo. Each is one function in the Rust core, called by the web app
 through wasm. The same photo and the same knobs always give the same bytes.
 
 | Part | Job | Page |
 |---|---|---|
 | Values | The photo in 2 to 5 flat tones | [values.md](values.md) |
 | Shapes | The photo cut into shapes, in paint order | [shapes.md](shapes.md) |
+| Pencil | The photo as zones for graphite pencils, 4H to 9B | [pencil.md](pencil.md) |
 | Edges | A line drawing traced from the photo | [edges.md](edges.md) |
 | Grid | Thirds and squares, as lines | [grid.md](grid.md) |
 
-The order is fixed: one base (Photo, Values, Shapes or Paper), then Edges, then Grid. Edges and
+The order is fixed: one base (Photo, Values, Shapes, Paper or Pencil), then Edges, then Grid. Pencil turns Edges off. Edges and
 Grid are see-through, so they sit over any base.
 
 All parts work on a "work picture" with a long side of 1024 px. The page decodes the photo,

@@ -65,6 +65,15 @@ fn shapes_of(work: &Rgb, step: u32, detail: f64) -> Result<Vec<u8>> {
     Ok(with_swatches(&layer, &piles))
 }
 
+/// Pencil on a work picture: the packed layer, then the level count (one byte), 3 RGB bytes per
+/// level and one share byte (percent) per level. See [`Photo::pencil`].
+fn pencil_of(work: &Rgb, look: u32, mask: u32, detail: f64) -> Result<Vec<u8>> {
+    let (layer, tones, shares) = render::pencil_layer(work, look, mask, detail)?;
+    let mut out = with_swatches(&layer, &tones);
+    out.extend(shares);
+    Ok(out)
+}
+
 /// The Grid on a work picture. See [`Photo::grid`].
 fn grid_of(
     work: &Rgb,
@@ -169,6 +178,23 @@ impl Photo {
         run(|| values_of(self.prepare(long)?, preset, detail, tint))
     }
 
+    /// The Pencil layer: the photo as a graphite study, opaque. `look` 0 is the flat map, 1 the
+    /// drawing. `mask` is the pencils, bit 0 the 9B up to bit 7 the 4H (255 is all). After the layer
+    /// come one byte with the level count (the pencils of the set, then paper, darkest first), 3
+    /// bytes (RGB) per level, and one byte per level with the share of the picture in percent.
+    ///
+    /// # Errors
+    /// A `long`, `look`, `mask` or `detail` out of range.
+    pub fn pencil(
+        &mut self,
+        long: u32,
+        look: u32,
+        mask: u32,
+        detail: f64,
+    ) -> std::result::Result<Vec<u8>, JsError> {
+        run(|| pencil_of(self.prepare(long)?, look, mask, detail))
+    }
+
     /// The Shapes layer: flat shapes in a paint order, opaque. `step` is 0 to 3 (Shadows,
     /// Halftones, Lights, Accents); each step adds to the ones before. After the layer come one
     /// byte with the pile count and 3 bytes (RGB) per pile to mix in that step, darkest first.
@@ -242,6 +268,21 @@ mod tests {
         let tones: Vec<&[u8]> = out[body + 1..].chunks(3).collect();
         assert!(tones.windows(2).all(|t| t[0][0] < t[1][0]));
         assert!(values_of(&work, 1, 50.0, 2).is_err());
+    }
+
+    #[test]
+    fn test_pencil_appends_tones_and_shares() {
+        let (g, w, h) = gradient();
+        let work = work_of(&g, w, h, 64).unwrap();
+        let out = pencil_of(&work, 0, 0b0000_0111, 50.0).unwrap();
+        let body = 8 + 64 * 48 * 4;
+        let n = usize::from(out[body]);
+        // three pencils and paper
+        assert_eq!(n, 4);
+        assert_eq!(out.len(), body + 1 + 3 * n + n);
+        assert!(out[body + 1 + 3 * n..].iter().all(|&s| s <= 100));
+        assert!(pencil_of(&work, 2, 255, 50.0).is_err());
+        assert!(pencil_of(&work, 0, 0, 50.0).is_err());
     }
 
     #[test]

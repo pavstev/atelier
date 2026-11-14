@@ -12,7 +12,8 @@
 //! | values | 0 notan, 1 three, 2 five, 3 shadow family, 4 light family, 5 families | `detail`, `tint` 0 gray 1 umber |
 //! | shapes | step 0 shadows, 1 halftones, 2 lights, 3 accents | `detail` |
 //! | edges | mode 0 lines, 1 transfer, 2 masses | `amount`, `width`, `even` |
-//! | layers | `edges_layer`, `values_layer`, `shapes_layer`, `grid_layer`: RGBA | edges: alpha is 255 minus the largest channel; values and shapes: alpha 255; grid: alpha only on lines (`mode` 0 thirds, 1 grid, 2 both; `cells` 3 to 50 across the width; `width` 1 to 16; `group` 2 to 4; `color`; `center` 0 or 1) |
+//! | pencil | `look` 0 map, 1 drawing; `mask` the pencils, bit 0 the 9B to bit 7 the 4H (255 all) | `detail` |
+//! | layers | `edges_layer`, `values_layer`, `shapes_layer`, `pencil_layer`, `grid_layer`: RGBA | edges: alpha is 255 minus the largest channel; values, shapes and pencil: alpha 255; grid: alpha only on lines (`mode` 0 thirds, 1 grid, 2 both; `cells` 3 to 50 across the width; `width` 1 to 16; `group` 2 to 4; `color`; `center` 0 or 1) |
 //!
 //! The photo comes in as RGB, already decoded and turned upright by the page (the browser
 //! decoder). [`prepare_work`] brings it to the work size.
@@ -26,6 +27,7 @@ use crate::edges;
 use crate::error::{Error, Result};
 use crate::grid;
 use crate::img::Rgb;
+use crate::pencil;
 use crate::resize::resize_lanczos;
 use crate::shapes::{self, Fill, ShapesView};
 use crate::values;
@@ -262,6 +264,32 @@ pub fn values_layer(
 /// A number out of range.
 pub fn shapes_layer(work: &Rgb, step: u32, detail: f64) -> Result<(Layer, Vec<[u8; 3]>)> {
     shapes_view(work, step, detail).map(|(v, piles)| (opaque(&v), piles))
+}
+
+/// Pencil as an opaque layer: the photo as a graphite study. `look` 0 is the flat map, 1 the drawing
+/// (grain and hatching on paper). `mask` has one bit per pencil, bit 0 the 9B, then 7B, 5B, 2B,
+/// HB, H, 3H, and bit 7 the 4H (255 is all eight), at least one set. `detail` in percent, as in
+/// Values. Gives the layer, the color of each level (the pencils of the set, then paper, darkest
+/// first) and the share of the picture each level covers in percent.
+///
+/// # Errors
+/// A number out of range.
+pub fn pencil_layer(
+    work: &Rgb,
+    look: u32,
+    mask: u32,
+    detail: f64,
+) -> Result<(Layer, Vec<[u8; 3]>, Vec<u8>)> {
+    let work = image(work, 3, "work")?;
+    let look = pick(look, 0, 1, "pencil look")?;
+    let detail = knob(detail, "detail")?;
+    let p = pencil::view(
+        work,
+        u32::from(pick(mask, 1, 255, "pencil set")?),
+        detail,
+        look == 1,
+    )?;
+    Ok((opaque(&p.image), p.tones, p.shares))
 }
 
 /// The grid (and thirds) lines alone, clear everywhere else. `width` is the line width, 1 to 16
