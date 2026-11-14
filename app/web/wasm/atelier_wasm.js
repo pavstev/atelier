@@ -113,7 +113,7 @@ export class Photo {
         }
     }
     /**
-     * The Pencil layer: the photo as a graphite study, opaque. `look` 0 is the flat map, 1 the
+     * The Pencil layer: the photo as a graphite study, opaque. `look` 0 is the smooth tone picture, 1 the
      * drawing. `mask` is the pencils, bit 0 the 9B up to bit 7 the 4H (255 is all). After the layer
      * come one byte with the level count (the pencils of the set, then paper, darkest first), 3
      * bytes (RGB) per level, and one byte per level with the share of the picture in percent.

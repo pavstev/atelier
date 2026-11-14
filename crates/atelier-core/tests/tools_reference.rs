@@ -49,11 +49,12 @@ fn test_shapes_reference() {
 #[test]
 fn test_pencil_reference() {
     let w = work();
-    // the map and the drawing, with all eight pencils and with a set of three
+    // the tone, the drawing and the zones with all eight pencils, and the tone with a set of three
     for (look, mask, name) in [
-        (0, 255, "map"),
+        (0, 255, "tone"),
         (1, 255, "drawing"),
-        (0, 0b1001_0100, "map_three"),
+        (2, 255, "zones"),
+        (0, 0b1001_0100, "tone_three"),
     ] {
         let (layer, tones, shares) = render::pencil_layer(&w, look, mask, 50.0).unwrap();
         assert_eq!(tones.len(), mask.count_ones() as usize + 1);

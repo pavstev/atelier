@@ -98,11 +98,12 @@ Grid.
     picker in the bottom bar).
   - **Shapes:** Step and Detail. Step is the paint order: 1 Shadows, 2 Halftones, 3 Lights,
     4 Accents. The legend lists the piles of paint to mix in that step.
-  - **Pencil:** the photo as a study for graphite pencils, easy to copy by hand. Look is Map (flat
-    zones, one tone per pencil) or Drawing (the same zones with graphite grain and light hatching;
-    the start look). Detail is the smallest zone that stays. Pencils is a row of eight toggles, 9B,
-    7B, 5B, 2B, HB, H, 3H and 4H: tick the pencils you own, and the photo is cut into those grades
-    and bare paper. At least one pencil stays on. The legend has one row per level, darkest first
+  - **Pencil:** the photo as a study for graphite pencils, easy to copy by hand. Look is Tone (the
+    photo as a smooth gray picture, a little simplified, in graphite tones; the start look),
+    Drawing (Tone with graphite grain and hatching) or Zones (flat zones, one tone per pencil).
+    Detail is how much fine detail Tone and Drawing keep (and the smallest zone in Zones).
+    Pencils is a row of eight toggles, 9B, 7B, 5B, 2B, HB, H, 3H and 4H: tick the pencils you own.
+    The tones of the picture are the tones of those pencils and bare paper. At least one pencil stays on. The legend has one row per level, darkest first
     and Paper last, with the tone, the grade, a short hint and its share of the photo (a grade the
     photo does not use says "not used"). Pencil is a base of its own, so Edges is off while it is
     shown; the Edges switch you saved stays and comes back with another base. Grid works as on any

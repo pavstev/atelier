@@ -38,7 +38,7 @@ The import rule: `ui/` and `lib/` import no feature. A feature imports `ui/`, `l
 
 The order is fixed, bottom first:
 
-1. **Base.** One of Photo, Values, Shapes, Paper (white, no photo) or Pencil (zones for graphite pencils).
+1. **Base.** One of Photo, Values, Shapes, Paper (white, no photo) or Pencil (a gray picture in graphite tones).
 2. **Edges.** See-through lines, traced from the core's own edge map (a blurred Sobel gradient). Off while the base is Pencil.
 3. **Grid.** See-through lines.
 

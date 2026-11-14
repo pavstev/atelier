@@ -774,20 +774,36 @@ fn paint_tones(labels: &[u8], tones: &[f32], tint: u8, w: usize, h: usize) -> (R
     (image, order.into_iter().map(|i| colors[i]).collect())
 }
 
-/// The cleaned label map of a photo for the Pencil view: the photo is smoothed as for the
-/// presets (shadow lift, median, guided filter), `cuts_of` gives the cuts from the smoothed L*
-/// (rising, in the same L* scale), and the map is cleaned as the presets do (mode filter,
-/// small shapes merged, `detail` 0 to 1 as in [`view`]). A pixel's label is how many cuts its L* has passed.
-pub(crate) fn labels_with(
+/// What the Pencil view reads from a photo: the zone labels, and two lightness fields (L*).
+pub(crate) struct Fields {
+    /// The cleaned label map: a pixel's label is how many cuts its L* has passed.
+    pub labels: Vec<u8>,
+    /// L* after the shadow lift, the median and the guided filter: the simplified photo.
+    pub smooth: Vec<f32>,
+    /// L* after the shadow lift and a 3x3 median: the photo with its fine detail.
+    pub fine: Vec<f32>,
+}
+
+/// The fields of a photo for the Pencil view: the photo is smoothed as for the presets (shadow
+/// lift, median, guided filter), `cuts_of` gives the cuts from the smoothed L* (rising, in the same
+/// L* scale), and the label map is cleaned as the presets do (mode filter, small shapes merged,
+/// `detail` 0 to 1 as in [`view`]).
+pub(crate) fn fields_with(
     work: &Rgb,
     detail: f32,
     cuts_of: impl FnOnce(&[f32]) -> Vec<f32>,
-) -> Result<Vec<u8>> {
+) -> Result<Fields> {
     unit(detail, "pencil detail is not 0 to 1")?;
     work.require_rgb("pencil needs a non-empty RGB image")?;
     let run = ViewRun::new(work, detail, 0);
     let cuts = cuts_of(&run.a.smooth);
-    Ok(run.labels_for(&cuts))
+    let labels = run.labels_for(&cuts);
+    let fine = median(&run.a.lifted, run.w, run.h, 1);
+    Ok(Fields {
+        labels,
+        smooth: run.a.smooth,
+        fine,
+    })
 }
 
 /// The view of the Values tool: flat tones made of whole shapes.

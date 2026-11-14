@@ -91,7 +91,7 @@ export const LOOK: Look = {
 	base: { kind: "photo", opacity: 100 },
 	values: { preset: 1, detail: 50, tint: 0 },
 	shapes: { step: 3, detail: 50 },
-	pencil: { look: 1, mask: 255, detail: 50 },
+	pencil: { look: 0, mask: 255, detail: 50 },
 	edges: {
 		on: false,
 		opacity: 100,
@@ -177,7 +177,7 @@ function cleanLook(raw: unknown): Look {
 	fit(values, LOOK.values, "tint", 0, 1);
 	fit(shapes, LOOK.shapes, "step", 0, 3);
 	fit(shapes, LOOK.shapes, "detail", 0, 100);
-	fit(pencil, LOOK.pencil, "look", 0, 1);
+	fit(pencil, LOOK.pencil, "look", 0, 2);
 	fit(pencil, LOOK.pencil, "mask", 1, 255);
 	fit(pencil, LOOK.pencil, "detail", 0, 100);
 	fit(edges, LOOK.edges, "opacity", OPACITY_MIN, 100);
@@ -215,7 +215,7 @@ export const LABELS = {
 	],
 	shapesStep: ["1 Shadows", "2 Halftones", "3 Lights", "4 Accents"],
 	valuesTint: ["Gray", "Umber"],
-	pencilLook: ["Map", "Drawing"],
+	pencilLook: ["Tone", "Drawing", "Zones"],
 	edgesMode: ["Lines", "Transfer", "Masses"],
 	gridMode: ["Thirds", "Grid", "Both"],
 	gridGroup: ["2 × 2", "4 × 4"],

@@ -7,7 +7,7 @@ through wasm. The same photo and the same knobs always give the same bytes.
 |---|---|---|
 | Values | The photo in 2 to 5 flat tones | [values.md](values.md) |
 | Shapes | The photo cut into shapes, in paint order | [shapes.md](shapes.md) |
-| Pencil | The photo as zones for graphite pencils, 4H to 9B | [pencil.md](pencil.md) |
+| Pencil | The photo as a gray picture in graphite tones, 4H to 9B | [pencil.md](pencil.md) |
 | Edges | A line drawing traced from the photo | [edges.md](edges.md) |
 | Grid | Thirds and squares, as lines | [grid.md](grid.md) |
 

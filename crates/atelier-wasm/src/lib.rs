@@ -178,7 +178,7 @@ impl Photo {
         run(|| values_of(self.prepare(long)?, preset, detail, tint))
     }
 
-    /// The Pencil layer: the photo as a graphite study, opaque. `look` 0 is the flat map, 1 the
+    /// The Pencil layer: the photo as a graphite study, opaque. `look` 0 is the smooth tone picture, 1 the
     /// drawing. `mask` is the pencils, bit 0 the 9B up to bit 7 the 4H (255 is all). After the layer
     /// come one byte with the level count (the pencils of the set, then paper, darkest first), 3
     /// bytes (RGB) per level, and one byte per level with the share of the picture in percent.
@@ -281,7 +281,7 @@ mod tests {
         assert_eq!(n, 4);
         assert_eq!(out.len(), body + 1 + 3 * n + n);
         assert!(out[body + 1 + 3 * n..].iter().all(|&s| s <= 100));
-        assert!(pencil_of(&work, 2, 255, 50.0).is_err());
+        assert!(pencil_of(&work, 3, 255, 50.0).is_err());
         assert!(pencil_of(&work, 0, 0, 50.0).is_err());
     }
 

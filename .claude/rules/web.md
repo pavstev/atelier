@@ -15,7 +15,7 @@ paths:
   `edges-mode`, `edges-amount`, `edges-even`, `edges-width`, `grid-mode`, `grid-cells`, `grid-width`,
   `grid-group`, `grid-center`, `grid-paint`, `grid-color`, `values-detail`, `values-tint`,
   `shapes-detail`, `layer-edges`, `layer-grid`,
-  Pencil base: `pencil-look` (a row of buttons, Map and Drawing), `pencil-detail`, `pencil-grades`
+  Pencil base: `pencil-look` (a row of buttons, Tone, Drawing and Zones), `pencil-detail`, `pencil-grades`
   (the row) with one `pencil-grade` per pencil (`data-grade`, `aria-pressed`); the legend
   (`legend`, label "Pencil legend") has a `legend-swatch` per level with `data-grade` and
   `data-share`; on a pencil picker card `picker-grade` (`data-grade`), `picker-hint` and

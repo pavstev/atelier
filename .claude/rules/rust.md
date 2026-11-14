@@ -12,7 +12,7 @@ Modules of `crates/atelier-core/src`. Each file starts with a `//!` line that sa
 | Module | Job |
 |---|---|
 | `render` | The typed calls (`values_layer`, `shapes_layer`, `pencil_layer`, `edges_layer`, `grid_layer`, and the views under them) and the range checks. |
-| `values`, `shapes`, `pencil`, `grid` | One part each. `pencil.rs` cuts the photo into zones for graphite grades (it reuses the Values smoothing and label clean-up). `grid.rs` draws the Grid (its constants live there too). |
+| `values`, `shapes`, `pencil`, `grid` | One part each. `pencil.rs` maps the photo onto the tones of graphite grades (it reuses the Values smoothing and label clean-up). `grid.rs` draws the Grid (its constants live there too). |
 | `edges/` | Edges: `map` (the blurred Sobel edge map), `trace` (the lines traced from it) and `field` (the direction field). |
 | `deblock` | Calms the 8 px blocks of small JPEGs before the parts. |
 | `img`, `oklab`, `srgb`, `photo`, `error` | Image type, color math (`srgb::l_star` is the one CIE L*), the upright turn, `Error::bad`. |

@@ -44,18 +44,19 @@ test("test_pencil_base_draws_a_map_and_a_drawing", async ({ studio }) => {
 	await studio.base("pencil");
 	await expect(page.getByTestId("layer-canvas-base")).toBeVisible();
 	await expect(page.getByTestId("pencil-look").getByRole("radio")).toHaveText([
-		"Map",
+		"Tone",
 		"Drawing",
+		"Zones",
 	]);
 	await expect(page.getByTestId("pencil-detail")).toBeVisible();
 	await expect(page.locator("[data-testid=pencil-grade]")).toHaveCount(8);
-	// the start look is the drawing, with grain: many colors
+	// the start look is Tone, a smooth gray picture: many colors
 	await expect(
-		page.getByTestId("pencil-look").getByRole("radio", { name: "Drawing" }),
+		page.getByTestId("pencil-look").getByRole("radio", { name: "Tone" }),
 	).toBeChecked();
 	expect(await colors(page)).toBeGreaterThan(30);
-	// the map is flat: one color per level, nine at most (eight pencils and paper)
-	await studio.knob("pencil-look", 0);
+	// Zones are flat: one color per level, nine at most (eight pencils and paper)
+	await studio.knob("pencil-look", 2);
 	expect(await colors(page)).toBeLessThanOrEqual(9);
 	const flat = await studio.stats("layer-canvas-base");
 	// the picture is opaque, like Values
@@ -277,12 +278,12 @@ test("test_pencil_settings_come_back_after_reload", async ({ studio }) => {
 	const { page } = studio;
 	await studio.openSynthetic(480, 640, "pencil-reload.png");
 	await studio.base("pencil");
-	await studio.knob("pencil-look", 0);
+	await studio.knob("pencil-look", 2);
 	await studio.knob("pencil-detail", 80);
 	await studio.drawn(() => page.locator(grade("4H")).click());
 	const saved = await studio.saved();
 	expect(saved.base.kind).toBe("pencil");
-	expect(saved.pencil).toEqual({ look: 0, mask: ALL & ~(1 << 7), detail: 80 });
+	expect(saved.pencil).toEqual({ look: 2, mask: ALL & ~(1 << 7), detail: 80 });
 	await page.reload();
 	await studio.openSynthetic(480, 640, "pencil-reload.png");
 	await expect(page.getByTestId("layer-canvas-base")).toBeVisible({
@@ -290,7 +291,7 @@ test("test_pencil_settings_come_back_after_reload", async ({ studio }) => {
 	});
 	await studio.tool("base");
 	await expect(
-		page.getByTestId("pencil-look").getByRole("radio", { name: "Map" }),
+		page.getByTestId("pencil-look").getByRole("radio", { name: "Zones" }),
 	).toBeChecked();
 	await expect(page.locator(grade("4H"))).toHaveAttribute(
 		"aria-pressed",
@@ -319,7 +320,7 @@ test("test_an_old_save_without_pencil_and_a_bad_pencil_save_load_with_start_valu
 		timeout: 60_000,
 	});
 	const bad = await studio.saved();
-	expect(bad.pencil).toEqual({ look: 1, mask: 255, detail: 50 });
+	expect(bad.pencil).toEqual({ look: 0, mask: 255, detail: 50 });
 	// a save from before Pencil has no `pencil` part at all
 	await store(page, KEYS.state, { base: { kind: "values", opacity: 100 } });
 	await page.reload();
@@ -328,7 +329,7 @@ test("test_an_old_save_without_pencil_and_a_bad_pencil_save_load_with_start_valu
 		timeout: 60_000,
 	});
 	expect((await studio.saved()).pencil).toEqual({
-		look: 1,
+		look: 0,
 		mask: 255,
 		detail: 50,
 	});

@@ -65,7 +65,7 @@ fn test_bad_numbers_are_bad_input() {
     assert!(grid_layer(&w, 1, 6, 17, 2, GRID_CONTRAST, 0).is_err());
     assert!(grid_layer(&w, 1, 6, 2, 3, GRID_CONTRAST, 0).is_err());
     assert!(grid_layer(&w, 1, 6, 2, 2, GRID_CONTRAST + 1, 0).is_err());
-    assert!(pencil_layer(&w, 2, 255, 50.0).is_err());
+    assert!(pencil_layer(&w, 3, 255, 50.0).is_err());
     assert!(pencil_layer(&w, 0, 0, 50.0).is_err());
     assert!(pencil_layer(&w, 0, 256, 50.0).is_err());
     assert!(pencil_layer(&w, 0, 255, 100.1).is_err());
