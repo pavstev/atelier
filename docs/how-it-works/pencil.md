@@ -67,7 +67,7 @@ the same bytes as before the knobs existed.
 | Knob | Range | Start | What it does | Source |
 |---|---|---|---|---|
 | Detail | 0 to 100 | 50 | How much of the fine detail stays (step 2). | Values |
-| Key | 0 to 100 | 50 | Lighter above 50, darker below. A key of K stops (K from -1 to 1) is a Schlick bias with `b = 2^K / (1 + 2^K)`. It keeps the ends, never clips. | [Research 3](../research/2026-11-14-graphite-pencil-science.md#3-tone-mapping-for-drawing), Schlick 1994 |
+| Key | 0 to 100 | 50 | Lighter above 50, darker below. A key of K stops (K from -2 to 2, 25 points of the knob per stop) is a Schlick bias with `b = 2^K / (1 + 2^K)`. It keeps the ends, never clips. | [Research 3](../research/2026-11-14-graphite-pencil-science.md#3-tone-mapping-for-drawing), Schlick 1994 |
 | Contrast | 0 to 100 | 50 | An S curve with its pivot in the middle and slope `a = 2^((contrast - 50) / 50)`, so `a` runs 0.5 to 2. It keeps the ends and the middle. | Research 3, our derivation |
 | Highlights | 0 to 25 | 1 | The percent of the photo that may be bare paper (the white point). 1 is the old 99th percentile. | Research 3, our choice |
 | Deep darks | 0 to 100 | 20 | The most of the picture, in percent, that the accent pencils (9B and 7B) may cover. | [Research 1](../research/2026-11-14-graphite-pencil-science.md#1-graphite-on-paper), first note on grades |
@@ -95,7 +95,7 @@ gives the same answer, and the note in the app says what it did.
   0.80, the smoothed histogram has a real valley at the cut, and each side holds at least 15 percent
   of the pixels. A bimodal photo keeps Key 50 and never gets more contrast.
 - **Key:** the median moves half way to the middle of the range (target `0.5 + 0.5 x (median - 0.5)`),
-  and Key is the bias that does that, within one stop.
+  and Key is the bias that does that, within one stop (Key 25 to 75), so the photo keeps its mood.
 - **Contrast:** `a = 0.45 / IQR` (the spread of the middle half of the tones), kept between 0.8 and 2.
 - **Highlights:** 2 percent; 5 for a high key photo; 1 for a low key photo; one more when the light
   end is a thin spike (a glint: 99.9th minus 97th percentile over 10 L*).
@@ -136,7 +136,8 @@ A 1024 px work picture, native release build, mean of three, in ms.
   these numbers from painter guides. To settle them, scan a swatch of your own pencils on your paper
   at one pressure and change `TONES` in `pencil/grades.rs`. It is row 63 in
   [LEFTOVERS.md](../LEFTOVERS.md).
-- The ranges of Key and Contrast (one stop, slope 0.5 to 2), the 20 percent of Deep darks, and the
+- The ranges of Key and Contrast (two stops, slope 0.5 to 2; one stop of Key was too small to see on
+  real photos), the 20 percent of Deep darks, and the
   radius, limit and gain of Local contrast.
 - The size of the tooth, the line widths and spacing, the start of the cross lines and the size of
   the sheen. Hatch matches the photo less well than Drawing (lines 3 to 7 px apart cannot follow a

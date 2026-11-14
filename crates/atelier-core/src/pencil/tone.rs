@@ -18,8 +18,8 @@ const ANCHOR_GAP: f32 = 0.001;
 /// The Key and Contrast knobs (0 to 1) at which they change nothing.
 pub(super) const NEUTRAL: f32 = 0.5;
 /// The most the Key knob moves the middle tone, in stops (a stop is a factor of 2 in the odds of
-/// light), to either side.
-const KEY_STOPS: f32 = 1.0;
+/// light), to either side. One stop was too small to see on real photos (about 5 L* at Key 80).
+pub(super) const KEY_STOPS: f32 = 2.0;
 /// The most the Contrast knob changes the slope at the middle, as an exponent of 2: the slope runs
 /// from 0.5 to 2.
 const CONTRAST_STOPS: f32 = 1.0;

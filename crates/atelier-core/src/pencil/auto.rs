@@ -3,11 +3,13 @@
 //! number can be explained (Otsu 1979 for the two humps, Ashman 1994 for telling them apart,
 //! Reinhard 2002 for a middle tone that is a good key).
 
-use super::tone::{NEUTRAL, range};
+use super::tone::{KEY_STOPS, NEUTRAL, range};
 use crate::filters::{Sorted, otsu_split};
 
 /// The 256 bins of the L* histogram.
 const BINS: usize = 256;
+/// The most Auto moves the key, in stops either side: it keeps the mood of the photo.
+const AUTO_KEY_STOPS: f32 = 1.0;
 /// A photo with a median L* under this is low key.
 const LOW_KEY_BELOW: f32 = 35.0;
 /// A photo with a median L* over this is high key.
@@ -186,13 +188,14 @@ fn has_valley(smooth: &[f32], cut: usize) -> bool {
 
 /// Key, 0 to 100, that moves the middle of the photo (`median_x`, 0 to 1) a part of the way to the
 /// middle of the range: the bias `b` that takes `median_x` to the target is solved, and Key is its
-/// stops `log2(b / (1 - b))` (0 to 1 stop either side) as 50 plus or minus 50.
+/// stops `log2(b / (1 - b))`, at most [`AUTO_KEY_STOPS`] either side, on the Key scale (50 plus
+/// or minus 50 for [`KEY_STOPS`]).
 fn key_for(median_x: f32) -> u8 {
     let target = NEUTRAL + KEY_PULL * (median_x - NEUTRAL);
     // `1 / b - 1 = 1 + (m - t) / (t (1 - m))`, and `b / (1 - b)` is its inverse
     let odds_inverse = 1.0 + (median_x - target) / (target * (1.0 - median_x));
-    let stops = (-libm::log2f(odds_inverse)).clamp(-1.0, 1.0);
-    (50.0 + 50.0 * stops).round() as u8
+    let stops = (-libm::log2f(odds_inverse)).clamp(-AUTO_KEY_STOPS, AUTO_KEY_STOPS);
+    (50.0 + 50.0 * stops / KEY_STOPS).round() as u8
 }
 
 /// Contrast, 0 to 100, that spreads the middle half of the photo (`iqr`, of the range 0 to 1) to
@@ -269,13 +272,14 @@ mod tests {
     #[test]
     fn test_key_is_solved_so_the_middle_moves_half_way_to_the_middle() {
         assert_eq!(key_for(0.5), 50);
-        // the median at 0.2: target 0.35; the bias that takes 0.2 to 0.35 is about 1.1 stops
-        assert_eq!(key_for(0.2), 100);
-        assert_eq!(key_for(0.8), 0);
+        // the median at 0.2: target 0.35; the bias that takes 0.2 to 0.35 is about 1.1 stops,
+        // held to Auto's 1 stop, which is a quarter of the Key scale (2 stops either side)
+        assert_eq!(key_for(0.2), 75);
+        assert_eq!(key_for(0.8), 25);
         let (a, b) = (key_for(0.4), key_for(0.3));
-        assert!(50 < a && a < b && b <= 100, "{a} {b}");
+        assert!(50 < a && a < b && b <= 75, "{a} {b}");
         // the ends of the range do not divide by zero
-        assert_eq!((key_for(0.0), key_for(1.0)), (100, 0));
+        assert_eq!((key_for(0.0), key_for(1.0)), (75, 25));
     }
 
     #[test]
