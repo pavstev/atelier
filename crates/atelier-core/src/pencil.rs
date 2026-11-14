@@ -28,7 +28,7 @@ use crate::error::{Error, Result};
 use crate::filters::Sorted;
 use crate::img::Rgb;
 use crate::oklab;
-use crate::values::{fields_with, ok_l};
+use crate::values::{fields, ok_l, zone_labels};
 
 /// The pencils the view knows, darkest first: 9B, 7B, 5B, 2B, HB, H, 3H, 4H. Each is the CIE L*
 /// of a firm, even layer of that grade on white paper. Hard grades stay light, a 9B nears the
@@ -243,26 +243,27 @@ pub fn view(work: &Rgb, mask: u32, detail: f32, look: u8) -> Result<Pencil> {
         return Err(Error::bad("pencil look must be 0 to 2"));
     }
     let tones = levels(mask)?;
-    let f = fields_with(work, detail, |smooth| {
-        cuts(&Sorted::new(smooth), &tones, SPREAD)
-    })?;
     let (w, h) = (work.width, work.height);
     let n = tones.len();
     let flat: Vec<[u8; 3]> = tones.iter().map(|&l| tint(l)).collect();
     let mut image = Rgb::new(w, h, 3);
     let mut count = vec![0usize; n];
     if look == 2 {
+        let (_, labels) = zone_labels(work, detail, |smooth| {
+            cuts(&Sorted::new(smooth), &tones, SPREAD)
+        })?;
         let mut seen = vec![0usize; n];
-        for &z in &f.labels {
+        for &z in &labels {
             seen[usize::from(z).min(n - 1)] += 1;
         }
-        let moves = accent_moves(&seen, &tones, f.labels.len());
-        for (px, &z) in image.data.chunks_exact_mut(3).zip(&f.labels) {
+        let moves = accent_moves(&seen, &tones, labels.len());
+        for (px, &z) in image.data.chunks_exact_mut(3).zip(&labels) {
             let zone = moves[usize::from(z).min(n - 1)];
             count[zone] += 1;
             px.copy_from_slice(&flat[zone]);
         }
     } else {
+        let f = fields(work, detail)?;
         let sorted = Sorted::new(&f.smooth);
         let (lo, hi) = range(&sorted);
         let at = anchors(lo, hi, &cuts(&sorted, &tones, TONE_SPREAD));
