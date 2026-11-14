@@ -1,6 +1,6 @@
 //! Tests of the Pencil view as a whole: the looks, the set, the knobs and the accent rule.
 
-use super::drawing::hash;
+use super::paper::hash;
 use super::*;
 
 const TONE: Look = Look::Tone;
@@ -163,7 +163,7 @@ fn test_detail_keeps_more_of_the_fine_texture() {
     // a noisy mid-gray: more detail, more spread between neighbors
     let mut img = Rgb::new(64, 64, 3);
     for (i, px) in img.data.chunks_exact_mut(3).enumerate() {
-        let v = 110 + (hash(i % 64, i / 64) * 40.0) as u8;
+        let v = 110 + (hash((i % 64) as i32, (i / 64) as i32) * 40.0) as u8;
         px.copy_from_slice(&[v, v, v]);
     }
     let spread = |d: f32| {
@@ -308,7 +308,7 @@ fn test_local_contrast_is_off_at_zero_and_adds_texture_when_on() {
     // a mid-gray with a faint texture, about 4 L* either way
     let mut img = Rgb::new(64, 64, 3);
     for (i, px) in img.data.chunks_exact_mut(3).enumerate() {
-        let v = 110 + (hash(i % 64, i / 64) * 8.0) as i32;
+        let v = 110 + (hash((i % 64) as i32, (i / 64) as i32) * 8.0) as i32;
         px.copy_from_slice(&[v as u8; 3]);
     }
     let draw = |local: f32| {
@@ -387,12 +387,27 @@ fn test_a_step_over_the_set_takes_the_darkest_pencil_of_the_set() {
 }
 
 #[test]
-fn test_hatch_draws_as_drawing_until_it_has_its_own_strokes() {
-    let w = ramp(64, 32);
-    assert_eq!(
-        view_of(&w, 255, 0.5, HATCH).unwrap(),
-        view_of(&w, 255, 0.5, DRAWING).unwrap()
+fn test_hatch_keeps_the_levels_and_the_same_input_gives_the_same_bytes() {
+    let w = ramp(128, 64);
+    let tone = view_of(&w, 255, 0.5, TONE).unwrap();
+    let hatch = view_of(&w, 255, 0.5, HATCH).unwrap();
+    assert_eq!(tone.tones, hatch.tones);
+    assert_eq!(tone.shares, hatch.shares);
+    assert_ne!(tone.image, hatch.image);
+    assert_ne!(hatch.image, view_of(&w, 255, 0.5, DRAWING).unwrap().image);
+    assert_eq!(hatch, view_of(&w, 255, 0.5, HATCH).unwrap());
+}
+
+#[test]
+fn test_rougher_paper_and_another_angle_are_other_drawings() {
+    let base = ramp_with(DRAWING, |_| {});
+    assert_ne!(
+        ramp_with(DRAWING, |k| k.paper = Paper::Rough).image,
+        base.image
     );
+    assert_ne!(ramp_with(DRAWING, |k| k.angle = 120).image, base.image);
+    let hatch = ramp_with(HATCH, |_| {});
+    assert_ne!(ramp_with(HATCH, |k| k.density = 1.0).image, hatch.image);
 }
 
 #[test]

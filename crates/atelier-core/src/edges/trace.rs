@@ -276,9 +276,8 @@ impl Run<'_> {
     /// The edge pixels of the blurred map: non maximum suppression across the orientation of the
     /// map, hysteresis, then thinned corners.
     fn hysteresis_edges(&self, smooth: &[f32]) -> Vec<u8> {
-        let (w, h, n) = (self.w, self.h, self.w * self.h);
-        let planes = [smooth.to_vec(), vec![0.0; n], vec![0.0; n]];
-        let field = structure_field(&planes, w, h, self.o.tensor_sigma);
+        let (w, h) = (self.w, self.h);
+        let field = structure_field(&[smooth], w, h, self.o.tensor_sigma);
         let thin = nms(smooth, &field, w, h);
         let mut edges = hysteresis(&thin, w, self.o.high, self.o.low);
         thin_corners(&mut edges, w, h);

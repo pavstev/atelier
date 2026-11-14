@@ -43,7 +43,7 @@ mod tests {
     /// A noisy texture of the given amplitude around 50, on a `w` x `h` picture.
     fn texture(w: usize, h: usize, amp: f32) -> Vec<f32> {
         (0..w * h)
-            .map(|i| 50.0 + amp * super::super::drawing::hash(i % w, i / w))
+            .map(|i| 50.0 + amp * super::super::paper::hash((i % w) as i32, (i / w) as i32))
             .collect()
     }
 

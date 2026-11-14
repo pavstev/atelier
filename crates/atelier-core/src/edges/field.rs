@@ -155,16 +155,18 @@ pub(crate) fn bil(p: &[f32], w: usize, h: usize, x: f32, y: f32) -> f32 {
 // ---------------------------------------------------------------------------------------------
 // Flow field
 
-/// The unit tangent of the edge flow at each pixel (only up to its sign) and the gradient
-/// strength.
+/// The unit tangent of the edge flow at each pixel (only up to its sign), the gradient strength
+/// and the anisotropy.
 pub(crate) struct Field {
     pub(crate) tx: Vec<f32>,
     pub(crate) ty: Vec<f32>,
     pub(crate) g: Vec<f32>,
+    /// The anisotropy `(l1 - l2) / (l1 + l2)` of the tensor, 0 (no direction) to 1 (one direction).
+    pub(crate) coh: Vec<f32>,
 }
 
-/// Di Zenzo structure tensor of the three planes, smoothed, as a tangent field.
-pub(crate) fn structure_field(planes: &[Vec<f32>; 3], w: usize, h: usize, sigma: f32) -> Field {
+/// Di Zenzo structure tensor of the planes (one L* plane is enough), smoothed, as a tangent field.
+pub(crate) fn structure_field(planes: &[&[f32]], w: usize, h: usize, sigma: f32) -> Field {
     let n = w * h;
     let (mut jxx, mut jxy, mut jyy) = (vec![0f32; n], vec![0f32; n], vec![0f32; n]);
     for p in planes {
@@ -183,12 +185,18 @@ pub(crate) fn structure_field(planes: &[Vec<f32>; 3], w: usize, h: usize, sigma:
         tx: vec![1.0; n],
         ty: vec![0.0; n],
         g: vec![0.0; n],
+        coh: vec![0.0; n],
     };
     for i in 0..n {
         let a = jxx[i] - jyy[i];
         let b = 2.0 * jxy[i];
         let r = (a * a + b * b).sqrt();
-        f.g[i] = (jxx[i] + jyy[i]).max(0.0).sqrt();
+        let trace = jxx[i] + jyy[i];
+        f.g[i] = trace.max(0.0).sqrt();
+        if trace > 1e-20 {
+            // the eigenvalues are (trace +- r) / 2, so (l1 - l2) / (l1 + l2) is r over the trace
+            f.coh[i] = (r / trace).min(1.0);
+        }
         if r > 1e-20 {
             // The gradient direction (cos t, sin t) from the double angle; the tangent is
             // perpendicular to it.
@@ -826,6 +834,32 @@ mod tests {
             .collect();
         let s = simplify_vw(&pts, 1.0);
         assert_eq!(s, vec![[0.0, 0.0], [9.0, 0.0], [9.0, 9.0]]);
+    }
+
+    #[test]
+    fn test_structure_field_takes_one_plane_and_reports_the_anisotropy() {
+        let (w, h) = (48, 48);
+        // vertical stripes: one direction, so the anisotropy is 1 and the tangent is vertical
+        let stripes: Vec<f32> = (0..w * h)
+            .map(|i| if (i % w) / 4 % 2 == 0 { 10.0 } else { 90.0 })
+            .collect();
+        let f = structure_field(&[&stripes], w, h, 3.0);
+        let i = 24 * w + 24;
+        assert!(f.coh[i] > 0.95, "{}", f.coh[i]);
+        assert!(f.tx[i].abs() < 0.1 && f.ty[i].abs() > 0.99);
+        // a flat plane has no direction at all
+        let f = structure_field(&[&vec![50.0; w * h]], w, h, 3.0);
+        assert!(f.coh.iter().all(|&c| c == 0.0));
+        // a spot is the same in every direction: the anisotropy is low at its center
+        let spot: Vec<f32> = (0..w * h)
+            .map(|i| {
+                let (dx, dy) = ((i % w) as f32 - 24.0, (i / w) as f32 - 24.0);
+                100.0 * (-(dx * dx + dy * dy) / 50.0).exp()
+            })
+            .collect();
+        let f = structure_field(&[&spot], w, h, 3.0);
+        assert!(f.coh[i] < 0.2, "{}", f.coh[i]);
+        assert!(f.coh.iter().all(|c| (0.0..=1.0).contains(c)));
     }
 
     #[test]

@@ -5,8 +5,9 @@
 //! tone of the set, and the lightest tone is bare paper.
 //!
 //! One small module per idea: `grades` (the levels), `tone` (the curve, Key and Contrast), `local`
-//! (Local contrast), `darks` (the accent rule, Deep darks), `drawing` (the grain), `build_up`
-//! (By pencil), `auto` (Auto sets Key, Contrast and Highlights from the photo) and `choice`
+//! (Local contrast), `darks` (the accent rule, Deep darks), `paper` (the paper tooth), `ink` (the
+//! sums Drawing and Hatch share), `drawing` (graphite laid on the tooth), `hatch` (lines that
+//! follow the form), `build_up` (By pencil), `auto` (Auto sets Key, Contrast and Highlights from the photo) and `choice`
 //! (Suggest pencils picks the best set of 3 to 6).
 //!
 //! The steps:
@@ -22,9 +23,11 @@
 //!    tone is exactly that pencil. Before the curve, `local` boosts the detail of the photo (what is
 //!    left after a smooth base is taken away), `key` lifts or drops the middle of the photo and
 //!    `contrast` steepens or flattens it.
-//! 4. Looks: Tone is the curve's picture. Drawing is the same picture with graphite grain and
-//!    hatching, mean zero, so the tones hold; `grain` sets its strength. Hatch draws as Drawing
-//!    until it has its own strokes. Zones is the old flat map: one flat tone per pencil, cut where
+//! 4. Looks: Tone is the curve's picture. Drawing is the same picture laid on the paper tooth:
+//!    graphite catches the peaks first and fills the valleys as the tone darkens, so the tones hold;
+//!    `grain` sets how much tooth shows, `paper` its size, `angle` its streak. Hatch draws the
+//!    picture as lines of graphite that follow the form, with a cross layer in the darks;
+//!    `density` sets how close they run. Zones is the old flat map: one flat tone per pencil, cut where
 //!    the pencils change, small shapes merged as in Values. By pencil is the Tone picture with
 //!    only the lightest `step` pencils drawn: a tone darker than the pencil of the step is drawn in
 //!    that pencil, the shares stay those of the finished picture and the answer marks the level.
@@ -41,7 +44,10 @@ mod choice;
 mod darks;
 mod drawing;
 mod grades;
+mod hatch;
+mod ink;
 mod local;
+mod paper;
 mod tone;
 
 #[cfg(test)]
@@ -55,11 +61,12 @@ use darks::accent_moves;
 use grades::{level_of, levels, mids, shares, tint};
 use tone::{SPREAD, ToneMap, cuts};
 
+pub(crate) use paper::Paper;
+
 /// How much of the fine detail the picture keeps at `detail` 0 (the rest is the simplified
 /// photo). At `detail` 1 all of it stays.
 const RETAIN_MIN: f32 = 0.25;
-/// The grain knob (0 to 1) at its start: the grain of Drawing as it was before the knob. The grain
-/// is scaled by `grain / GRAIN_START`, so 0 draws none and 1 draws twice as much.
+/// The grain knob (0 to 1) at its start: half of the full tooth.
 const GRAIN_START: f32 = 0.5;
 
 /// Which picture a Pencil view draws.
@@ -91,36 +98,9 @@ impl Look {
     }
 }
 
-/// How rough the paper is: the size of its tooth.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub(crate) enum Paper {
-    /// Fine tooth.
-    Smooth,
-    /// Medium tooth (the start).
-    Medium,
-    /// Coarse tooth.
-    Rough,
-}
-
-impl Paper {
-    /// The paper of this number (0 smooth, 1 medium, 2 rough).
-    pub(crate) fn from_index(i: u8) -> Result<Self> {
-        match i {
-            0 => Ok(Self::Smooth),
-            1 => Ok(Self::Medium),
-            2 => Ok(Self::Rough),
-            _ => Err(Error::bad("pencil paper must be 0 to 2")),
-        }
-    }
-}
-
 /// What a Pencil view takes. The ranges are checked by the caller (`render`); `Default` is the
 /// start of every knob.
 #[derive(Debug, Clone, PartialEq)]
-#[allow(
-    dead_code,
-    reason = "paper, angle and density are read by the Hatch and paper modules that come later"
-)]
 pub(crate) struct Knobs {
     /// The picture to draw.
     pub look: Look,
@@ -294,17 +274,38 @@ fn tone_picture(work: &Rgb, k: &Knobs, tones: &[f32], drawn_to: Option<usize>) -
     let mids = mids(tones);
     // no tone is darker than the pencil an over-big accent mass moves up to
     let floor = darks::floor(&tone, tones, &mids, k.accent_share());
-    let grain = matches!(k.look, Look::Drawing | Look::Hatch).then(|| k.grain / GRAIN_START);
-    let period = drawing::period(w.max(h));
     let step_floor = drawn_to.map(|level| tones[level]);
-    let mut image = Rgb::new(w, h, 3);
     let mut count = vec![0usize; tones.len()];
-    for (i, (px, &l)) in image.data.chunks_exact_mut(3).zip(&tone).enumerate() {
-        let l = l.max(floor);
-        count[level_of(&mids, l)] += 1;
-        let l = step_floor.map_or(l, |s| l.max(s));
-        let shown = grain.map_or(l, |g| l + g * drawing::swing(i % w, i / w, l, period));
-        px.copy_from_slice(&tint(shown));
+    let drawn: Vec<f32> = tone
+        .iter()
+        .map(|&l| {
+            let l = l.max(floor);
+            count[level_of(&mids, l)] += 1;
+            step_floor.map_or(l, |s| l.max(s))
+        })
+        .collect();
+    let shown = textured(drawn, &f.smooth, (w, h), k);
+    let mut image = Rgb::new(w, h, 3);
+    for (px, &l) in image.data.chunks_exact_mut(3).zip(&shown) {
+        px.copy_from_slice(&tint(l));
     }
     Ok((image, count))
+}
+
+/// The shown L* per pixel of the picture `tone` in the look of `k`: Drawing on the paper tooth,
+/// Hatch as lines that follow `guide` (the smoothed L*), the others as they are. The one place the
+/// texture looks are called.
+fn textured(tone: Vec<f32>, guide: &[f32], (w, h): (usize, usize), k: &Knobs) -> Vec<f32> {
+    let angle = f32::from(k.angle);
+    match k.look {
+        Look::Drawing => {
+            let tooth = paper::tooth(w, h, k.paper, angle);
+            drawing::draw(&tone, w, h, &tooth, k.grain, k.paper)
+        }
+        Look::Hatch => {
+            let tooth = paper::tooth(w, h, k.paper, angle);
+            hatch::draw(&tone, guide, w, h, &tooth, k.grain, angle, k.density)
+        }
+        Look::Tone | Look::Zones | Look::ByPencil => tone,
+    }
 }
