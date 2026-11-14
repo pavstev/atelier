@@ -660,15 +660,13 @@ test("test_auto_sets_key_contrast_and_highlights_and_says_what_it_did", async ({
 	await expect.poll(gone).toBe("");
 });
 
-/** The grade names a suggestion shows, from the text of the leaves of its element. */
-const chipGrades = (chips: import("@playwright/test").Locator) =>
-	chips.evaluate((el) =>
-		[...el.querySelectorAll("*")]
-			.filter((n) => n.children.length === 0)
-			.map((n) => (n.textContent ?? "").trim())
-			.filter((t) => /^(9B|7B|5B|2B|HB|H|3H|4H)$/.test(t))
-			.sort(),
-	);
+/** The grades of the chips of a suggestion, sorted. */
+const chipGrades = (page: Page) =>
+	page
+		.getByTestId("pencil-suggested-grade")
+		.evaluateAll((l) =>
+			l.map((e) => String((e as HTMLElement).dataset.grade)).sort(),
+		);
 
 test("test_suggest_pencils_gives_three_to_six_and_apply_shows_only_those", async ({
 	studio,
@@ -690,7 +688,7 @@ test("test_suggest_pencils_gives_three_to_six_and_apply_shows_only_those", async
 		expect(mask).toBeLessThanOrEqual(255);
 		expect(mask.toString(2).replaceAll("0", "").length, `count ${n}`).toBe(n);
 		// one chip per suggested pencil
-		expect(await chipGrades(chips)).toEqual(pencilsOf(mask).sort());
+		expect(await chipGrades(page)).toEqual(pencilsOf(mask).sort());
 		// a suggestion alone changes nothing
 		expect(await legendGrades(page)).toEqual(before);
 		// Apply sets the pencils: the legend shows only those, and the grade row agrees
@@ -723,9 +721,9 @@ test("test_by_pencil_marks_the_step_in_the_legend_and_the_picker_names_it", asyn
 	await studio.knob("pencil-step", 4);
 	await expect(marked).toHaveCount(1);
 	await expect(marked).toHaveAttribute("data-grade", "HB");
-	await expect(
-		page.getByTestId("tools").getByText(/Step 4 of 8/),
-	).toBeVisible();
+	await expect(page.getByTestId("pencil-step-line")).toHaveText(
+		"Step 4 of 8: HB",
+	);
 	// without the 9B the set has seven pencils: the step slider stops at 7, the HB stays the step
 	await studio.drawn(() => page.locator(grade("9B")).click());
 	await expect(page.getByTestId("legend-swatch")).toHaveCount(8);
