@@ -123,6 +123,8 @@ export default function Picker(p: {
 	pencil: boolean;
 	/** The levels of the Pencil legend, once drawn; no card while a new set of pencils draws. */
 	levels: Level[] | null;
+	/** The level By pencil is drawn up to (an index into `levels`), or none. */
+	mark: number | null;
 	/** A color held from a legend swatch; it takes the card until a click or Esc. */
 	fixed: Fixed | null;
 	onFixed: (f: Fixed | null) => void;
@@ -131,7 +133,7 @@ export default function Picker(p: {
 	onArea: (i: number) => void;
 }) {
 	const { box, photo, layers, paper, hold, view, fixed, onFixed } = p;
-	const { pencil, levels } = p;
+	const { pencil, levels, mark } = p;
 	// the least area: Point, or Small for Pencil
 	const areaFloor = pencil ? AREA_START : 0;
 	const area = Math.max(p.area, areaFloor);
@@ -279,7 +281,10 @@ export default function Picker(p: {
 	}
 	// a Pencil card needs no paint search: it names the nearest level of the legend
 	const mix = color && !pencil ? mixFor(color) : null;
-	const level = color && pencil && levels ? nearestLevel(color, levels) : null;
+	const level =
+		color && pencil && levels ? nearestLevel(color, levels, mark) : null;
+	// By pencil: the spot is at the pencil of the step (or darker, drawn in it)
+	const isStep = level !== null && mark !== null && level === levels?.[mark];
 	const pinned = pin !== null || fixed !== null;
 	// a held skin color also has its skin string (the memory in `mix.ts` keeps it between renders)
 	const skin = pinned && color && mix?.skin ? skinString(color) : null;
@@ -361,6 +366,7 @@ export default function Picker(p: {
 					color={color}
 					mix={mix}
 					level={level}
+					step={isStep}
 					skin={skin}
 					pinned={pinned}
 					title={title}
@@ -391,6 +397,8 @@ function Card(p: {
 	mix: Mix | null;
 	/** The pencil level of the spot; null on a paint mix card. */
 	level: Level | null;
+	/** The level is the pencil of the step in By pencil (the spot is at it or darker). */
+	step: boolean;
 	/** The three skin mixes of a held skin color; null for any other card. */
 	skin: SkinString | null;
 	pinned: boolean;
@@ -498,7 +506,7 @@ function Card(p: {
 					)}
 				</div>
 				{level ? (
-					<GradeText level={level} />
+					<GradeText level={level} step={p.step} />
 				) : (
 					mix && (
 						<div className="flex min-w-0 flex-1 flex-col gap-1.5">
@@ -572,13 +580,14 @@ function Card(p: {
 }
 
 /** The right side of a Pencil card: the grade big, what it is for and how hard to press. */
-function GradeText(p: { level: Level }) {
+function GradeText(p: { level: Level; step: boolean }) {
 	const { grade } = p.level;
 	return (
 		<div className="flex min-w-0 flex-1 flex-col gap-1">
 			<p
 				data-testid="picker-grade"
 				data-grade={grade.id}
+				data-step={p.step ? "true" : undefined}
 				className="text-3xl leading-none font-semibold"
 			>
 				{grade.id}
@@ -589,6 +598,11 @@ function GradeText(p: { level: Level }) {
 			<p data-testid="picker-pressure" className="font-medium">
 				{pressureWords(grade)}
 			</p>
+			{p.step && (
+				<p data-testid="picker-step" className="text-muted leading-tight">
+					The pencil of this step
+				</p>
+			)}
 		</div>
 	);
 }

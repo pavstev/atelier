@@ -7,6 +7,7 @@
 // are off and the menu has "Unlock". A press outside the card or Esc closes it (the lock stays on).
 import { Button, Dropdown, Label } from "@heroui/react";
 import { type ReactNode, useEffect, useRef, useState } from "react";
+import { usePencilExtras } from "@/features/pencil/usePencilExtras";
 import { baseName, ToolBody, ToolHead } from "@/features/tools/Panel";
 import type { Look, StageId } from "@/features/tools/settings";
 import { NumberBox } from "@/ui/fields";
@@ -39,6 +40,8 @@ export default function StageBar(p: {
 	onZoomTo: (zoom: number) => void;
 	look: Look;
 	onLook: (f: (s: Look) => Look) => void;
+	/** The photo on screen: Auto and Suggest of the Pencil card read it. */
+	photo: ImageData | null;
 	/** The legend of Values, Shapes or Pencil, shown in the Base card. */
 	legend?: ReactNode;
 	/** The color picker is on. */
@@ -49,6 +52,8 @@ export default function StageBar(p: {
 }) {
 	const [open, setOpen] = useState<Open>(null);
 	const { lock } = p;
+	// the Auto note and the suggested pencils live here, so a closed card keeps them
+	const extras = usePencilExtras(p.photo);
 	const found = guessScreen();
 	const lockCard = useRef<HTMLDivElement>(null);
 
@@ -158,6 +163,7 @@ export default function StageBar(p: {
 							look={p.look}
 							onLook={p.onLook}
 							legend={id === "base" ? p.legend : undefined}
+							extras={extras}
 						/>
 					</Popup>
 				))}

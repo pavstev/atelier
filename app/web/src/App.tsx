@@ -45,7 +45,7 @@ export default function App() {
 	const [picked, setPicked] = useState<Fixed | null>(null);
 
 	const calls = useMemo(() => callsOf(look), [look]);
-	const { pictures, tones, shares } = useLayers(
+	const { pictures, tones, shares, mark } = useLayers(
 		ph.photo,
 		calls,
 		ph.bump,
@@ -128,7 +128,7 @@ export default function App() {
 				onLook={setLook}
 				legend={
 					levels ? (
-						<PencilLegend levels={levels} />
+						<PencilLegend levels={levels} mark={mark} />
 					) : toned && tones ? (
 						<Legend
 							tones={tones}
@@ -138,6 +138,7 @@ export default function App() {
 					) : undefined
 				}
 				levels={levels}
+				mark={mark}
 				layout={layout}
 				onLayout={setLayout}
 				facts={{

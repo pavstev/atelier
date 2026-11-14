@@ -79,37 +79,51 @@ const shareWords = (share: number) => (share > 0 ? `${share}%` : "not used");
 /**
  * The Pencil legend: one row per level, darkest first and Paper last (the order of the answer),
  * with the swatch, the grade, a short hint and the share. A swatch is not a button: a pencil
- * grade is read from the card of the picker.
+ * grade is read from the card of the picker. In By pencil `mark` is the level the picture is drawn
+ * up to: its row has `data-step="true"`, `aria-current="step"` and a "step" badge.
  */
-export function PencilLegend(p: { levels: Level[] }) {
+export function PencilLegend(p: { levels: Level[]; mark?: number | null }) {
 	return (
 		<ol
 			data-testid="legend"
 			aria-label="Pencil legend"
 			className="flex flex-col gap-1 text-xs"
 		>
-			{p.levels.map(({ grade, tone, share }) => (
-				<li
-					key={grade.id}
-					data-testid="legend-swatch"
-					data-grade={grade.id}
-					data-share={share}
-					className={`flex items-center gap-2 ${share > 0 ? "" : "text-muted opacity-75"}`}
-				>
-					<span
-						aria-hidden="true"
-						className="size-5 shrink-0 rounded-(--radius-chip) border border-separator"
-						style={{ backgroundColor: css(tone) }}
-					/>
-					<span className="w-9 shrink-0 font-medium">{grade.id}</span>
-					<span className="min-w-0 flex-1 leading-tight text-muted">
-						{grade.hint}
-					</span>
-					<span className="shrink-0 text-end tabular-nums">
-						{shareWords(share)}
-					</span>
-				</li>
-			))}
+			{p.levels.map(({ grade, tone, share }, i) => {
+				const step = p.mark === i;
+				return (
+					<li
+						key={grade.id}
+						data-testid="legend-swatch"
+						data-grade={grade.id}
+						data-share={share}
+						data-step={step ? "true" : undefined}
+						aria-current={step ? "step" : undefined}
+						className={`flex items-center gap-2 ${share > 0 ? "" : "text-muted opacity-75"} ${step ? "-mx-1 rounded-(--radius-chip) bg-default px-1 py-0.5" : ""}`}
+					>
+						<span
+							aria-hidden="true"
+							className="size-5 shrink-0 rounded-(--radius-chip) border border-separator"
+							style={{ backgroundColor: css(tone) }}
+						/>
+						<span className="w-9 shrink-0 font-medium">{grade.id}</span>
+						<span className="min-w-0 flex-1 leading-tight text-muted">
+							{grade.hint}
+						</span>
+						{step && (
+							<span
+								data-testid="legend-step"
+								className="shrink-0 rounded-full bg-accent px-1.5 text-[0.65rem] leading-4 text-accent-foreground"
+							>
+								step
+							</span>
+						)}
+						<span className="shrink-0 text-end tabular-nums">
+							{shareWords(share)}
+						</span>
+					</li>
+				);
+			})}
 		</ol>
 	);
 }

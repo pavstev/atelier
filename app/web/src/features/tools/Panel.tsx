@@ -4,7 +4,8 @@
 // the main choice at full width, its settings one line each, then Opacity.
 import { Switch } from "@heroui/react";
 import type { ReactNode } from "react";
-import GradeRow from "@/features/pencil/GradeRow";
+import PencilCard from "@/features/pencil/PencilCard";
+import type { PencilExtras } from "@/features/pencil/usePencilExtras";
 import { Choice, ColorField, Knob, Row, Segment } from "@/ui/fields";
 import {
 	BASES,
@@ -86,8 +87,11 @@ export function ToolHead(p: Props & { id: StageId }) {
 const Rule = () => <div className="my-0.5 h-px bg-separator" />;
 
 /** The controls of one tool, in three groups: the main choice at full width, its settings, then
- * Opacity last. `legend` is the legend of Values, Shapes or Pencil (Base only). */
-export function ToolBody(p: Props & { id: StageId; legend?: ReactNode }) {
+ * Opacity last. `legend` is the legend of Values, Shapes or Pencil (Base only); `extras` is what the
+ * Pencil card holds for the photo (Auto note, suggestion). */
+export function ToolBody(
+	p: Props & { id: StageId; legend?: ReactNode; extras: PencilExtras },
+) {
 	const s = p.look;
 	const set = setter(p);
 	/** The `value` and `onChange` of a field that holds one setting of one part. */
@@ -116,7 +120,7 @@ export function ToolBody(p: Props & { id: StageId; legend?: ReactNode }) {
 	return (
 		<div
 			data-testid="tools"
-			className={`atelier-tools flex flex-col gap-1.5 transition-opacity ${dim ? "opacity-60" : ""}`}
+			className={`atelier-tools -mx-1 flex max-h-[min(60dvh,30rem)] flex-col gap-1.5 overflow-y-auto overscroll-contain px-1 transition-opacity ${dim ? "opacity-60" : ""}`}
 		>
 			{p.id === "base" && (
 				<>
@@ -166,23 +170,11 @@ export function ToolBody(p: Props & { id: StageId; legend?: ReactNode }) {
 						</>
 					)}
 					{s.base.kind === "pencil" && (
-						<>
-							<Segment
-								testid="pencil-look"
-								label="Look"
-								options={LABELS.pencilLook}
-								{...bind("pencil", "look")}
-							/>
-							<Knob
-								testid="pencil-detail"
-								label="Detail"
-								{...bind("pencil", "detail")}
-							/>
-							<GradeRow
-								mask={s.pencil.mask}
-								onChange={(mask) => set("pencil", { mask })}
-							/>
-						</>
+						<PencilCard
+							pencil={s.pencil}
+							onChange={(v) => set("pencil", v)}
+							extras={p.extras}
+						/>
 					)}
 					{toned && (
 						<>

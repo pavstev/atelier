@@ -41,6 +41,8 @@ export default function StageArea(p: {
 	onLook: (f: (s: Look) => Look) => void;
 	/** The Pencil levels once drawn; the picker names the grade of a spot from them. */
 	levels?: Level[] | null;
+	/** The level By pencil is drawn up to (an index into `levels`), or none. */
+	mark?: number | null;
 	/** The legend of Values, Shapes or Pencil, for the Base card. */
 	legend?: ReactNode;
 	layout: Layout;
@@ -124,6 +126,7 @@ export default function StageArea(p: {
 						view={viewport.view}
 						pencil={look.base.kind === "pencil"}
 						levels={p.levels ?? null}
+						mark={p.mark ?? null}
 						fixed={p.picked}
 						onFixed={p.onPicked}
 						area={area}
@@ -152,6 +155,7 @@ export default function StageArea(p: {
 						onZoomTo={viewport.zoomTo}
 						look={look}
 						onLook={p.onLook}
+						photo={photo}
 						legend={p.legend}
 						picking={picking}
 						picked={p.picked}

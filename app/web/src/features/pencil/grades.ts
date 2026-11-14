@@ -46,6 +46,22 @@ export function gradesOf(mask: number): Grade[] {
 	return [...GRADES.filter((_, bit) => (mask >> bit) & 1), PAPER_GRADE];
 }
 
+/**
+ * The pencil a By pencil `step` draws up to, in the set `mask`: the set from the lightest pencil,
+ * step 1 the first. `count` is the size of the set; a step over it takes the darkest pencil (as the
+ * core does), so `at` is the step that counts.
+ */
+export function stepPencil(
+	mask: number,
+	step: number,
+): { count: number; at: number; grade: Grade } {
+	const lightFirst = GRADES.filter((_, bit) => (mask >> bit) & 1).reverse();
+	const count = lightFirst.length;
+	const at = Math.min(Math.max(step, 1), Math.max(count, 1));
+	// the mask is never empty (`maskWith` keeps one pencil on), so the set has a pencil at `at`
+	return { count, at, grade: lightFirst[at - 1] as Grade };
+}
+
 /** `mask` with the pencil at `bit` switched on or off. The last pencil stays on. */
 export function maskWith(mask: number, bit: number, on: boolean): number {
 	const next = on ? mask | (1 << bit) : mask & ~(1 << bit);
@@ -82,10 +98,22 @@ export function levelsOf(
 /**
  * The level whose tone is nearest in CIE L* to `color`. Only levels the photo uses count, so a
  * grain pixel never lands on a pencil that has no zone; with none used, all count.
+ *
+ * In By pencil `mark` is the level the picture is drawn up to: every tone darker than it is drawn
+ * in it, so only that level and the lighter ones are on the picture. They alone are searched, and
+ * the marked level always counts (pixels were moved onto it, whatever its share in the legend).
  */
-export function nearestLevel(color: Color, levels: Level[]): Level | null {
-	const used = levels.filter((l) => l.share > 0);
-	const pool = used.length > 0 ? used : levels;
+export function nearestLevel(
+	color: Color,
+	levels: Level[],
+	mark: number | null = null,
+): Level | null {
+	const on = mark === null ? levels : levels.slice(mark);
+	const reach = on.length > 0 ? on : levels;
+	const used = reach.filter(
+		(l, i) => l.share > 0 || (mark !== null && i === 0),
+	);
+	const pool = used.length > 0 ? used : reach;
 	const l = labOfRgb(color)[0];
 	let best: Level | null = null;
 	let gap = Number.POSITIVE_INFINITY;
