@@ -65,12 +65,17 @@ fn shapes_of(work: &Rgb, step: u32, detail: f64) -> Result<Vec<u8>> {
     Ok(with_swatches(&layer, &piles))
 }
 
+/// The byte at the end of a Pencil answer when no level is marked.
+const NO_MARK: u8 = 255;
+
 /// Pencil on a work picture: the packed layer, then the level count (one byte), 3 RGB bytes per
-/// level and one share byte (percent) per level. See [`Photo::pencil`].
-fn pencil_of(work: &Rgb, look: u32, mask: u32, detail: f64) -> Result<Vec<u8>> {
-    let (layer, tones, shares) = render::pencil_layer(work, look, mask, detail)?;
-    let mut out = with_swatches(&layer, &tones);
-    out.extend(shares);
+/// level, one share byte (percent) per level and the marked level (one byte, [`NO_MARK`] for none).
+/// See [`Photo::pencil`].
+fn pencil_of(work: &Rgb, look: u32, mask: u32, numbers: &[f64]) -> Result<Vec<u8>> {
+    let p = render::pencil_layer(work, look, mask, numbers)?;
+    let mut out = with_swatches(&p.layer, &p.tones);
+    out.extend(p.shares);
+    out.push(p.mark.unwrap_or(NO_MARK));
     Ok(out)
 }
 
@@ -178,21 +183,25 @@ impl Photo {
         run(|| values_of(self.prepare(long)?, preset, detail, tint))
     }
 
-    /// The Pencil layer: the photo as a graphite study, opaque. `look` 0 is the smooth tone picture, 1 the
-    /// drawing. `mask` is the pencils, bit 0 the 9B up to bit 7 the 4H (255 is all). After the layer
-    /// come one byte with the level count (the pencils of the set, then paper, darkest first), 3
-    /// bytes (RGB) per level, and one byte per level with the share of the picture in percent.
+    /// The Pencil layer: the photo as a graphite study, opaque. `look` 0 is the smooth tone picture, 1
+    /// the drawing, 2 the flat zones, 3 hatch, 4 by pencil. `mask` is the pencils, bit 0 the 9B up to
+    /// bit 7 the 4H (255 is all). `numbers` is a `Float64Array` of 11 numbers, in the order
+    /// `detail`, `key`, `contrast`, `highlights`, `darks`, `local`, `grain`, `paper`, `angle`,
+    /// `density`, `step` (their ranges are in `atelier_core::render`). After the layer come one byte
+    /// with the level count (the pencils of the set, then paper, darkest first), 3 bytes (RGB) per
+    /// level, one byte per level with the share of the picture in percent, and one byte with the
+    /// marked level (255 for none).
     ///
     /// # Errors
-    /// A `long`, `look`, `mask` or `detail` out of range.
+    /// A `long`, `look`, `mask` or number out of range, or `numbers` of the wrong length.
     pub fn pencil(
         &mut self,
         long: u32,
         look: u32,
         mask: u32,
-        detail: f64,
+        numbers: &[f64],
     ) -> std::result::Result<Vec<u8>, JsError> {
-        run(|| pencil_of(self.prepare(long)?, look, mask, detail))
+        run(|| pencil_of(self.prepare(long)?, look, mask, numbers))
     }
 
     /// The Shapes layer: flat shapes in a paint order, opaque. `step` is 0 to 3 (Shadows,
@@ -270,19 +279,31 @@ mod tests {
         assert!(values_of(&work, 1, 50.0, 2).is_err());
     }
 
+    /// The Pencil numbers at their start: detail, key, contrast, highlights, darks, local, grain,
+    /// paper, angle, density, step.
+    const PENCIL_START: [f64; render::PENCIL_NUMBERS] =
+        [50.0, 50.0, 50.0, 1.0, 20.0, 0.0, 50.0, 1.0, 45.0, 50.0, 1.0];
+
     #[test]
-    fn test_pencil_appends_tones_and_shares() {
+    fn test_pencil_appends_tones_shares_and_the_mark() {
         let (g, w, h) = gradient();
         let work = work_of(&g, w, h, 64).unwrap();
-        let out = pencil_of(&work, 0, 0b0000_0111, 50.0).unwrap();
+        let out = pencil_of(&work, 0, 0b0000_0111, &PENCIL_START).unwrap();
         let body = 8 + 64 * 48 * 4;
         let n = usize::from(out[body]);
         // three pencils and paper
         assert_eq!(n, 4);
-        assert_eq!(out.len(), body + 1 + 3 * n + n);
-        assert!(out[body + 1 + 3 * n..].iter().all(|&s| s <= 100));
-        assert!(pencil_of(&work, 3, 255, 50.0).is_err());
-        assert!(pencil_of(&work, 0, 0, 50.0).is_err());
+        assert_eq!(out.len(), body + 1 + 3 * n + n + 1);
+        assert!(
+            out[body + 1 + 3 * n..body + 1 + 4 * n]
+                .iter()
+                .all(|&s| s <= 100)
+        );
+        // no level is marked outside By pencil
+        assert_eq!(out[out.len() - 1], NO_MARK);
+        assert!(pencil_of(&work, 5, 255, &PENCIL_START).is_err());
+        assert!(pencil_of(&work, 0, 0, &PENCIL_START).is_err());
+        assert!(pencil_of(&work, 0, 255, &PENCIL_START[..10]).is_err());
     }
 
     #[test]

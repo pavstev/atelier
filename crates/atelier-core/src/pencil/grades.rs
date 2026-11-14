@@ -57,16 +57,30 @@ pub(super) fn level_of(mids: &[f32], l: f32) -> usize {
 }
 
 /// The share of the picture each level covers, in percent, from the pixel `count` of each level
-/// out of `total`. A level that covers any pixel shows at least 1.
+/// out of `total`. A level that covers any pixel shows at least 1. The shares add up to at least
+/// 100: when the rounding leaves less, the levels that lost the most to it gain 1 each, the
+/// lowest level first on a tie.
 pub(super) fn shares(count: &[usize], total: usize) -> Vec<u8> {
     let total = total.max(1);
-    count
+    let mut out: Vec<usize> = count
         .iter()
         .map(|&c| match c {
             0 => 0,
-            c => ((c * 100 + total / 2) / total).clamp(1, 100) as u8,
+            c => ((c * 100 + total / 2) / total).clamp(1, 100),
         })
-        .collect()
+        .collect();
+    // what rounding took from a level, in 1/100 of a pixel
+    let lost = |out: &[usize], i: usize| (count[i] * 100) as i64 - (out[i] * total) as i64;
+    while out.iter().sum::<usize>() < 100 {
+        let Some(i) = (0..out.len())
+            .filter(|&i| count[i] > 0)
+            .max_by_key(|&i| (lost(&out, i), std::cmp::Reverse(i)))
+        else {
+            break;
+        };
+        out[i] += 1;
+    }
+    out.into_iter().map(|s| s as u8).collect()
 }
 
 #[cfg(test)]
@@ -108,6 +122,32 @@ mod tests {
         // 1 in 1000 would round to 0: it still shows as 1
         assert_eq!(shares(&[1, 999], 1000), vec![1, 100]);
         assert_eq!(shares(&[0, 0], 0), vec![0, 0]);
+    }
+
+    #[test]
+    fn test_shares_add_up_to_at_least_100() {
+        // three equal thirds round to 33 each: the first level gains the missing 1
+        assert_eq!(shares(&[1, 1, 1], 3), vec![34, 33, 33]);
+        // the level that lost the most to the rounding gains it
+        assert_eq!(shares(&[333, 334, 333], 1000), vec![33, 34, 33]);
+        // rounding that already adds up is left alone
+        assert_eq!(shares(&[324, 330, 346], 1000), vec![32, 33, 35]);
+        assert_eq!(shares(&[4, 0, 5, 5], 14), vec![29, 0, 36, 36]);
+        // seeded counts: never under 100, never more than one over per level used
+        let mut seed = 7u32;
+        for _ in 0..200 {
+            let count: Vec<usize> = (0..9)
+                .map(|_| {
+                    seed = seed.wrapping_mul(1_664_525).wrapping_add(1_013_904_223);
+                    (seed >> 20) as usize % 500
+                })
+                .collect();
+            let total: usize = count.iter().sum::<usize>().max(1);
+            let s = shares(&count, total);
+            let sum: usize = s.iter().map(|&v| usize::from(v)).sum();
+            assert!((100..=100 + count.len()).contains(&sum), "{count:?}: {s:?}");
+            assert!(s.iter().zip(&count).all(|(&v, &c)| (c > 0) == (v > 0)));
+        }
     }
 
     #[test]

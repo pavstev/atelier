@@ -4,7 +4,8 @@
 //!
 //! Knobs (`detail`, `amount`, `even`, ...) are percent, 0.0 to 100.0, and reach the tool as 0.0 to
 //! 1.0 in steps of a tenth of a percent. `preset`, `step`, `tint`, `mode`, `cells`, `width`,
-//! `group`, `center` are plain counts. Every number out of its range, and every picture of the wrong shape, is an
+//! `group`, `center` are plain counts (the Pencil counts must also be whole numbers). Every number
+//! out of its range or not a number, and every picture of the wrong shape, is an
 //! [`Error::BadInput`], never a panic.
 //!
 //! | view | preset or step | other knobs |
@@ -12,7 +13,7 @@
 //! | values | 0 notan, 1 three, 2 five, 3 shadow family, 4 light family, 5 families | `detail`, `tint` 0 gray 1 umber |
 //! | shapes | step 0 shadows, 1 halftones, 2 lights, 3 accents | `detail` |
 //! | edges | mode 0 lines, 1 transfer, 2 masses | `amount`, `width`, `even` |
-//! | pencil | `look` 0 tone, 1 drawing, 2 zones; `mask` the pencils, bit 0 the 9B to bit 7 the 4H (255 all) | `detail` |
+//! | pencil | `look` 0 tone, 1 drawing, 2 zones, 3 hatch, 4 by pencil; `mask` the pencils, bit 0 the 9B to bit 7 the 4H (255 all) | [`PENCIL_NUMBERS`] numbers in this order: `detail`, `key`, `contrast` (percent, 50 changes nothing), `highlights` 0 to 25 and `darks` 0 to 100 (whole percent), `local`, `grain` (percent), `paper` 0 smooth 1 medium 2 rough, `angle` 0 to 179 (whole degrees), `density` (percent), `step` 1 to 8 (by pencil; the lightest is 1). The answer also has the level `mark` |
 //! | layers | `edges_layer`, `values_layer`, `shapes_layer`, `pencil_layer`, `grid_layer`: RGBA | edges: alpha is 255 minus the largest channel; values, shapes and pencil: alpha 255; grid: alpha only on lines (`mode` 0 thirds, 1 grid, 2 both; `cells` 3 to 50 across the width; `width` 1 to 16; `group` 2 to 4; `color`; `center` 0 or 1) |
 //!
 //! The photo comes in as RGB, already decoded and turned upright by the page (the browser
@@ -266,30 +267,99 @@ pub fn shapes_layer(work: &Rgb, step: u32, detail: f64) -> Result<(Layer, Vec<[u
     shapes_view(work, step, detail).map(|(v, piles)| (opaque(&v), piles))
 }
 
-/// Pencil as an opaque layer: the photo as a graphite study. `look` 0 is the flat map, 1 the drawing
-/// (grain and hatching on paper). `mask` has one bit per pencil, bit 0 the 9B, then 7B, 5B, 2B,
-/// HB, H, 3H, and bit 7 the 4H (255 is all eight), at least one set. `detail` in percent, as in
-/// Values. Gives the layer, the color of each level (the pencils of the set, then paper, darkest
-/// first) and the share of the picture each level covers in percent.
+/// How many numbers [`pencil_layer`] takes besides `look` and `mask`.
+pub const PENCIL_NUMBERS: usize = 11;
+
+/// A plain count from `lo` to `hi`: a number that is finite, whole and in range. Anything else is
+/// a [`Error::BadInput`] that names it.
+pub(crate) fn count(v: f64, lo: u32, hi: u32, name: &str) -> Result<u32> {
+    if !v.is_finite() || v.fract() != 0.0 || v < f64::from(lo) || v > f64::from(hi) {
+        return Err(Error::bad(format!(
+            "{name} must be a whole number {lo} to {hi}"
+        )));
+    }
+    Ok(v as u32)
+}
+
+/// The Pencil layer, its levels and which level it is drawn up to.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct PencilLayer {
+    /// The picture, opaque.
+    pub layer: Layer,
+    /// The color of each level (the pencils of the set, then paper), darkest first.
+    pub tones: Vec<[u8; 3]>,
+    /// The share of the picture each level covers, in percent.
+    pub shares: Vec<u8>,
+    /// The level of the pencil the picture is drawn up to (By pencil), or none.
+    pub mark: Option<u8>,
+}
+
+/// Pencil as an opaque layer: the photo as a graphite study. `look` 0 is the smooth tone picture,
+/// 1 the drawing (grain and hatching on paper), 2 the flat zones, 3 hatch, 4 by pencil. `mask` has
+/// one bit per pencil, bit 0 the 9B, then 7B, 5B, 2B, HB, H, 3H, and bit 7 the 4H (255 is all
+/// eight), at least one set.
+///
+/// `numbers` has [`PENCIL_NUMBERS`] numbers, in this order: `detail`, `key`, `contrast` (percent,
+/// 50 changes nothing), `highlights` (the whole percent of the photo that may be bare paper, 0 to
+/// 25, 1 at the start), `darks` (the most whole percent of the picture the 9B and 7B may cover,
+/// 0 to 100, 20 at the start), `local` (percent, 0 off), `grain` (percent, 50 at the start),
+/// `paper` (0 smooth, 1 medium, 2 rough), `angle` (whole degrees 0 to 179), `density` (percent)
+/// and `step` (the pencil of by pencil, 1 the lightest to 8). A `step` over the size of the set
+/// takes the darkest pencil of the set.
+///
+/// Gives the layer, the color of each level (the pencils of the set, then paper, darkest first),
+/// the share of the picture each level covers in percent, and the marked level.
 ///
 /// # Errors
-/// A number out of range.
-pub fn pencil_layer(
-    work: &Rgb,
-    look: u32,
-    mask: u32,
-    detail: f64,
-) -> Result<(Layer, Vec<[u8; 3]>, Vec<u8>)> {
+/// A number out of range or not a number, or `numbers` of the wrong length.
+pub fn pencil_layer(work: &Rgb, look: u32, mask: u32, numbers: &[f64]) -> Result<PencilLayer> {
     let work = image(work, 3, "work")?;
-    let look = pick(look, 0, 2, "pencil look")?;
-    let detail = knob(detail, "detail")?;
-    let p = pencil::view(
-        work,
-        u32::from(pick(mask, 1, 255, "pencil set")?),
+    let knobs = pencil_knobs(look, mask, numbers)?;
+    let p = pencil::view(work, &knobs)?;
+    Ok(PencilLayer {
+        layer: opaque(&p.image),
+        tones: p.tones,
+        shares: p.shares,
+        mark: p.mark,
+    })
+}
+
+/// The knobs of a Pencil call, each number checked against its range.
+fn pencil_knobs(look: u32, mask: u32, numbers: &[f64]) -> Result<pencil::Knobs> {
+    let &[
         detail,
-        look,
-    )?;
-    Ok((opaque(&p.image), p.tones, p.shares))
+        key,
+        contrast,
+        highlights,
+        darks,
+        local,
+        grain,
+        paper,
+        angle,
+        density,
+        step,
+    ] = numbers
+    else {
+        return Err(Error::bad(format!(
+            "pencil takes {PENCIL_NUMBERS} numbers, got {}",
+            numbers.len()
+        )));
+    };
+    Ok(pencil::Knobs {
+        look: pencil::Look::from_index(pick(look, 0, 4, "pencil look")?)?,
+        mask: u32::from(pick(mask, 1, 255, "pencil set")?),
+        detail: knob(detail, "detail")?,
+        key: knob(key, "pencil key")?,
+        contrast: knob(contrast, "pencil contrast")?,
+        highlights: count(highlights, 0, 25, "pencil highlights")? as u8,
+        darks: count(darks, 0, 100, "pencil darks")? as u8,
+        local: knob(local, "pencil local")?,
+        grain: knob(grain, "pencil grain")?,
+        paper: pencil::Paper::from_index(count(paper, 0, 2, "pencil paper")? as u8)?,
+        angle: count(angle, 0, 179, "pencil angle")? as u16,
+        density: knob(density, "pencil density")?,
+        step: count(step, 1, 8, "pencil step")? as u8,
+    })
 }
 
 /// The grid (and thirds) lines alone, clear everywhere else. `width` is the line width, 1 to 16

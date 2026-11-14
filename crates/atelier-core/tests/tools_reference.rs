@@ -5,7 +5,7 @@ mod common;
 
 use atelier_core::img::Rgb;
 use atelier_core::render;
-use common::support::{EDGES_EVEN, EDGES_WIDTH};
+use common::support::{EDGES_EVEN, EDGES_WIDTH, PENCIL_START};
 use common::{check, mean_diff, over, work};
 /// The Grid width that draws 1 px lines on the 128 px fixture (16 px at a long side of 2048).
 const GRID_WIDTH: u32 = 16;
@@ -56,11 +56,15 @@ fn test_pencil_reference() {
         (2, 255, "zones"),
         (0, 0b1001_0100, "tone_three"),
     ] {
-        let (layer, tones, shares) = render::pencil_layer(&w, look, mask, 50.0).unwrap();
-        assert_eq!(tones.len(), mask.count_ones() as usize + 1);
-        assert_eq!(shares.len(), tones.len());
+        let p = render::pencil_layer(&w, look, mask, &PENCIL_START).unwrap();
+        assert_eq!(p.tones.len(), mask.count_ones() as usize + 1);
+        assert_eq!(p.shares.len(), p.tones.len());
         let mut got = Rgb::new(w.width, w.height, 3);
-        for (d, p) in got.data.chunks_exact_mut(3).zip(layer.rgba.chunks_exact(4)) {
+        for (d, p) in got
+            .data
+            .chunks_exact_mut(3)
+            .zip(p.layer.rgba.chunks_exact(4))
+        {
             d.copy_from_slice(&p[..3]);
         }
         check(&format!("pencil_{name}"), &got);

@@ -5,6 +5,7 @@ use atelier_core::render::{
     GRID_CONTRAST, edges_layer, edges_view, grid_layer, pencil_layer, prepare_work, shapes_layer,
     shapes_view, values_layer,
 };
+use common::support::PENCIL_START;
 use common::{FIXTURE, decode_png, over, work};
 
 #[test]
@@ -39,7 +40,7 @@ fn test_opaque_layers_have_alpha_255() {
     for l in [
         values_layer(&w, 0, 50.0, 0).unwrap().0,
         shapes_layer(&w, 3, 50.0).unwrap().0,
-        pencil_layer(&w, 1, 255, 50.0).unwrap().0,
+        pencil_layer(&w, 1, 255, &PENCIL_START).unwrap().layer,
     ] {
         assert!(l.rgba.chunks(4).all(|o| o[3] == 255));
     }
@@ -65,10 +66,35 @@ fn test_bad_numbers_are_bad_input() {
     assert!(grid_layer(&w, 1, 6, 17, 2, GRID_CONTRAST, 0).is_err());
     assert!(grid_layer(&w, 1, 6, 2, 3, GRID_CONTRAST, 0).is_err());
     assert!(grid_layer(&w, 1, 6, 2, 2, GRID_CONTRAST + 1, 0).is_err());
-    assert!(pencil_layer(&w, 3, 255, 50.0).is_err());
-    assert!(pencil_layer(&w, 0, 0, 50.0).is_err());
-    assert!(pencil_layer(&w, 0, 256, 50.0).is_err());
-    assert!(pencil_layer(&w, 0, 255, 100.1).is_err());
+    assert!(pencil_layer(&w, 5, 255, &PENCIL_START).is_err());
+    assert!(pencil_layer(&w, 0, 0, &PENCIL_START).is_err());
+    assert!(pencil_layer(&w, 0, 256, &PENCIL_START).is_err());
+    assert!(pencil_layer(&w, 0, 255, &PENCIL_START[..10]).is_err());
+    assert!(pencil_layer(&w, 0, 255, &[PENCIL_START.as_slice(), &[1.0]].concat()).is_err());
+    // every slot: a number out of its range, not a number or not whole is refused
+    let bad: [&[f64]; 11] = [
+        &[-0.1, 100.1, f64::NAN],
+        &[-0.1, 100.1, f64::NAN],
+        &[-0.1, 100.1, f64::NAN],
+        &[-1.0, 26.0, 1.5, f64::NAN, f64::INFINITY],
+        &[-1.0, 101.0, 20.5, f64::NAN],
+        &[-0.1, 100.1, f64::NAN],
+        &[-0.1, 100.1, f64::NAN],
+        &[-1.0, 3.0, 0.5, f64::NAN],
+        &[-1.0, 180.0, 45.5, f64::NAN],
+        &[-0.1, 100.1, f64::NAN],
+        &[0.0, 9.0, 1.5, f64::NAN],
+    ];
+    for (slot, values) in bad.iter().enumerate() {
+        for &v in *values {
+            let mut numbers = PENCIL_START;
+            numbers[slot] = v;
+            assert!(
+                pencil_layer(&w, 0, 255, &numbers).is_err(),
+                "slot {slot} value {v}"
+            );
+        }
+    }
     assert!(edges_layer(&w, 3, 50.0, 3, 0.0).is_err());
     assert!(edges_layer(&w, 0, 100.1, 3, 0.0).is_err());
     for width in [0, 11] {
