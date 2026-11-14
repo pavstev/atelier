@@ -301,6 +301,9 @@ mod tests {
         );
         // no level is marked outside By pencil
         assert_eq!(out[out.len() - 1], NO_MARK);
+        // By pencil marks the level of its step: the lightest of three pencils is level 2
+        let by = pencil_of(&work, 4, 0b0000_0111, &PENCIL_START).unwrap();
+        assert_eq!(by[by.len() - 1], 2);
         assert!(pencil_of(&work, 5, 255, &PENCIL_START).is_err());
         assert!(pencil_of(&work, 0, 0, &PENCIL_START).is_err());
         assert!(pencil_of(&work, 0, 255, &PENCIL_START[..10]).is_err());

@@ -5,7 +5,8 @@
 //! tone of the set, and the lightest tone is bare paper.
 //!
 //! One small module per idea: `grades` (the levels), `tone` (the curve, Key and Contrast), `local`
-//! (Local contrast), `darks` (the accent rule, Deep darks) and `drawing` (the grain).
+//! (Local contrast), `darks` (the accent rule, Deep darks), `drawing` (the grain) and `build_up`
+//! (By pencil).
 //!
 //! The steps:
 //!
@@ -23,7 +24,9 @@
 //! 4. Looks: Tone is the curve's picture. Drawing is the same picture with graphite grain and
 //!    hatching, mean zero, so the tones hold; `grain` sets its strength. Hatch draws as Drawing
 //!    until it has its own strokes. Zones is the old flat map: one flat tone per pencil, cut where
-//!    the pencils change, small shapes merged as in Values.
+//!    the pencils change, small shapes merged as in Values. By pencil is the Tone picture with
+//!    only the lightest `step` pencils drawn: a tone darker than the pencil of the step is drawn in
+//!    that pencil, the shares stay those of the finished picture and the answer marks the level.
 //! 5. Accent rule: the 9B and the 7B are for the deepest accents. When they would cover over
 //!    `darks` percent of the picture (20 at the start), no tone goes below the next pencil.
 //!
@@ -31,6 +34,7 @@
 //! a neutral knob skips its math. The same input gives the same bytes: no randomness (the grain is
 //! a hash of the position), no clock.
 
+mod build_up;
 mod darks;
 mod drawing;
 mod grades;
@@ -112,7 +116,7 @@ impl Paper {
 #[derive(Debug, Clone, PartialEq)]
 #[allow(
     dead_code,
-    reason = "paper, angle, density and step are read by later modules"
+    reason = "paper, angle and density are read by the Hatch and paper modules that come later"
 )]
 pub(crate) struct Knobs {
     /// The picture to draw.
@@ -201,15 +205,17 @@ type Painting = (Rgb, Vec<usize>);
 pub(crate) fn view(work: &Rgb, k: &Knobs) -> Result<Pencil> {
     let tones = levels(k.mask)?;
     let flat: Vec<[u8; 3]> = tones.iter().map(|&l| tint(l)).collect();
+    // the set always has paper after its pencils
+    let mark = (k.look == Look::ByPencil).then(|| build_up::level(tones.len() - 1, k.step));
     let (image, count) = match k.look {
         Look::Zones => zones(work, k, &tones, &flat)?,
-        _ => tone_picture(work, k, &tones)?,
+        _ => tone_picture(work, k, &tones, mark)?,
     };
     Ok(Pencil {
         image,
         tones: flat,
         shares: shares(&count, work.width * work.height),
-        mark: None,
+        mark: mark.map(|level| level as u8),
     })
 }
 
@@ -247,8 +253,10 @@ fn lightness(smooth: &[f32], fine: &[f32], detail: f32) -> Vec<f32> {
         .collect()
 }
 
-/// The pictures that follow the photo's tones: Tone and, with grain, Drawing and Hatch.
-fn tone_picture(work: &Rgb, k: &Knobs, tones: &[f32]) -> Result<Painting> {
+/// The pictures that follow the photo's tones: Tone and, with grain, Drawing and Hatch. With
+/// `drawn_to` (By pencil) a tone darker than that level's pencil is drawn in that pencil, but the
+/// shares stay those of the finished picture.
+fn tone_picture(work: &Rgb, k: &Knobs, tones: &[f32], drawn_to: Option<usize>) -> Result<Painting> {
     let (w, h) = (work.width, work.height);
     let f = fields(work, k.detail)?;
     let map = ToneMap::new(
@@ -268,11 +276,13 @@ fn tone_picture(work: &Rgb, k: &Knobs, tones: &[f32]) -> Result<Painting> {
     let floor = darks::floor(&tone, tones, &mids, k.accent_share());
     let grain = matches!(k.look, Look::Drawing | Look::Hatch).then(|| k.grain / GRAIN_START);
     let period = drawing::period(w.max(h));
+    let step_floor = drawn_to.map(|level| tones[level]);
     let mut image = Rgb::new(w, h, 3);
     let mut count = vec![0usize; tones.len()];
     for (i, (px, &l)) in image.data.chunks_exact_mut(3).zip(&tone).enumerate() {
         let l = l.max(floor);
         count[level_of(&mids, l)] += 1;
+        let l = step_floor.map_or(l, |s| l.max(s));
         let shown = grain.map_or(l, |g| l + g * drawing::swing(i % w, i / w, l, period));
         px.copy_from_slice(&tint(shown));
     }

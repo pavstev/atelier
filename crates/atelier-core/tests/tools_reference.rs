@@ -49,16 +49,21 @@ fn test_shapes_reference() {
 #[test]
 fn test_pencil_reference() {
     let w = work();
-    // the tone, the drawing and the zones with all eight pencils, and the tone with a set of three
-    for (look, mask, name) in [
-        (0, 255, "tone"),
-        (1, 255, "drawing"),
-        (2, 255, "zones"),
-        (0, 0b1001_0100, "tone_three"),
+    // the tone, the drawing and the zones with all eight pencils, the tone with a set of three, and
+    // By pencil at the fourth step (the 2B, level 4 of 0 to 7 counted from the 9B)
+    for (look, mask, step, name) in [
+        (0, 255, 1.0, "tone"),
+        (1, 255, 1.0, "drawing"),
+        (2, 255, 1.0, "zones"),
+        (0, 0b1001_0100, 1.0, "tone_three"),
+        (4, 255, 4.0, "by_pencil"),
     ] {
-        let p = render::pencil_layer(&w, look, mask, &PENCIL_START).unwrap();
+        let mut numbers = PENCIL_START;
+        numbers[10] = step;
+        let p = render::pencil_layer(&w, look, mask, &numbers).unwrap();
         assert_eq!(p.tones.len(), mask.count_ones() as usize + 1);
         assert_eq!(p.shares.len(), p.tones.len());
+        assert_eq!(p.mark, (look == 4).then_some(4));
         let mut got = Rgb::new(w.width, w.height, 3);
         for (d, p) in got
             .data

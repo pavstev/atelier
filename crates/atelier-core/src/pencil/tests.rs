@@ -336,6 +336,56 @@ fn test_local_contrast_is_off_at_zero_and_adds_texture_when_on() {
     assert_eq!(off.tones, full.tones);
 }
 
+/// By pencil on a ramp at `step`, with the pencils of `mask`.
+fn by_pencil(mask: u32, step: u8) -> Pencil {
+    let k = Knobs {
+        look: Look::ByPencil,
+        mask,
+        step,
+        ..Knobs::default()
+    };
+    view(&ramp(256, 16), &k).unwrap()
+}
+
+#[test]
+fn test_by_pencil_draws_only_the_lightest_pencils_up_to_the_step() {
+    let tone = view_of(&ramp(256, 16), 255, 0.5, TONE).unwrap();
+    assert_eq!(tone.mark, None);
+    for step in 1..=8u8 {
+        let p = by_pencil(255, step);
+        // step 1 is the lightest pencil (level 7), step 8 the darkest (level 0)
+        let mark = 8 - usize::from(step);
+        assert_eq!(p.mark, Some(mark as u8), "step {step}");
+        // nothing is darker than the pencil of the step
+        let floor = p.tones[mark][1];
+        assert!(
+            p.image.data.chunks_exact(3).all(|c| c[1] >= floor),
+            "step {step}"
+        );
+        // the legend keeps the shares of the finished Tone picture
+        assert_eq!(p.shares, tone.shares, "step {step}");
+        assert_eq!(p.tones, tone.tones);
+    }
+    // with every pencil down, it is the Tone picture
+    assert_eq!(by_pencil(255, 8).image, tone.image);
+    // a lighter step only lightens
+    let (a, b) = (by_pencil(255, 3), by_pencil(255, 4));
+    assert!(a.image.data.iter().zip(&b.image.data).all(|(x, y)| x >= y));
+    assert_ne!(a.image, b.image);
+}
+
+#[test]
+fn test_a_step_over_the_set_takes_the_darkest_pencil_of_the_set() {
+    // three pencils: 7B, HB, 4H
+    let p = by_pencil(0b1001_0010, 8);
+    assert_eq!(p.tones.len(), 4);
+    assert_eq!(p.mark, Some(0));
+    assert_eq!(p.image, by_pencil(0b1001_0010, 3).image);
+    // a set of one: the only pencil is every step
+    assert_eq!(by_pencil(1, 5).mark, Some(0));
+    assert_eq!(by_pencil(1, 1).mark, Some(0));
+}
+
 #[test]
 fn test_hatch_draws_as_drawing_until_it_has_its_own_strokes() {
     let w = ramp(64, 32);
