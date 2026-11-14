@@ -13,7 +13,7 @@
 //! | values | 0 notan, 1 three, 2 five, 3 shadow family, 4 light family, 5 families | `detail`, `tint` 0 gray 1 umber |
 //! | shapes | step 0 shadows, 1 halftones, 2 lights, 3 accents | `detail` |
 //! | edges | mode 0 lines, 1 transfer, 2 masses | `amount`, `width`, `even` |
-//! | pencil | `look` 0 tone, 1 drawing, 2 zones, 3 hatch, 4 by pencil; `mask` the pencils, bit 0 the 9B to bit 7 the 4H (255 all) | [`PENCIL_NUMBERS`] numbers in this order: `detail`, `key`, `contrast` (percent, 50 changes nothing), `highlights` 0 to 25 and `darks` 0 to 100 (whole percent), `local`, `grain` (percent), `paper` 0 smooth 1 medium 2 rough, `angle` 0 to 179 (whole degrees), `density` (percent), `step` 1 to 8 (by pencil; the lightest is 1). The answer also has the level `mark` |
+//! | pencil | `look` 0 tone, 1 drawing, 2 zones, 3 hatch, 4 by pencil; `mask` the pencils, bit 0 the 9B to bit 7 the 4H (255 all) | [`PENCIL_NUMBERS`] numbers in this order: `detail`, `key`, `contrast` (percent, 50 changes nothing), `highlights` 0 to 25 and `darks` 0 to 100 (whole percent), `local`, `grain` (percent), `paper` 0 smooth 1 medium 2 rough, `angle` 0 to 179 (whole degrees), `density` (percent), `step` 1 to 8 (by pencil; the lightest is 1). The answer also has the level `mark`. `pencil_auto` reads the photo and gives the start of `key`, `contrast` and `highlights` with what it read; `pencil_suggest` gives the `mask` of the best 3 to 6 of the eight pencils |
 //! | layers | `edges_layer`, `values_layer`, `shapes_layer`, `pencil_layer`, `grid_layer`: RGBA | edges: alpha is 255 minus the largest channel; values, shapes and pencil: alpha 255; grid: alpha only on lines (`mode` 0 thirds, 1 grid, 2 both; `cells` 3 to 50 across the width; `width` 1 to 16; `group` 2 to 4; `color`; `center` 0 or 1) |
 //!
 //! The photo comes in as RGB, already decoded and turned upright by the page (the browser
@@ -322,6 +322,33 @@ pub fn pencil_layer(work: &Rgb, look: u32, mask: u32, numbers: &[f64]) -> Result
         shares: p.shares,
         mark: p.mark,
     })
+}
+
+/// The fewest and the most pencils [`pencil_suggest`] picks.
+const SUGGEST_RANGE: (u32, u32) = (3, 6);
+
+/// What Auto reads from the photo: nine numbers, the knobs it sets first. In order: `key`,
+/// `contrast` (percent, whole), `highlights` (whole percent, 0 to 25), the median L* of the photo
+/// (0 to 100), the key class (0 low, 1 mid, 2 high), the interquartile range of the photo (0 to 1,
+/// its range normalized), Otsu's eta (0 to 1), `bimodal` (0 or 1: two humps of tones) and `spike`
+/// (0 or 1: a thin spike at the light end). The same photo always gives the same answer.
+///
+/// # Errors
+/// An image that is not RGB or is empty.
+pub fn pencil_auto(work: &Rgb) -> Result<[f64; 9]> {
+    let work = image(work, 3, "work")?;
+    Ok(pencil::read_auto(work)?.numbers())
+}
+
+/// The `mask` of the best `count` pencils (3 to 6) of the eight for the photo, found exactly by
+/// trying every set. The set is all eight pencils to choose from, not the set in use.
+///
+/// # Errors
+/// A `count` outside 3 to 6, or an image that is not RGB or is empty.
+pub fn pencil_suggest(work: &Rgb, count: u32) -> Result<u32> {
+    let work = image(work, 3, "work")?;
+    let count = pick(count, SUGGEST_RANGE.0, SUGGEST_RANGE.1, "pencil count")?;
+    pencil::suggest(work, u32::from(count))
 }
 
 /// The knobs of a Pencil call, each number checked against its range.

@@ -345,6 +345,7 @@ fn test_the_pencil_fields_agree_with_and_without_labels() {
     let (with, labels) = zone_labels(&img, 0.5, |_| vec![40.0, 60.0]).unwrap();
     assert_eq!(plain.smooth, with.smooth);
     assert_eq!(plain.fine, with.fine);
+    assert_eq!(plain.smooth, smooth_of(&img).unwrap());
     assert_eq!(labels.len(), w * h);
     assert!(labels.iter().all(|&l| l <= 2));
     assert!(labels.contains(&0) && labels.contains(&2));
@@ -356,4 +357,5 @@ fn test_the_pencil_fields_refuse_a_bad_picture_or_detail() {
     assert!(fields(&img, 1.5).is_err());
     assert!(zone_labels(&img, -0.1, |_| vec![]).is_err());
     assert!(fields(&Rgb::new(4, 4, 1), 0.5).is_err());
+    assert!(smooth_of(&Rgb::new(0, 0, 3)).is_err());
 }

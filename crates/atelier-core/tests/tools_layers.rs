@@ -2,8 +2,8 @@
 
 mod common;
 use atelier_core::render::{
-    GRID_CONTRAST, edges_layer, edges_view, grid_layer, pencil_layer, prepare_work, shapes_layer,
-    shapes_view, values_layer,
+    GRID_CONTRAST, edges_layer, edges_view, grid_layer, pencil_auto, pencil_layer, pencil_suggest,
+    prepare_work, shapes_layer, shapes_view, values_layer,
 };
 use common::support::PENCIL_START;
 use common::{FIXTURE, decode_png, over, work};
@@ -43,6 +43,61 @@ fn test_opaque_layers_have_alpha_255() {
         pencil_layer(&w, 1, 255, &PENCIL_START).unwrap().layer,
     ] {
         assert!(l.rgba.chunks(4).all(|o| o[3] == 255));
+    }
+}
+
+#[test]
+fn test_pencil_auto_gives_nine_numbers_in_their_ranges() {
+    let a = pencil_auto(&work()).unwrap();
+    let [
+        key,
+        contrast,
+        highlights,
+        median,
+        class,
+        iqr,
+        eta,
+        bimodal,
+        spike,
+    ] = a;
+    assert!((0.0..=100.0).contains(&key) && key.fract() == 0.0, "{a:?}");
+    assert!(
+        (0.0..=100.0).contains(&contrast) && contrast.fract() == 0.0,
+        "{a:?}"
+    );
+    assert!(
+        (0.0..=25.0).contains(&highlights) && highlights.fract() == 0.0,
+        "{a:?}"
+    );
+    assert!((0.0..=100.0).contains(&median), "{a:?}");
+    assert!([0.0, 1.0, 2.0].contains(&class), "{a:?}");
+    assert!(
+        (0.0..=1.0).contains(&iqr) && (0.0..=1.0).contains(&eta),
+        "{a:?}"
+    );
+    assert!(
+        [0.0, 1.0].contains(&bimodal) && [0.0, 1.0].contains(&spike),
+        "{a:?}"
+    );
+    // the same photo gives the same answer
+    assert_eq!(a, pencil_auto(&work()).unwrap());
+    // and the answer is something pencil_layer takes
+    let mut numbers = PENCIL_START;
+    numbers[1..4].copy_from_slice(&[key, contrast, highlights]);
+    assert!(pencil_layer(&work(), 0, 255, &numbers).is_ok());
+}
+
+#[test]
+fn test_pencil_suggest_gives_the_asked_number_of_pencils() {
+    let w = work();
+    for count in 3..=6 {
+        let mask = pencil_suggest(&w, count).unwrap();
+        assert!((1..=255).contains(&mask), "{count}: {mask}");
+        assert_eq!(mask.count_ones(), count, "{count}: {mask:#b}");
+        assert!(pencil_layer(&w, 0, mask, &PENCIL_START).is_ok());
+    }
+    for count in [0, 2, 7, 8, 100] {
+        assert!(pencil_suggest(&w, count).is_err(), "{count}");
     }
 }
 

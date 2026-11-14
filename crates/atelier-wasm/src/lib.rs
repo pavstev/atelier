@@ -204,6 +204,25 @@ impl Photo {
         run(|| pencil_of(self.prepare(long)?, look, mask, numbers))
     }
 
+    /// What Auto reads from the photo, as 9 numbers: `key`, `contrast`, `highlights` (the knobs it
+    /// sets), the median L*, the key class (0 low, 1 mid, 2 high), the IQR, eta, bimodal (0 or 1)
+    /// and spike (0 or 1).
+    ///
+    /// # Errors
+    /// A `long` out of range.
+    pub fn pencil_auto(&mut self, long: u32) -> std::result::Result<Vec<f64>, JsError> {
+        run(|| Ok(render::pencil_auto(self.prepare(long)?)?.to_vec()))
+    }
+
+    /// The pencil `mask` (bit 0 the 9B up to bit 7 the 4H) of the best `count` pencils, 3 to 6, of
+    /// the eight for the photo.
+    ///
+    /// # Errors
+    /// A `long` or `count` out of range.
+    pub fn pencil_suggest(&mut self, long: u32, count: u32) -> std::result::Result<u32, JsError> {
+        run(|| render::pencil_suggest(self.prepare(long)?, count))
+    }
+
     /// The Shapes layer: flat shapes in a paint order, opaque. `step` is 0 to 3 (Shadows,
     /// Halftones, Lights, Accents); each step adds to the ones before. After the layer come one
     /// byte with the pile count and 3 bytes (RGB) per pile to mix in that step, darkest first.
@@ -307,6 +326,21 @@ mod tests {
         assert!(pencil_of(&work, 5, 255, &PENCIL_START).is_err());
         assert!(pencil_of(&work, 0, 0, &PENCIL_START).is_err());
         assert!(pencil_of(&work, 0, 255, &PENCIL_START[..10]).is_err());
+    }
+
+    #[test]
+    fn test_pencil_auto_and_suggest_read_the_kept_photo() {
+        let (g, w, h) = gradient();
+        let mut photo = Photo::from_rgba(&g, w, h).unwrap();
+        let auto = photo.pencil_auto(64).ok().unwrap();
+        assert_eq!(auto.len(), 9);
+        assert!((0.0..=100.0).contains(&auto[0]) && (0.0..=100.0).contains(&auto[1]));
+        let mask = photo.pencil_suggest(64, 4).ok().unwrap();
+        assert_eq!(mask.count_ones(), 4);
+        // the refusals are the core's (the JS error itself exists only in wasm)
+        let work = photo.prepare(64).unwrap().clone();
+        assert!(render::pencil_suggest(&work, 2).is_err());
+        assert!(render::pencil_suggest(&work, 7).is_err());
     }
 
     #[test]

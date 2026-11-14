@@ -5,8 +5,9 @@
 //! tone of the set, and the lightest tone is bare paper.
 //!
 //! One small module per idea: `grades` (the levels), `tone` (the curve, Key and Contrast), `local`
-//! (Local contrast), `darks` (the accent rule, Deep darks), `drawing` (the grain) and `build_up`
-//! (By pencil).
+//! (Local contrast), `darks` (the accent rule, Deep darks), `drawing` (the grain), `build_up`
+//! (By pencil), `auto` (Auto sets Key, Contrast and Highlights from the photo) and `choice`
+//! (Suggest pencils picks the best set of 3 to 6).
 //!
 //! The steps:
 //!
@@ -34,7 +35,9 @@
 //! a neutral knob skips its math. The same input gives the same bytes: no randomness (the grain is
 //! a hash of the position), no clock.
 
+mod auto;
 mod build_up;
+mod choice;
 mod darks;
 mod drawing;
 mod grades;
@@ -47,7 +50,7 @@ mod tests;
 use crate::error::{Error, Result};
 use crate::filters::Sorted;
 use crate::img::Rgb;
-use crate::values::{fields, zone_labels};
+use crate::values::{fields, smooth_of, zone_labels};
 use darks::accent_moves;
 use grades::{level_of, levels, mids, shares, tint};
 use tone::{SPREAD, ToneMap, cuts};
@@ -217,6 +220,23 @@ pub(crate) fn view(work: &Rgb, k: &Knobs) -> Result<Pencil> {
         shares: shares(&count, work.width * work.height),
         mark: mark.map(|level| level as u8),
     })
+}
+
+/// What Auto reads from `work` and the Key, Contrast and Highlights it sets: see [`auto::Auto`].
+///
+/// # Errors
+/// `BadInput` for an image that is not RGB or is empty.
+pub(crate) fn read_auto(work: &Rgb) -> Result<auto::Auto> {
+    Ok(auto::auto(&smooth_of(work)?))
+}
+
+/// The mask of the `count` pencils (1 to 8) that best fit `work`: see [`choice`].
+///
+/// # Errors
+/// `BadInput` for a `count` outside 1 to 8, or an image that is not RGB or is empty.
+pub(crate) fn suggest(work: &Rgb, count: u32) -> Result<u32> {
+    let smooth = smooth_of(work)?;
+    choice::suggest(&smooth, count).ok_or_else(|| Error::bad("pencil count must be 1 to 8"))
 }
 
 /// The Zones look: one flat tone (the color `flat`) per pencil, the accent rule applied to the

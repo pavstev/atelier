@@ -796,6 +796,13 @@ pub(crate) fn fields(work: &Rgb, detail: f32) -> Result<Fields> {
     Ok(pencil_run(work, detail)?.into_fields())
 }
 
+/// Only the simplified photo (L* after the shadow lift, the median and the guided filter), for the
+/// calls that read the photo and draw nothing: Auto and Suggest.
+pub(crate) fn smooth_of(work: &Rgb) -> Result<Vec<f32>> {
+    work.require_rgb("pencil needs a non-empty RGB image")?;
+    Ok(analyze(work, &ValuesOpts::default()).smooth)
+}
+
 /// [`fields`] and the zone labels, for the Zones look: `cuts_of` gives the cuts from the smoothed
 /// L* (rising, in the same L* scale), and the label map is cleaned as the presets do (mode filter,
 /// small shapes merged). A pixel's label is how many cuts its L* has passed.
