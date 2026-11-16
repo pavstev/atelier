@@ -46,6 +46,7 @@ mod drawing;
 mod grades;
 mod hatch;
 mod ink;
+mod lift;
 mod local;
 mod paper;
 mod smudge;
@@ -280,7 +281,11 @@ fn tone_picture(work: &Rgb, k: &Knobs, tones: &[f32], drawn_to: Option<usize>) -
     if k.local > 0.0 {
         v = local::boost(&v, w, h, k.local);
     }
-    let tone: Vec<f32> = v.iter().map(|&v| map.map(v)).collect();
+    let mut tone: Vec<f32> = v.iter().map(|&v| map.map(v)).collect();
+    // the eraser lifts the light tones before the shares are counted, so the legend shows its paper
+    if k.lift > 0.0 && matches!(k.look, Look::Tone | Look::Drawing | Look::Hatch) {
+        tone = lift::lift(&tone, (w, h), k.lift);
+    }
     let mids = mids(tones);
     // no tone is darker than the pencil an over-big accent mass moves up to
     let floor = darks::floor(&tone, tones, &mids, k.accent_share());

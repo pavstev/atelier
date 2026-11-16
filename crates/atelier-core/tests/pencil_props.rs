@@ -454,6 +454,7 @@ fn test_tone_and_zones_at_the_start_knobs_are_the_bytes_they_were_before_the_kno
 
 /// Slots of the three effects.
 const SMUDGE: usize = 11;
+const LIFT: usize = 12;
 
 /// The checks every effect shares, on the 128 px fixture: at 0 and at 100, in each look it works in
 /// (`looks`) it moves the picture, and keeps its mean L* within `limit`; in the other looks it does
@@ -481,4 +482,9 @@ fn check_effect(slot: usize, name: &str, looks: &[u32], limit: f64) {
 #[test]
 fn test_smudge_blends_along_the_stroke_and_keeps_the_mean_within_one_l_star() {
     check_effect(SMUDGE, "smudge", &[TONE, DRAWING, HATCH], 1.0);
+}
+
+#[test]
+fn test_lift_pulls_light_streaks_toward_paper_and_moves_the_mean_by_two_l_star_at_most() {
+    check_effect(LIFT, "lift", &[TONE, DRAWING, HATCH], 2.0);
 }
