@@ -9,6 +9,11 @@ use crate::filters::box_mean;
 const TUNED_LONG: f32 = 1024.0;
 /// The octaves of the tooth: cell size as a multiple of the paper cell, and weight. The finest
 /// octave is the grain; the coarser two give it a little clumping, as real paper has.
+/// The grain of the three papers in px at a long side of 1024 (hot pressed, sketch, cold pressed),
+/// found on real photos: a smooth sheet is fine and soft, a rough one big and harsh.
+const CELL_SMOOTH: f32 = 0.9;
+const CELL_MEDIUM: f32 = 1.3;
+const CELL_ROUGH: f32 = 2.0;
 const OCTAVES: [(f32, f32); 3] = [(1.0, 1.0), (1.8, 0.5), (3.2, 0.3)];
 /// How much longer a cell is along the stroke direction than across it, so the grain reads as
 /// pencil strokes and not as dots.
@@ -47,9 +52,9 @@ impl Paper {
     /// The cell of the finest octave in px at a long side of 1024: the size of one grain.
     fn cell(self) -> f32 {
         match self {
-            Self::Smooth => 0.9,
-            Self::Medium => 1.3,
-            Self::Rough => 2.0,
+            Self::Smooth => CELL_SMOOTH,
+            Self::Medium => CELL_MEDIUM,
+            Self::Rough => CELL_ROUGH,
         }
     }
 }

@@ -2,7 +2,8 @@
 //! against a PNG in `tests/reference`. `over`, the PNG encoder and the start values of the app
 //! come from the examples' `support` module.
 
-// Each test file uses a different part of these helpers.
+// Each test file uses a different part of these helpers, so some are dead code or unused imports in
+// one file and used in another.
 #![allow(dead_code, unused_imports)]
 
 use atelier_core::img::Rgb;

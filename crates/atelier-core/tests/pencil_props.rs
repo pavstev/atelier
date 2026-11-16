@@ -414,3 +414,26 @@ fn test_auto_reads_a_dark_photo_as_low_key() {
         "light photo is high key"
     );
 }
+
+/// The FNV-1a hash of the RGB bytes of a layer (the alpha byte is always 255).
+fn fnv(l: &PencilLayer) -> u32 {
+    l.layer
+        .rgba
+        .chunks_exact(4)
+        .flat_map(|px| px[..3].iter().copied())
+        .fold(2_166_136_261u32, |h, v| {
+            (h ^ u32::from(v)).wrapping_mul(16_777_619)
+        })
+}
+
+#[test]
+fn test_tone_and_zones_at_the_start_knobs_are_the_bytes_they_were_before_the_knobs() {
+    // Rule zero of Pencil v2: a neutral knob changes nothing. These two hashes were taken from the
+    // view as it was before the knobs (commit 528c2c77) on the 128 px fixture of the reference
+    // tests. The reference check allows a mean difference of 3.0, so it would miss a small drift.
+    let w = common::work();
+    for (look, name, was) in [(0, "tone", 507_565_147), (2, "zones", 3_620_119_264)] {
+        let got = fnv(&render(&w, look, 255, &PENCIL_START));
+        assert_eq!(got, was, "{name} moved from the bytes before the knobs");
+    }
+}

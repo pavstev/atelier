@@ -1,6 +1,6 @@
 // The Base card of the Pencil base: the look, its knobs in a Tone and a Texture group (only those
 // the look reads), the By pencil step, Auto and Reset, the pencils the painter owns and Suggest.
-// What each knob does is in `.agents/pencil-v2-decisions.md` and docs/how-it-works/pencil.md.
+// What each knob does is in docs/how-it-works/pencil.md.
 import { Button } from "@heroui/react";
 import { useId } from "react";
 import { LABELS } from "@/features/tools/settings";

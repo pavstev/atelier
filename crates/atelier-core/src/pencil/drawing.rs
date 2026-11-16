@@ -8,11 +8,16 @@ use super::paper::Paper;
 
 /// The width of the coverage edge on each paper, as a share of the tooth height: rough paper is
 /// crisp, smooth paper is soft.
+const EDGE_SMOOTH: f32 = 0.30;
+const EDGE_MEDIUM: f32 = 0.22;
+const EDGE_ROUGH: f32 = 0.12;
+
+/// The coverage edge of `paper`: see [`EDGE_SMOOTH`].
 fn paper_edge(paper: Paper) -> f32 {
     match paper {
-        Paper::Smooth => 0.30,
-        Paper::Medium => 0.22,
-        Paper::Rough => 0.12,
+        Paper::Smooth => EDGE_SMOOTH,
+        Paper::Medium => EDGE_MEDIUM,
+        Paper::Rough => EDGE_ROUGH,
     }
 }
 /// The most the hold may scale the grain of a patch: a pit may deepen a lot, the grain is soft.

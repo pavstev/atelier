@@ -11,15 +11,21 @@ const SETTLE_MS = 250;
 type Slot = "base" | "edges" | "grid";
 
 /** What a legend belongs to: the layer, and for Pencil also its set of pencils (a legend row is a
- * pencil, so the rows of an old set must not be read as the rows of a new one), its look and its
- * step (the marked level of By pencil moves with both, so an old mark never shows). */
+ * pencil, so the rows of an old set must not be read as the rows of a new one). The look and the
+ * step are not part of it: the pencils and their tones are the same in every look, so the legend
+ * stays up while a new look or step draws. */
 const legendOf = (c: Call) =>
-	c.layer === "pencil" ? `pencil:${c.mask}:${c.look}:${c.step}` : c.layer;
+	c.layer === "pencil" ? `pencil:${c.mask}` : c.layer;
+
+/** What a marked level belongs to: the look and the step (the marked level of By pencil moves with
+ * both, so an old mark never shows next to a new picture). */
+const markOf = (c: Call) => (c.layer === "pencil" ? `${c.look}:${c.step}` : "");
 
 type Drawn = {
 	photo: ImageData;
 	layer: Call["layer"];
 	legend: string;
+	markKey: string;
 	image: ImageData;
 	tones?: Rgb[];
 	shares?: number[];
@@ -67,6 +73,7 @@ function useOne(
 							photo,
 							layer: c.layer,
 							legend: legendOf(c),
+							markKey: markOf(c),
 							image,
 							tones,
 							shares,
@@ -91,11 +98,12 @@ function useOne(
 	// new kind's tones or piles.
 	if (key === "" || done?.photo !== photo) return null;
 	const same = call !== null && done.legend === legendOf(call);
+	const marked = same && call !== null && done.markKey === markOf(call);
 	return {
 		image: done.image,
 		tones: same ? done.tones : undefined,
 		shares: same ? done.shares : undefined,
-		mark: same ? done.mark : undefined,
+		mark: marked ? done.mark : undefined,
 	};
 }
 
