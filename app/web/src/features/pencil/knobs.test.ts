@@ -25,7 +25,17 @@ test("the start values are the core's defaults", () => {
 		angle: 45,
 		density: 50,
 		step: 1,
+		smudge: 0,
+		lift: 0,
+		cross: 0,
 	});
+});
+
+test("the three effects start off and take 0 to 100", () => {
+	for (const key of ["smudge", "lift", "cross"] as const) {
+		assert.equal(PENCIL_START[key], 0, key);
+		assert.deepEqual(PENCIL_RANGE[key], [0, 100], key);
+	}
 });
 
 test("every start value sits inside its range", () => {
@@ -60,6 +70,9 @@ test("a good save is kept whole", () => {
 		angle: 179,
 		density: 100,
 		step: 8,
+		smudge: 100,
+		lift: 60,
+		cross: 1,
 	};
 	assert.deepEqual(cleanPencil(save), save);
 });
@@ -79,6 +92,9 @@ test("a bad value falls back to its start, the good ones stay", () => {
 		angle: 180,
 		density: 60, // good
 		step: 0,
+		smudge: 101,
+		lift: -5,
+		cross: 33.5,
 	};
 	assert.deepEqual(cleanPencil(bad), { ...PENCIL_START, density: 60 });
 });

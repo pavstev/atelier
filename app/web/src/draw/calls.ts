@@ -17,10 +17,14 @@ export type PencilKnobs = {
 	angle: number;
 	density: number;
 	step: number;
+	/** The effects, 0 off to 100. */
+	smudge: number;
+	lift: number;
+	cross: number;
 };
 
 /** The Pencil knobs in the order the core reads them (`PENCIL_NUMBERS` in `render.rs`): detail, key,
- * contrast, highlights, darks, local, grain, paper, angle, density, step. */
+ * contrast, highlights, darks, local, grain, paper, angle, density, step, smudge, lift, cross. */
 export const pencilNumbers = (k: PencilKnobs): Float64Array =>
 	Float64Array.of(
 		k.detail,
@@ -34,6 +38,9 @@ export const pencilNumbers = (k: PencilKnobs): Float64Array =>
 		k.angle,
 		k.density,
 		k.step,
+		k.smudge,
+		k.lift,
+		k.cross,
 	);
 
 /** What Auto found in a photo: the three knob values it sets, and the numbers behind them. */

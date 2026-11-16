@@ -16,25 +16,29 @@ const knobs: PencilKnobs = {
 	angle: 9,
 	density: 10,
 	step: 11,
+	smudge: 12,
+	lift: 13,
+	cross: 14,
 };
 
 test("the Pencil numbers go in the order of the core", () => {
-	// detail, key, contrast, highlights, darks, local, grain, paper, angle, density, step
+	// detail, key, contrast, highlights, darks, local, grain, paper, angle, density, step, smudge,
+	// lift, cross
 	assert.deepEqual(
 		Array.from(pencilNumbers(knobs)),
-		[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11],
+		[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14],
 	);
 });
 
 test("the Pencil numbers are a Float64Array of the length the core wants", () => {
 	const n = pencilNumbers(knobs);
 	assert.ok(n instanceof Float64Array);
-	assert.equal(n.length, 11);
+	assert.equal(n.length, 14);
 });
 
 test("an extra key of a call does not leak into the numbers", () => {
 	const call = { layer: "pencil", look: 4, mask: 255, ...knobs };
-	assert.equal(pencilNumbers(call).length, 11);
+	assert.equal(pencilNumbers(call).length, 14);
 });
 
 test("the Auto answer is read in the core's order", () => {

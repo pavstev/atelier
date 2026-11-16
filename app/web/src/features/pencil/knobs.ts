@@ -28,6 +28,12 @@ export type PencilLook = {
 	density: number;
 	/** By pencil: how many pencils are drawn so far, from the lightest (1 up to 8). */
 	step: number;
+	/** A blending stump dragged along the stroke (Tone, Drawing, Hatch). 0 off. */
+	smudge: number;
+	/** Kneaded-eraser streaks in the light tones (Tone, Drawing, Hatch). 0 off. */
+	lift: number;
+	/** More crossed work in the darks (Drawing, Hatch). 0 off. */
+	cross: number;
 };
 
 /** The start values, as the core's `Knobs::default` (By pencil starts at its first pencil). */
@@ -45,6 +51,9 @@ export const PENCIL_START: PencilLook = {
 	angle: 45,
 	density: 50,
 	step: 1,
+	smudge: 0,
+	lift: 0,
+	cross: 0,
 };
 
 /** The least and the most of each setting, as the core takes them (`render.rs`). */
@@ -63,6 +72,9 @@ export const PENCIL_RANGE: Record<keyof PencilLook, readonly [number, number]> =
 		angle: [0, 179],
 		density: [0, 100],
 		step: [1, 8],
+		smudge: [0, 100],
+		lift: [0, 100],
+		cross: [0, 100],
 	};
 
 /**
