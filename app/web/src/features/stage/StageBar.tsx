@@ -5,13 +5,17 @@
 // 200% and "Real size (cm)...", which locks the zoom to a real width and opens a small card for the
 // two widths (the photo, the screen). While locked, the button shows a lock, Fit, 100% and 200%
 // are off and the menu has "Unlock". A press outside the card or Esc closes it (the lock stays on).
+// The grip at the right end drags the bar along the stage; the place is saved (`BarHandle.tsx`).
 import { Button, Dropdown, Label } from "@heroui/react";
 import { type ReactNode, useEffect, useRef, useState } from "react";
 import { usePencilExtras } from "@/features/pencil/usePencilExtras";
 import { baseName, ToolBody, ToolHead } from "@/features/tools/Panel";
 import type { Look, StageId } from "@/features/tools/settings";
+import { KEYS, loadJson, useSaved } from "@/lib/storage";
 import { NumberBox } from "@/ui/fields";
 import { Icon, IconButton, type IconName, Tip } from "@/ui/icons";
+import BarHandle, { barLeft } from "./BarHandle";
+import { BAR_START, cleanBar } from "./barPlace";
 import type { Lock } from "./lockZoom";
 import Popup from "./Popup";
 import { guessScreen } from "./screens";
@@ -56,6 +60,22 @@ export default function StageBar(p: {
 	const extras = usePencilExtras(p.photo);
 	const found = guessScreen();
 	const lockCard = useRef<HTMLDivElement>(null);
+	// the bar place along the stage, saved so a refresh keeps it
+	const frame = useRef<HTMLDivElement>(null);
+	const [place, setPlace] = useState(() => ({
+		x: loadJson(KEYS.bar, cleanBar, () => BAR_START),
+	}));
+	useSaved(KEYS.bar, place, 150);
+	// the bar's own width, for the keep-inside rule of the place
+	useEffect(() => {
+		const el = frame.current;
+		if (!el) return;
+		const ro = new ResizeObserver(() =>
+			el.style.setProperty("--bar-w", `${el.offsetWidth}px`),
+		);
+		ro.observe(el);
+		return () => ro.disconnect();
+	}, []);
 
 	useEffect(() => {
 		if (p.picked) setOpen(null);
@@ -115,7 +135,12 @@ export default function StageBar(p: {
 		};
 
 	return (
-		<div className="absolute bottom-5 left-1/2 z-(--z-bar) max-w-[calc(100%-1rem)] -translate-x-1/2">
+		<div
+			ref={frame}
+			data-testid="stage-bar-frame"
+			style={{ "--bar-left": barLeft(place.x) } as React.CSSProperties}
+			className="absolute bottom-5 left-1/2 z-(--z-bar) max-w-[calc(100%-1rem)] -translate-x-1/2 md:left-(--bar-left)"
+		>
 			<div
 				data-testid="stage-bar"
 				className="floating-card flex items-center gap-1 rounded-full p-1"
@@ -283,6 +308,13 @@ export default function StageBar(p: {
 						</Dropdown.Popover>
 					</Dropdown>
 				</div>
+				<span className="h-5 w-px bg-separator max-md:hidden" />
+				<BarHandle
+					frame={frame}
+					x={place.x}
+					onCommit={(x) => setPlace({ x })}
+					onStart={() => setOpen(null)}
+				/>
 			</div>
 		</div>
 	);

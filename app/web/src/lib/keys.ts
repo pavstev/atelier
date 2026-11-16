@@ -5,6 +5,8 @@ export const KEYS = {
 	state: "atelier-web-state",
 	/** The layout: hidden panel and panel width (older saves also hold folded cards; they are dropped). */
 	layout: "atelier-web-layout",
+	/** Where the bottom bar sits along the stage: `{ x }`, the share of the stage width at its center. */
+	bar: "atelier-web-bar",
 	/** The list of photos (name, size, preview). */
 	docs: "atelier-web-kept",
 	/** The id of the photo that was on screen last. */
