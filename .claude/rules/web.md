@@ -17,8 +17,11 @@ paths:
   `shapes-detail`, `layer-edges`, `layer-grid`,
   Pencil base: `pencil-look` (a select with Tone, Drawing, Zones, Hatch and By pencil; set it like the
   other hidden selects) and `pencil-look-hint` (the line under it); the Tone group `pencil-tone-group`
-  with the sliders `pencil-key`, `pencil-contrast`, `pencil-highlights`, `pencil-darks`,
-  `pencil-local` and `pencil-detail`; the Texture group `pencil-texture-group` (Drawing and Hatch only)
+  with the sliders `pencil-key` (label Brightness), `pencil-contrast` and `pencil-detail`; the
+  effect chips `pencil-effects` with `pencil-effect-smudge|lift|cross` (`aria-pressed`; cross in
+  Drawing and Hatch only; none in Zones and By pencil); the fold `pencil-fine` (a `<details>`, closed
+  at the start) with `pencil-highlights`, `pencil-darks`, `pencil-local`, the amounts `pencil-smudge`,
+  `pencil-lift`, `pencil-cross` and the Texture group `pencil-texture-group` (Drawing and Hatch only)
   with `pencil-grain`, `pencil-paper` (a row of radios: Smooth, Medium, Rough), `pencil-hatch-angle`
   and `pencil-hatch-density` (Hatch only); `pencil-step` (a slider, By pencil only) and
   `pencil-step-line` ("Step 4 of 8: HB"); `pencil-reset`; `pencil-auto` (not in Zones) and

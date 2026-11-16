@@ -31,7 +31,17 @@ const START = {
 	paper: 1,
 	angle: 45,
 	density: 50,
+	smudge: 0,
+	lift: 0,
+	cross: 0,
 	step: 1,
+};
+
+/** A Pencil photo nobody tuned gets Brightness, Contrast and Highlights from Auto by itself, so a test
+ * that looks for the start values leaves these three out. */
+const noAuto = (p: object) => {
+	const { key: _k, contrast: _c, highlights: _h, ...rest } = p as typeof START;
+	return rest;
 };
 
 /** One knob: the look it is shown in, its test id, its key in the save and the value to set (for the
@@ -52,9 +62,12 @@ const KNOBS: Knob[] = [
 	{ look: LOOK.tone, id: "pencil-darks", key: "darks", value: 0 },
 	{ look: LOOK.tone, id: "pencil-local", key: "local", value: 60 },
 	{ look: LOOK.tone, id: "pencil-detail", key: "detail", value: 90 },
+	{ look: LOOK.tone, id: "pencil-smudge", key: "smudge", value: 80 },
+	{ look: LOOK.tone, id: "pencil-lift", key: "lift", value: 80 },
 	{ look: LOOK.drawing, id: "pencil-grain", key: "grain", value: 90 },
 	{ look: LOOK.drawing, id: "pencil-paper", key: "paper", value: 2 },
 	{ look: LOOK.drawing, id: "pencil-hatch-angle", key: "angle", value: 120 },
+	{ look: LOOK.drawing, id: "pencil-cross", key: "cross", value: 80 },
 	{ look: LOOK.hatch, id: "pencil-hatch-density", key: "density", value: 90 },
 	{ look: LOOK.byPencil, id: "pencil-step", key: "step", value: 4 },
 ];
@@ -353,12 +366,14 @@ test("test_pencil_settings_come_back_after_reload", async ({ studio }) => {
 	await studio.drawn(() => page.locator(grade("4H")).click());
 	const saved = await studio.saved();
 	expect(saved.base.kind).toBe("pencil");
-	expect(saved.pencil).toEqual({
-		...START,
-		look: 2,
-		mask: ALL & ~(1 << 7),
-		detail: 80,
-	});
+	expect(noAuto(saved.pencil)).toEqual(
+		noAuto({
+			...START,
+			look: 2,
+			mask: ALL & ~(1 << 7),
+			detail: 80,
+		}),
+	);
 	await page.reload();
 	await studio.openSynthetic(480, 640, "pencil-reload.png");
 	await expect(page.getByTestId("layer-canvas-base")).toBeVisible({
@@ -395,7 +410,7 @@ test("test_an_old_save_without_pencil_and_a_bad_pencil_save_load_with_start_valu
 		timeout: 60_000,
 	});
 	const bad = await studio.saved();
-	expect(bad.pencil).toEqual(START);
+	expect(noAuto(bad.pencil)).toEqual(noAuto(START));
 	// a save from before Pencil has no `pencil` part at all
 	await store(page, KEYS.state, { base: { kind: "values", opacity: 100 } });
 	await page.reload();
@@ -403,7 +418,7 @@ test("test_an_old_save_without_pencil_and_a_bad_pencil_save_load_with_start_valu
 	await expect(page.getByTestId("layer-canvas-base")).toBeVisible({
 		timeout: 60_000,
 	});
-	expect((await studio.saved()).pencil).toEqual(START);
+	expect(noAuto((await studio.saved()).pencil)).toEqual(noAuto(START));
 	await expect(page.getByTestId("error")).toHaveCount(0);
 });
 
@@ -422,12 +437,9 @@ test("test_a_save_from_before_the_knobs_and_a_half_bad_save_keep_what_is_good", 
 	await expect(page.getByTestId("layer-canvas-base")).toBeVisible({
 		timeout: 60_000,
 	});
-	expect((await studio.saved()).pencil).toEqual({
-		...START,
-		look: 2,
-		mask: 7,
-		detail: 80,
-	});
+	expect(noAuto((await studio.saved()).pencil)).toEqual(
+		noAuto({ ...START, look: 2, mask: 7, detail: 80 }),
+	);
 	// a save with good and bad numbers: each bad one falls back alone
 	await store(page, KEYS.state, {
 		base: { kind: "pencil", opacity: 100 },
@@ -496,6 +508,14 @@ const SHOWN_IN: Record<string, number[]> = {
 	"pencil-hatch-angle": [1, 3],
 	"pencil-hatch-density": [3],
 	"pencil-step": [4],
+	"pencil-fine": [0, 1, 2, 3, 4],
+	"pencil-effects": [0, 1, 3],
+	"pencil-effect-smudge": [0, 1, 3],
+	"pencil-effect-lift": [0, 1, 3],
+	"pencil-effect-cross": [1, 3],
+	"pencil-smudge": [0, 1, 3],
+	"pencil-lift": [0, 1, 3],
+	"pencil-cross": [1, 3],
 	"pencil-auto": [0, 1, 3, 4],
 	"pencil-suggest-count": [0, 1, 2, 3, 4],
 	"pencil-suggest": [0, 1, 2, 3, 4],
@@ -570,6 +590,9 @@ test("test_the_knobs_come_back_after_a_reload", async ({ studio }) => {
 	expect(await sliderValue(page, "pencil-step")).toBe("4");
 	// the other knobs show in Hatch, which has them all
 	await studio.knob("pencil-look", LOOK.hatch);
+	await page.getByTestId("pencil-fine").evaluate((d: HTMLDetailsElement) => {
+		d.open = true;
+	});
 	for (const k of KNOBS) {
 		if (k.id === "pencil-step") continue;
 		if (k.id === "pencil-paper") {
@@ -591,6 +614,8 @@ test("test_reset_puts_every_knob_back_but_keeps_the_look_and_the_pencils", async
 	await studio.base("pencil");
 	await studio.knob("pencil-look", LOOK.drawing);
 	await studio.drawn(() => page.locator(grade("4H")).click());
+	// Auto set the first three knobs; Reset first, so the start is the neutral picture
+	await studio.drawn(() => page.getByTestId("pencil-reset").click());
 	const start = await pictureOf(studio);
 	await studio.knob("pencil-key", 70);
 	await studio.knob("pencil-contrast", 70);
@@ -814,6 +839,9 @@ test.describe("phone sheet", () => {
 			const body = document.querySelector<HTMLElement>("[data-testid=tools]");
 			const el = document.querySelector<HTMLElement>(`[data-testid=${testid}]`);
 			if (!body || !el) return false;
+			// a control in the closed Fine tune fold is brought into view by opening the fold
+			const fold = el.closest("details");
+			if (fold) fold.open = true;
 			const b = body.getBoundingClientRect();
 			let r = el.getBoundingClientRect();
 			if (r.bottom > b.bottom) body.scrollTop += r.bottom - b.bottom + 4;
@@ -860,4 +888,64 @@ test.describe("phone sheet", () => {
 			for (const id of ids) expect(await reach(page, id), id).toBe(true);
 		}
 	});
+});
+
+test("test_auto_runs_by_itself_once_for_a_photo_nobody_tuned", async ({
+	studio,
+}) => {
+	const { page } = studio;
+	await studio.openSynthetic(480, 640, "pencil-auto-alone.png");
+	await studio.base("pencil");
+	await studio.tool("base");
+	// Auto spoke: its note is there and the three knobs moved off their start
+	await expect(page.getByTestId("pencil-auto-note")).toContainText(/\w/);
+	const p = (await studio.saved()).pencil;
+	expect(
+		p.key !== START.key ||
+			p.contrast !== START.contrast ||
+			p.highlights !== START.highlights,
+	).toBe(true);
+	// a hand move wins: it stays after another base and back (Auto does not run again)
+	await studio.knob("pencil-key", 20);
+	await studio.base("values");
+	await studio.base("pencil");
+	expect((await studio.saved()).pencil.key).toBe(20);
+});
+
+test("test_effect_chips_turn_an_effect_on_and_off_where_the_look_draws_it", async ({
+	studio,
+}) => {
+	const { page } = studio;
+	await studio.openSynthetic(480, 640, "pencil-chips.png");
+	await studio.base("pencil");
+	await studio.tool("base");
+	const chip = (name: string) => page.getByTestId(`pencil-effect-${name}`);
+	// Tone draws Smudge and Lifted lights, not Cross-hatch
+	await expect(chip("smudge")).toHaveAttribute("aria-pressed", "false");
+	await expect(chip("lift")).toHaveAttribute("aria-pressed", "false");
+	await expect(chip("cross")).toHaveCount(0);
+	const before = await pictureOf(studio);
+	await studio.drawn(() => chip("smudge").click());
+	await expect(chip("smudge")).toHaveAttribute("aria-pressed", "true");
+	expect((await studio.saved()).pencil.smudge).toBeGreaterThan(0);
+	expect(await pictureOf(studio)).not.toBe(before);
+	// pressed again: off, and the picture is the one from before
+	await studio.drawn(() => chip("smudge").click());
+	await expect(chip("smudge")).toHaveAttribute("aria-pressed", "false");
+	expect((await studio.saved()).pencil.smudge).toBe(0);
+	expect(await pictureOf(studio)).toBe(before);
+	// Drawing and Hatch add Cross-hatch; Zones and By pencil draw no effect
+	await studio.knob("pencil-look", LOOK.drawing);
+	await expect(chip("cross")).toBeVisible();
+	await studio.drawn(() => chip("cross").click());
+	expect((await studio.saved()).pencil.cross).toBeGreaterThan(0);
+	await studio.knob("pencil-look", LOOK.zones);
+	await expect(page.getByTestId("pencil-effects")).toHaveCount(0);
+	await studio.knob("pencil-look", LOOK.byPencil);
+	await expect(page.getByTestId("pencil-effects")).toHaveCount(0);
+	// Reset turns the effects off again
+	await studio.knob("pencil-look", LOOK.drawing);
+	await studio.drawn(() => page.getByTestId("pencil-reset").click());
+	expect((await studio.saved()).pencil.cross).toBe(0);
+	await expect(chip("cross")).toHaveAttribute("aria-pressed", "false");
 });

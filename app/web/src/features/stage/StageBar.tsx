@@ -8,6 +8,7 @@
 // The grip at the right end drags the bar along the stage; the place is saved (`BarHandle.tsx`).
 import { Button, Dropdown, Label } from "@heroui/react";
 import { type ReactNode, useEffect, useRef, useState } from "react";
+import { usePencilAuto } from "@/features/pencil/usePencilAuto";
 import { usePencilExtras } from "@/features/pencil/usePencilExtras";
 import { baseName, ToolBody, ToolHead } from "@/features/tools/Panel";
 import type { Look, StageId } from "@/features/tools/settings";
@@ -58,6 +59,7 @@ export default function StageBar(p: {
 	const { lock } = p;
 	// the Auto note and the suggested pencils live here, so a closed card keeps them
 	const extras = usePencilExtras(p.photo);
+	usePencilAuto(p.photo, p.look, p.onLook, extras);
 	const found = guessScreen();
 	const lockCard = useRef<HTMLDivElement>(null);
 	// the bar place along the stage, saved so a refresh keeps it

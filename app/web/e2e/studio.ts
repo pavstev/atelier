@@ -295,6 +295,11 @@ export class Studio {
 	async knob(id: string, value: string | number) {
 		await this.tool(toolOf(id));
 		const root = this.page.locator(`[data-testid=${id}]`);
+		// a knob in the closed "Fine tune" fold of the Pencil card: open the fold first
+		await root.evaluate((el) => {
+			const fold = el.closest("details");
+			if (fold) fold.open = true;
+		});
 		const range = root.locator("input[type=range]");
 		if ((await range.count()) > 0) {
 			await this.drawn(() => setRange(range, value));

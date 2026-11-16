@@ -84,7 +84,7 @@ export default function App() {
 		>
 			<div
 				data-testid="logo"
-				className={`pointer-events-none fixed top-3 left-3 z-(--z-banner) flex h-(--logo-h) items-center text-foreground ${layout.panels.left ? "" : "md:top-[calc(var(--panel-gap)+var(--panel-pad))] md:left-[calc(var(--panel-gap)+var(--panel-pad))]"}`}
+				className={`pointer-events-none fixed top-3 left-3 z-(--z-banner) flex h-(--logo-h) items-center text-foreground ${layout.panels.left ? "" : "md:top-[calc(var(--panel-gap)+var(--panel-pad)+1px)] md:left-[calc(var(--panel-gap)+var(--panel-pad)+1px)]"}`}
 			>
 				<Logo className="h-[21px] w-auto" outline={layout.panels.left} />
 				<span className="sr-only">Atelier</span>

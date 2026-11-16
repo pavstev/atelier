@@ -110,22 +110,30 @@ Grid.
       Drawing (Tone on a paper tooth), Zones (flat zones, one tone per pencil), Hatch (lines that
       follow the form; the heaviest look) and By pencil (only the lightest pencils up to a step).
       A line under the select says what the look is for.
-    - **Tone** group: **Key** (lighter or darker), **Contrast**, **Highlights** (the percent of the
-      photo left as bare paper), **Deep darks** (the most of the picture the 9B and 7B may cover),
-      **Local contrast** (more texture, 0 is off) and **Detail** (how much fine detail stays). Zones
-      shows only Detail, Highlights and Deep darks.
-    - **Texture** group (Drawing and Hatch only): **Grain**, **Paper** (Smooth, Medium or Rough),
-      **Hatch angle** and, in Hatch only, **Hatch density**.
+    - **Brightness** (the core's Key: lighter or darker), **Contrast** and **Detail** (how much fine
+      detail stays): the three sliders you reach for first. Zones shows only Detail.
+    - **Effects:** chips you switch on and off, each a stronger or weaker effect on the picture:
+      **Smudge** (a blending stump softens the tone along the strokes), **Lifted lights** (eraser
+      marks pull the light tones back toward paper) and **Cross-hatch** (more crossed lines in the
+      darks). A chip shows only in the looks that draw it: Smudge and Lifted lights in Tone, Drawing
+      and Hatch; Cross-hatch in Drawing and Hatch. A chip sets 60; the exact amount is a slider in
+      Fine tune.
+    - **Fine tune** (a fold, closed at the start): **Highlights** (the percent of the photo left as
+      bare paper), **Deep darks** (the most of the picture the 9B and 7B may cover), **Local
+      contrast** (more texture, 0 is off), the three effect amounts, and, in Drawing and Hatch, a
+      **Texture** group: **Grain**, **Paper** (Smooth, Medium or Rough), **Hatch angle** and, in
+      Hatch only, **Hatch density**.
     - **Step** (By pencil only): how many pencils are down, from the lightest. A line says which pencil
       the step is ("Step 4 of 8: HB"). The legend marks that pencil, and the slider stops at the
       number of pencils in the set.
-    - **Auto** (every look but Zones): sets Key, Contrast and Highlights from the photo and says in a
-      note what it did and why. The note goes away when you move one of the three by hand or open
-      another photo. It is not saved.
+    - **Auto** (every look but Zones): sets Brightness, Contrast and Highlights from the photo and
+      says in a note what it did and why. It runs by itself, once for a photo, the first time Pencil
+      is the base and those three are still at their start; the button runs it again. The note goes
+      away when you move one of the three by hand or open another photo. It is not saved.
     - **Suggest pencils:** a count row (3, 4, 5 or 6), the **Suggest** button, the suggested pencils
       as chips, and **Apply**, which sets them as your set (the legend then shows only those pencils).
       Not saved.
-    - **Reset:** every knob back to its start. The look and the set of pencils stay.
+    - **Reset:** every knob and effect back to its start. The look and the set of pencils stay.
     - **Pencils** is a row of eight toggles, 9B, 7B, 5B, 2B, HB, H, 3H and 4H: tick the pencils you
       own. The tones of the picture are the tones of those pencils and bare paper. At least one
       pencil stays on.

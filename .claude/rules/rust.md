@@ -34,6 +34,7 @@ percentiles of one photo, so one sort is cheaper than ten selects.
 | `darks` | The accent rule (Deep darks): the 9B and 7B may not cover a big dark mass. |
 | `paper`, `ink` | The paper tooth (a hashed value noise, the one position hash) and what Drawing and Hatch share (darkness, pressure, the hold that keeps a local mean at the tone). |
 | `drawing`, `hatch` | The Drawing and Hatch looks. Hatch reads `edges::field::structure_field`. |
+| `smudge`, `lift`, `cross` | The three effects (each a knob 0 to 100, 0 is off): a stump drag along the stroke, eraser streaks in the light tones, and more crossed lines in the darks. |
 | `build_up` | By pencil: the Tone picture clamped to the step's pencil, and the mark. |
 | `auto`, `choice` | Auto (Key, Contrast, Highlights from the photo) and Suggest (the best 3 to 6 pencils, by trying every set). |
 | `tests` | Tests of the view as a whole. |

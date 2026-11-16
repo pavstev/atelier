@@ -338,9 +338,9 @@ test("test_logo_sits_on_the_panel_and_moves_to_the_window_corner_when_it_is_hidd
 	await studio.openSynthetic(480, 640, "one.png");
 	const logo = page.getByTestId("logo");
 	const open = await logo.boundingBox();
-	// open, it sits on the padding of the glass panel (12 px gap + 12 px padding)
-	expect(open?.x).toBeCloseTo(24, 0);
-	expect(open?.y).toBeCloseTo(24, 0);
+	// open, it sits on the padding of the glass panel (12 px gap + 1 px edge + 12 px padding)
+	expect(open?.x).toBeCloseTo(25, 0);
+	expect(open?.y).toBeCloseTo(25, 0);
 	await page.getByTestId("files-fold").click();
 	await expect(page.getByTestId("files")).toBeHidden();
 	const hidden = await logo.boundingBox();

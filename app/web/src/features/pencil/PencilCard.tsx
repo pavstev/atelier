@@ -1,6 +1,8 @@
-// The Base card of the Pencil base: the look, its knobs in a Tone and a Texture group (only those
-// the look reads), the By pencil step, Auto and Reset, the pencils the painter owns and Suggest.
-// What each knob does is in docs/how-it-works/pencil.md.
+// The Base card of the Pencil base, Auto first: the look, three sliders (Brightness, Contrast,
+// Detail), effect chips (Smudge, Lifted lights, Cross-hatch; only those the look draws), Auto and
+// Reset, a closed "Fine tune" fold with the other knobs, the pencils the painter owns and Suggest.
+// Auto runs by itself for a new photo (`usePencilAuto`). What each knob does is in
+// docs/how-it-works/pencil.md.
 import { Button } from "@heroui/react";
 import { useId } from "react";
 import { LABELS } from "@/features/tools/settings";
@@ -25,6 +27,18 @@ const LOOK_HINTS = [
 	"The drawing built up one pencil at a time, lightest first.",
 ];
 
+/** How strong a chip sets its effect (0 is off); the Fine tune fold has the exact slider. */
+const EFFECT_ON = 60;
+
+type EffectKey = "smudge" | "lift" | "cross";
+
+/** The effect chips: the knob, the label, the looks that draw it (the core ignores it elsewhere). */
+const EFFECTS: { key: EffectKey; label: string; looks: number[] }[] = [
+	{ key: "smudge", label: "Smudge", looks: [0, 1, 3] },
+	{ key: "lift", label: "Lifted lights", looks: [0, 1, 3] },
+	{ key: "cross", label: "Cross-hatch", looks: [1, 3] },
+];
+
 type Props = {
 	pencil: PencilLook;
 	/** Changes some of the Pencil settings. */
@@ -44,6 +58,7 @@ function Heading(p: { id: string; children: string }) {
 export default function PencilCard({ pencil: s, onChange, extras }: Props) {
 	const toneId = useId();
 	const textureId = useId();
+	const effectsId = useId();
 	const zones = s.look === ZONES;
 	const texture = s.look === DRAWING || s.look === HATCH;
 	const { count, at, grade } = stepPencil(s.mask, s.step);
@@ -61,6 +76,7 @@ export default function PencilCard({ pencil: s, onChange, extras }: Props) {
 		step = 5,
 	) => (
 		<Knob
+			key={testid}
 			testid={testid}
 			label={label}
 			min={PENCIL_RANGE[key][0]}
@@ -70,6 +86,8 @@ export default function PencilCard({ pencil: s, onChange, extras }: Props) {
 			onChange={(v) => change({ [key]: v })}
 		/>
 	);
+
+	const effects = EFFECTS.filter((e) => e.looks.includes(s.look));
 
 	return (
 		<div className="flex flex-col gap-1.5 [--row-label:6.25rem]">
@@ -106,6 +124,40 @@ export default function PencilCard({ pencil: s, onChange, extras }: Props) {
 					</p>
 				</>
 			)}
+			<fieldset
+				aria-label="Tone"
+				data-testid="pencil-tone-group"
+				className="m-0 flex min-w-0 flex-col gap-1.5 border-0 p-0"
+			>
+				{/* steps of 1: Auto sets any whole number, and the slider must show it */}
+				{!zones && knob("key", "Brightness", "pencil-key", 1)}
+				{!zones && knob("contrast", "Contrast", "pencil-contrast", 1)}
+				{knob("detail", "Detail", "pencil-detail")}
+			</fieldset>
+			{effects.length > 0 && (
+				<fieldset
+					aria-label="Effects"
+					data-testid="pencil-effects"
+					className="m-0 flex min-w-0 flex-wrap gap-1 border-0 p-0"
+				>
+					{effects.map((e) => {
+						const on = s[e.key] > 0;
+						return (
+							<Button
+								key={e.key}
+								size="sm"
+								variant={on ? "secondary" : "ghost"}
+								className="rounded-full border border-separator"
+								data-testid={`pencil-effect-${e.key}`}
+								aria-pressed={on}
+								onPress={() => change({ [e.key]: on ? 0 : EFFECT_ON })}
+							>
+								{e.label}
+							</Button>
+						);
+					})}
+				</fieldset>
+			)}
 			<div className="flex gap-2">
 				{!zones && (
 					<Button
@@ -113,7 +165,7 @@ export default function PencilCard({ pencil: s, onChange, extras }: Props) {
 						variant="secondary"
 						className="flex-1"
 						data-testid="pencil-auto"
-						aria-label="Auto: set Key, Contrast and Highlights from the photo"
+						aria-label="Auto: set Brightness, Contrast and Highlights from the photo"
 						isDisabled={extras.busy !== null}
 						onPress={() =>
 							extras.runAuto((a) =>
@@ -133,7 +185,7 @@ export default function PencilCard({ pencil: s, onChange, extras }: Props) {
 					variant="secondary"
 					className="flex-1"
 					data-testid="pencil-reset"
-					aria-label="Reset every knob to its start; the look and the pencils stay"
+					aria-label="Reset every knob and effect to its start; the look and the pencils stay"
 					onPress={() => change(resetKnobs(s))}
 				>
 					Reset
@@ -150,40 +202,51 @@ export default function PencilCard({ pencil: s, onChange, extras }: Props) {
 					{extras.note ?? ""}
 				</p>
 			)}
-			<fieldset
-				aria-labelledby={toneId}
-				data-testid="pencil-tone-group"
-				className="m-0 flex min-w-0 flex-col gap-1.5 border-0 p-0"
-			>
-				<Heading id={toneId}>Tone</Heading>
-				{/* steps of 1: Auto sets any whole number, and the slider must show it */}
-				{!zones && knob("key", "Key", "pencil-key", 1)}
-				{!zones && knob("contrast", "Contrast", "pencil-contrast", 1)}
-				{knob("highlights", "Highlights", "pencil-highlights", 1)}
-				{knob("darks", "Deep darks", "pencil-darks")}
-				{!zones && knob("local", "Local contrast", "pencil-local")}
-				{knob("detail", "Detail", "pencil-detail")}
-			</fieldset>
-			{texture && (
-				<fieldset
-					aria-labelledby={textureId}
-					data-testid="pencil-texture-group"
-					className="m-0 flex min-w-0 flex-col gap-1.5 border-0 p-0"
-				>
-					<Heading id={textureId}>Texture</Heading>
-					{knob("grain", "Grain", "pencil-grain")}
-					<Segment
-						testid="pencil-paper"
-						label="Paper"
-						options={LABELS.pencilPaper}
-						value={s.paper}
-						onChange={(paper) => change({ paper })}
-					/>
-					{knob("angle", "Hatch angle", "pencil-hatch-angle", 1)}
-					{s.look === HATCH &&
-						knob("density", "Hatch density", "pencil-hatch-density")}
-				</fieldset>
-			)}
+			<details data-testid="pencil-fine" className="group">
+				<summary className="atelier-focus atelier-label cursor-pointer list-none rounded-(--radius-chip) py-1 text-xs font-medium text-muted select-none before:mr-1 before:content-['▸'] group-open:before:content-['▾'] hover:text-foreground">
+					Fine tune
+				</summary>
+				<div className="flex flex-col gap-1.5 pt-1.5">
+					<fieldset
+						aria-labelledby={toneId}
+						className="m-0 flex min-w-0 flex-col gap-1.5 border-0 p-0"
+					>
+						<Heading id={toneId}>Tone</Heading>
+						{knob("highlights", "Highlights", "pencil-highlights", 1)}
+						{knob("darks", "Deep darks", "pencil-darks")}
+						{!zones && knob("local", "Local contrast", "pencil-local")}
+					</fieldset>
+					{effects.length > 0 && (
+						<fieldset
+							aria-labelledby={effectsId}
+							className="m-0 flex min-w-0 flex-col gap-1.5 border-0 p-0"
+						>
+							<Heading id={effectsId}>Effects</Heading>
+							{effects.map((e) => knob(e.key, e.label, `pencil-${e.key}`))}
+						</fieldset>
+					)}
+					{texture && (
+						<fieldset
+							aria-labelledby={textureId}
+							data-testid="pencil-texture-group"
+							className="m-0 flex min-w-0 flex-col gap-1.5 border-0 p-0"
+						>
+							<Heading id={textureId}>Texture</Heading>
+							{knob("grain", "Grain", "pencil-grain")}
+							<Segment
+								testid="pencil-paper"
+								label="Paper"
+								options={LABELS.pencilPaper}
+								value={s.paper}
+								onChange={(paper) => change({ paper })}
+							/>
+							{knob("angle", "Hatch angle", "pencil-hatch-angle", 1)}
+							{s.look === HATCH &&
+								knob("density", "Hatch density", "pencil-hatch-density")}
+						</fieldset>
+					)}
+				</div>
+			</details>
 			<GradeRow mask={s.mask} onChange={(mask) => change({ mask })} />
 			<div className="flex flex-col gap-1.5">
 				<Segment

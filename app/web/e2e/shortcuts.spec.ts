@@ -187,11 +187,9 @@ test("test_the_logo_gets_a_thin_outline_only_with_the_left_panel_hidden", async 
 	);
 	await expect(outline).toHaveCSS("opacity", "0.55");
 	await expect(page.getByTestId("logo-shade")).toHaveCount(0);
-	// the outline color is the opposite tone of the letters: light in the light theme, dark in the dark
-	const tone = () => outline.evaluate((e) => getComputedStyle(e).stroke);
-	const light = await tone();
-	await page.emulateMedia({ colorScheme: "dark" });
-	await expect.poll(tone).not.toBe(light);
+	// the outline color is the dark halo tone of the dark theme (the app is dark only)
+	const tone = await outline.evaluate((e) => getComputedStyle(e).stroke);
+	expect(tone).not.toBe("none");
 });
 
 test("test_hover_card_shows_a_bigger_preview_with_the_facts_and_they_survive_a_reload", async ({

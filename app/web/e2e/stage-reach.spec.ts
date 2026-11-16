@@ -62,15 +62,15 @@ test("test_a_double_click_toggles_fit_and_100_percent_and_the_lock_stops_it", as
 	const fit = await percent(page);
 	expect(fit).not.toBe(100);
 	const stage = page.getByTestId("stage");
-	await stage.dblclick({ position: { x: 300, y: 250 } });
+	await stage.dblclick({ position: { x: 700, y: 250 } });
 	await expect(page.getByTestId("zoom-percent")).toHaveText("100%");
-	await stage.dblclick({ position: { x: 300, y: 250 } });
+	await stage.dblclick({ position: { x: 700, y: 250 } });
 	await expect(page.getByTestId("zoom-percent")).toHaveText(`${fit}%`);
 	// locked: the zoom stays
 	await studio.zoom("real");
 	await page.keyboard.press("Escape");
 	const locked = await percent(page);
-	await stage.dblclick({ position: { x: 300, y: 250 } });
+	await stage.dblclick({ position: { x: 700, y: 250 } });
 	expect(await percent(page)).toBe(locked);
 });
 
