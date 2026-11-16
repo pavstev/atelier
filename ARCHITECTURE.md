@@ -21,8 +21,8 @@ file -> browser decoder -> RGBA pixels -> layers worker (wasm Photo) -> layer pi
 
 | Part | Where | Job |
 |---|---|---|
-| Core | `crates/atelier-core` | All pixel work: Values, Shapes, Pencil, Edges, Grid. Pencil is a folder, `pencil/`, with one module per idea (grades, tone, local contrast, deep darks, the paper tooth, Drawing, Hatch, By pencil, Auto and Suggest; the table is in `.claude/rules/rust.md`). Deterministic, no clock, no randomness. A number out of range is `Error::BadInput`, never a panic. |
-| Wasm edge | `crates/atelier-wasm` | `Photo`, kept between draws, and one call per layer, over wasm-bindgen. The JS glue is built into `app/web/wasm/`. Pencil takes its knobs as one array of numbers (`Photo::pencil`, answer with a mark byte for By pencil) and has two more calls: `pencil_auto` (the numbers Auto reads and sets) and `pencil_suggest` (the mask of the best 3 to 6 pencils). |
+| Core | `crates/atelier-core` | All pixel work: Values, Shapes, Pencil, Edges, Grid. Pencil is a folder, `pencil/`, with one module per idea (grades, tone, local contrast, deep darks, the paper tooth, Drawing, Hatch, the effects Smudge, Lift and Cross, By pencil, Auto and Suggest; the table is in `.claude/rules/rust.md`). Deterministic, no clock, no randomness. A number out of range is `Error::BadInput`, never a panic. |
+| Wasm edge | `crates/atelier-wasm` | `Photo`, kept between draws, and one call per layer, over wasm-bindgen. The JS glue is built into `app/web/wasm/`. Pencil takes its knobs as one array of 14 numbers (`Photo::pencil`, answer with a mark byte for By pencil) and has two more calls: `pencil_auto` (the numbers Auto reads and sets) and `pencil_suggest` (the mask of the best 3 to 6 pencils). |
 | Worker | `app/web/src/draw/worker.ts` | Holds the wasm and the photo. Draws on request. |
 | Client | `app/web/src/draw/coreClient.ts`, `calls.ts`, `useLayers.ts` | Sends typed calls to the worker and hands the pictures to the stage. |
 | Stage | `app/web/src/features/stage/` | The canvases, zoom and pan, the bottom bar, shortcuts. |

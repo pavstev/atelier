@@ -34,7 +34,9 @@ These tones are a choice, not a measurement (see the end of this page).
    the tones that would fall on them cover more than the set share of the picture, no tone goes
    below the next pencil. Paper never takes a dark mass, and with only soft pencils in the set
    nothing moves.
-7. The look draws the result (below).
+7. **Lift** (if on) lifts streaks out of the light tones, before the shares are counted.
+8. The look draws the result (below).
+9. **Smudge** (if on) drags the drawn graphite along the stroke.
 
 The same photo and the same knobs give the same bytes: the grain is a hash of the pixel position,
 and nothing uses a clock or a random number.
@@ -62,7 +64,8 @@ A level with no pixel shows 0.
 ## The knobs
 
 Every knob has a start value at which it changes nothing. At the start values Tone and Zones draw
-the same bytes as before the knobs existed.
+the same bytes as before the knobs existed, and with the three effects at 0 Drawing and Hatch draw
+the same bytes as before the effects existed (a test pins both).
 
 | Knob | Range | Start | What it does | Source |
 |---|---|---|---|---|
@@ -77,6 +80,13 @@ the same bytes as before the knobs existed.
 | Hatch angle | 0 to 179 degrees | 45 | The direction of the lines where the form gives none, and of the Drawing streaks. | Research 2, Brox 2006 |
 | Hatch density | 0 to 100 | 50 | The spacing of the lines: about 7 px at 0 to 3 px at 100 (at a long side of 1024, larger on a larger picture). | Research 2, Praun 2001 |
 | Step | 1 to 8 | 1 | By pencil: how many pencils are down, from the lightest. A step over the size of the set takes the darkest pencil of the set. | Our choice |
+| Smudge | 0 to 100 | 0 (off) | A blending stump: each pixel takes a weighted mean of the pixels on a short line through it along the Hatch angle (a triangle of weights, up to 12 px each way at a long side of 1024). Tone, Drawing, Hatch. The mean stays within 1 L*. | Our choice |
+| Lift | 0 to 100 | 0 (off) | A kneaded eraser: soft streaks that pull a light tone toward paper. One mark at most per 40 px cell, with a hashed place, angle, length and width. At 100 a mark takes a tone 70 percent of the way to paper. Only tones lighter than L* 70 are touched (full effect from L* 82). Tone, Drawing, Hatch. The mean moves 2 L* at most. | Our choice |
+| Cross | 0 to 100 | 0 (off) | More crossed work in the darks. Hatch: the first layer tops out lower, so the second layer starts at a lighter tone, and a third layer joins it, turned 120 degrees. The covered share of the paper stays as it was. Drawing: a second paper tooth, turned a quarter, mixes into the first in the darks (up to half at 100). Lights are not touched. Drawing, Hatch. | Our choice |
+
+The three effects (Smudge, Lift, Cross) are off at 0. Zones and By pencil ignore them, because they
+show the tone and the shares as they are. Each effect is a hash of the position, so the same photo
+and the same numbers give the same bytes.
 
 Zones uses Detail, Highlights and Deep darks only. Key, Contrast and Local contrast do not apply to
 it, because its tones are cut from the photo as it is.
