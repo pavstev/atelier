@@ -128,6 +128,12 @@ pub(crate) struct Knobs {
     pub density: f32,
     /// The pencil of the By pencil view, 1 (the lightest) to 8.
     pub step: u8,
+    /// How far a blending stump drags the tone along the stroke, 0 to 1 (0 off).
+    pub smudge: f32,
+    /// How strongly a kneaded eraser lifts marks out of the light tones, 0 to 1 (0 off).
+    pub lift: f32,
+    /// How much more crossed work the darks get, 0 to 1 (0 off).
+    pub cross: f32,
 }
 
 impl Default for Knobs {
@@ -146,6 +152,9 @@ impl Default for Knobs {
             angle: 45,
             density: 0.5,
             step: 1,
+            smudge: 0.0,
+            lift: 0.0,
+            cross: 0.0,
         }
     }
 }

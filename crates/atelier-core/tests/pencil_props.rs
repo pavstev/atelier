@@ -150,6 +150,9 @@ fn test_every_number_slot_refuses_a_bad_value() {
         (8, 0.0, 179.0, true),
         (9, 0.0, 100.0, false),
         (10, 1.0, 8.0, true),
+        (11, 0.0, 100.0, false),
+        (12, 0.0, 100.0, false),
+        (13, 0.0, 100.0, false),
     ];
     for (slot, lo, hi, whole) in slots {
         // the ends are fine
@@ -424,6 +427,17 @@ fn fnv(l: &PencilLayer) -> u32 {
         .fold(2_166_136_261u32, |h, v| {
             (h ^ u32::from(v)).wrapping_mul(16_777_619)
         })
+}
+
+#[test]
+fn test_drawing_and_hatch_with_the_effects_off_are_the_bytes_of_commit_372f8530() {
+    // Pencil v3: smudge, lift and cross start at 0, and 0 skips their math. These hashes were taken
+    // from the view at commit 372f8530, before the three effects, on the same 128 px fixture.
+    let w = common::work();
+    for (look, name, was) in [(1, "drawing", 32_247_863), (3, "hatch", 3_487_575_399)] {
+        let got = fnv(&render(&w, look, 255, &PENCIL_START));
+        assert_eq!(got, was, "{name} moved from the bytes of 372f8530");
+    }
 }
 
 #[test]

@@ -16,10 +16,11 @@ pub const EDGES_WIDTH: u32 = 5;
 pub const EDGES_EVEN: f64 = 50.0;
 
 /// The Pencil numbers at their start, in the order of `render::pencil_layer`: detail, key,
-/// contrast, highlights, darks, local, grain, paper, angle, density, step (the start of every knob
-/// of the core: the picture it draws before the knobs existed).
-pub const PENCIL_START: [f64; atelier_core::render::PENCIL_NUMBERS] =
-    [50.0, 50.0, 50.0, 1.0, 20.0, 0.0, 50.0, 1.0, 45.0, 50.0, 1.0];
+/// contrast, highlights, darks, local, grain, paper, angle, density, step, smudge, lift, cross (the
+/// start of every knob of the core: the picture it draws before the knobs existed).
+pub const PENCIL_START: [f64; atelier_core::render::PENCIL_NUMBERS] = [
+    50.0, 50.0, 50.0, 1.0, 20.0, 0.0, 50.0, 1.0, 45.0, 50.0, 1.0, 0.0, 0.0, 0.0,
+];
 
 /// The result type of the examples.
 pub type Res<T> = Result<T, Box<dyn Error>>;

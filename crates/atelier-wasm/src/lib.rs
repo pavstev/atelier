@@ -185,9 +185,10 @@ impl Photo {
 
     /// The Pencil layer: the photo as a graphite study, opaque. `look` 0 is the smooth tone picture, 1
     /// the drawing, 2 the flat zones, 3 hatch, 4 by pencil. `mask` is the pencils, bit 0 the 9B up to
-    /// bit 7 the 4H (255 is all). `numbers` is a `Float64Array` of 11 numbers, in the order
+    /// bit 7 the 4H (255 is all). `numbers` is a `Float64Array` of 14 numbers, in the order
     /// `detail`, `key`, `contrast`, `highlights`, `darks`, `local`, `grain`, `paper`, `angle`,
-    /// `density`, `step` (their ranges are in `atelier_core::render`). After the layer come one byte
+    /// `density`, `step`, `smudge`, `lift`, `cross` (their ranges are in `atelier_core::render`;
+    /// the last three are effects, 0 off). After the layer come one byte
     /// with the level count (the pencils of the set, then paper, darkest first), 3 bytes (RGB) per
     /// level, one byte per level with the share of the picture in percent, and one byte with the
     /// marked level (255 for none).
@@ -299,9 +300,10 @@ mod tests {
     }
 
     /// The Pencil numbers at their start: detail, key, contrast, highlights, darks, local, grain,
-    /// paper, angle, density, step.
-    const PENCIL_START: [f64; render::PENCIL_NUMBERS] =
-        [50.0, 50.0, 50.0, 1.0, 20.0, 0.0, 50.0, 1.0, 45.0, 50.0, 1.0];
+    /// paper, angle, density, step, smudge, lift, cross.
+    const PENCIL_START: [f64; render::PENCIL_NUMBERS] = [
+        50.0, 50.0, 50.0, 1.0, 20.0, 0.0, 50.0, 1.0, 45.0, 50.0, 1.0, 0.0, 0.0, 0.0,
+    ];
 
     #[test]
     fn test_pencil_appends_tones_shares_and_the_mark() {
@@ -325,7 +327,13 @@ mod tests {
         assert_eq!(by[by.len() - 1], 2);
         assert!(pencil_of(&work, 5, 255, &PENCIL_START).is_err());
         assert!(pencil_of(&work, 0, 0, &PENCIL_START).is_err());
-        assert!(pencil_of(&work, 0, 255, &PENCIL_START[..10]).is_err());
+        // the old 11 numbers are no longer enough, and the effects take 0 to 100
+        assert!(pencil_of(&work, 0, 255, &PENCIL_START[..11]).is_err());
+        let mut loud = PENCIL_START;
+        loud[11..].fill(100.0);
+        assert!(pencil_of(&work, 3, 255, &loud).is_ok());
+        loud[12] = 101.0;
+        assert!(pencil_of(&work, 3, 255, &loud).is_err());
     }
 
     #[test]

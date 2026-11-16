@@ -13,7 +13,7 @@
 //! | values | 0 notan, 1 three, 2 five, 3 shadow family, 4 light family, 5 families | `detail`, `tint` 0 gray 1 umber |
 //! | shapes | step 0 shadows, 1 halftones, 2 lights, 3 accents | `detail` |
 //! | edges | mode 0 lines, 1 transfer, 2 masses | `amount`, `width`, `even` |
-//! | pencil | `look` 0 tone, 1 drawing, 2 zones, 3 hatch, 4 by pencil; `mask` the pencils, bit 0 the 9B to bit 7 the 4H (255 all) | [`PENCIL_NUMBERS`] numbers in this order: `detail`, `key`, `contrast` (percent, 50 changes nothing), `highlights` 0 to 25 and `darks` 0 to 100 (whole percent), `local`, `grain` (percent), `paper` 0 smooth 1 medium 2 rough, `angle` 0 to 179 (whole degrees), `density` (percent), `step` 1 to 8 (by pencil; the lightest is 1). The answer also has the level `mark`. `pencil_auto` reads the photo and gives the start of `key`, `contrast` and `highlights` with what it read; `pencil_suggest` gives the `mask` of the best 3 to 6 of the eight pencils |
+//! | pencil | `look` 0 tone, 1 drawing, 2 zones, 3 hatch, 4 by pencil; `mask` the pencils, bit 0 the 9B to bit 7 the 4H (255 all) | [`PENCIL_NUMBERS`] numbers in this order: `detail`, `key`, `contrast` (percent, 50 changes nothing), `highlights` 0 to 25 and `darks` 0 to 100 (whole percent), `local`, `grain` (percent), `paper` 0 smooth 1 medium 2 rough, `angle` 0 to 179 (whole degrees), `density` (percent), `step` 1 to 8 (by pencil; the lightest is 1), then `smudge`, `lift` and `cross` (percent, 0 off). The answer also has the level `mark`. `pencil_auto` reads the photo and gives the start of `key`, `contrast` and `highlights` with what it read; `pencil_suggest` gives the `mask` of the best 3 to 6 of the eight pencils |
 //! | layers | `edges_layer`, `values_layer`, `shapes_layer`, `pencil_layer`, `grid_layer`: RGBA | edges: alpha is 255 minus the largest channel; values, shapes and pencil: alpha 255; grid: alpha only on lines (`mode` 0 thirds, 1 grid, 2 both; `cells` 3 to 50 across the width; `width` 1 to 16; `group` 2 to 4; `color`; `center` 0 or 1) |
 //!
 //! The photo comes in as RGB, already decoded and turned upright by the page (the browser
@@ -268,7 +268,7 @@ pub fn shapes_layer(work: &Rgb, step: u32, detail: f64) -> Result<(Layer, Vec<[u
 }
 
 /// How many numbers [`pencil_layer`] takes besides `look` and `mask`.
-pub const PENCIL_NUMBERS: usize = 11;
+pub const PENCIL_NUMBERS: usize = 14;
 
 /// A plain count from `lo` to `hi`: a number that is finite, whole and in range. Anything else is
 /// a [`Error::BadInput`] that names it.
@@ -303,9 +303,11 @@ pub struct PencilLayer {
 /// 50 changes nothing), `highlights` (the whole percent of the photo that may be bare paper, 0 to
 /// 25, 1 at the start), `darks` (the most whole percent of the picture the 9B and 7B may cover,
 /// 0 to 100, 20 at the start), `local` (percent, 0 off), `grain` (percent, 50 at the start),
-/// `paper` (0 smooth, 1 medium, 2 rough), `angle` (whole degrees 0 to 179), `density` (percent)
-/// and `step` (the pencil of by pencil, 1 the lightest to 8). A `step` over the size of the set
-/// takes the darkest pencil of the set.
+/// `paper` (0 smooth, 1 medium, 2 rough), `angle` (whole degrees 0 to 179), `density` (percent),
+/// `step`(the pencil of by pencil, 1 the lightest to 8), then the three effects, each a percent
+/// with 0 off: `smudge` (a stump drags the tone along the stroke), `lift` (a kneaded eraser lifts
+/// streaks out of the light tones) and `cross` (more crossed work in the darks). A `step` over the
+/// size of the set takes the darkest pencil of the set.
 ///
 /// Gives the layer, the color of each level (the pencils of the set, then paper, darkest first),
 /// the share of the picture each level covers in percent, and the marked level.
@@ -365,6 +367,9 @@ fn pencil_knobs(look: u32, mask: u32, numbers: &[f64]) -> Result<pencil::Knobs> 
         angle,
         density,
         step,
+        smudge,
+        lift,
+        cross,
     ] = numbers
     else {
         return Err(Error::bad(format!(
@@ -386,6 +391,9 @@ fn pencil_knobs(look: u32, mask: u32, numbers: &[f64]) -> Result<pencil::Knobs> 
         angle: count(angle, 0, 179, "pencil angle")? as u16,
         density: knob(density, "pencil density")?,
         step: count(step, 1, 8, "pencil step")? as u8,
+        smudge: knob(smudge, "pencil smudge")?,
+        lift: knob(lift, "pencil lift")?,
+        cross: knob(cross, "pencil cross")?,
     })
 }
 
