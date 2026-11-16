@@ -36,7 +36,7 @@ paths:
   `stage`, `facts`, `file`, `error`, `legend`, `legend-swatch`, `lock-width`, `screen-width`, `screen-found`, `lock-card`
   (the small cm card),
   `photos`, `photo-scroll`, `photo-row` (has `data-active`), `photo-open`, `photo-add`, `photo-search-toggle`, `photo-search`, `photo-search-clear`, `photo-sort`,
-  `photo-layout`, `photo-count`, `photo-rename`, `photo-name`, `photo-delete`, `stage-bar`, `logo`, `files-resize`, `panel-scrim`, `photo-card`, `photo-card-image`, `logo-outline`,
+  `photo-layout`, `photo-count`, `photo-rename`, `photo-name`, `photo-delete`, `stage-bar`, `stage-bar-frame` (holds `--bar-left`), `bar-handle` (the grip, a slider; not on a phone), `logo`, `files-resize`, `panel-scrim`, `photo-card`, `photo-card-image`, `logo-outline`,
   `files`, `files-fold` and `files-expand` (the handle on the stage edge), and the bottom bar:
   `tool-base`, `tool-edges`, `tool-grid` (the bar buttons), `tool-picker` (the color picker toggle;
   has `aria-pressed`; while on, `picker-card` follows the mouse, has `data-pinned`, `data-color`,

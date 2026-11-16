@@ -1,6 +1,6 @@
-// The handle on the left edge of the stage that hides or shows the side panel: a small round button
-// half over the panel. It fades in when the pointer is near the edge, and stays when the panel is
-// hidden.
+// The handle on the right edge of the glass side panel (the left edge of the window when the panel is
+// hidden) that hides or shows it: a small round button half over the panel edge. It fades in when the
+// pointer is near the edge, and stays when the panel is hidden.
 import { IconButton } from "@/ui/icons";
 
 export default function EdgeHandle(p: {
@@ -10,7 +10,13 @@ export default function EdgeHandle(p: {
 }) {
 	// the panel folds toward the left; a hidden one opens toward the right
 	return (
-		<div className="group/edge absolute top-1/2 left-0 z-(--z-drawer) flex h-16 w-5 -translate-x-1/2 -translate-y-1/2 items-center justify-center">
+		<div
+			className={`group/edge absolute top-1/2 left-0 z-(--z-drawer) flex h-16 w-5 -translate-x-1/2 -translate-y-1/2 items-center justify-center ${
+				p.hidden
+					? ""
+					: "md:left-[calc(var(--panel-gap)+min(var(--left-w),50vw))]"
+			}`}
+		>
 			<IconButton
 				label={`${p.hidden ? "Show" : "Hide"} the side panel`}
 				icon={p.hidden ? "right" : "left"}

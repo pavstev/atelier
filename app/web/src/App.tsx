@@ -21,7 +21,6 @@ import {
 	useLook,
 } from "@/features/tools/settings";
 import Logo from "@/ui/Logo";
-import { useTheme } from "@/ui/useTheme";
 
 /** The call of each stacked layer; null when it is off (a Photo or Paper base draws nothing). */
 const callsOf = (s: Look): Record<StageId, Call | null> => ({
@@ -35,7 +34,6 @@ const callsOf = (s: Look): Record<StageId, Call | null> => ({
 });
 
 export default function App() {
-	useTheme();
 	const [look, setLook] = useLook();
 	const [layout, setLayout] = useLayout();
 	const ph = usePhotos();
@@ -86,7 +84,7 @@ export default function App() {
 		>
 			<div
 				data-testid="logo"
-				className="pointer-events-none fixed top-3 left-3 z-(--z-banner) flex h-(--logo-h) items-center text-foreground"
+				className={`pointer-events-none fixed top-3 left-3 z-(--z-banner) flex h-(--logo-h) items-center text-foreground ${layout.panels.left ? "" : "md:top-[calc(var(--panel-gap)+var(--panel-pad))] md:left-[calc(var(--panel-gap)+var(--panel-pad))]"}`}
 			>
 				<Logo className="h-[21px] w-auto" outline={layout.panels.left} />
 				<span className="sr-only">Atelier</span>

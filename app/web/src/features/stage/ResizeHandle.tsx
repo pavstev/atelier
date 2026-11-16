@@ -1,4 +1,4 @@
-// The thin drag handle on the right edge of the side panel. While you drag, the width goes straight
+// The thin drag handle on the right edge of the glass side panel. While you drag, the width goes straight
 // to a CSS variable on the window root, once per frame, so React does not render for each move;
 // when you let go the width is saved. A double click sets the start width again.
 import { useRef } from "react";
@@ -56,7 +56,7 @@ export default function ResizeHandle(p: {
 			aria-valuemin={p.min}
 			aria-valuemax={p.max}
 			data-testid="files-resize"
-			className="atelier-focus group/resize absolute inset-y-0 left-0 z-(--z-popup) w-2 -translate-x-1/2 cursor-col-resize touch-none select-none max-md:hidden"
+			className="atelier-focus group/resize absolute inset-y-(--panel-gap) left-[calc(var(--panel-gap)+min(var(--left-w),50vw))] z-(--z-popup) w-2 -translate-x-1/2 cursor-col-resize touch-none select-none max-md:hidden"
 			onPointerDown={(e) => {
 				if (e.button !== 0) return;
 				e.currentTarget.setPointerCapture(e.pointerId);

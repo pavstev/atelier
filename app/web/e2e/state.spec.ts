@@ -119,16 +119,13 @@ test.describe("a save from before the layout had its own key", () => {
 	});
 });
 
-for (const dark of [false, true]) {
-	test(`the ${dark ? "dark" : "light"} theme opens a photo`, async ({
-		studio,
-	}) => {
-		const { page } = studio;
-		await page.emulateMedia({ colorScheme: dark ? "dark" : "light" });
-		await studio.open(MAIN_PHOTO);
-		await expect(page.getByTestId("photo-canvas")).toBeVisible();
-	});
-}
+test("the page is dark only, whatever the system says", async ({ studio }) => {
+	const { page } = studio;
+	await page.emulateMedia({ colorScheme: "light" });
+	await studio.open(MAIN_PHOTO);
+	await expect(page.getByTestId("photo-canvas")).toBeVisible();
+	await expect(page.locator("html")).toHaveClass(/dark/);
+});
 
 test("the page head says what the app is", async ({ page }) => {
 	await page.goto("/");

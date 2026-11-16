@@ -129,12 +129,20 @@ body {
 		outline-offset: 1px;
 	}
 
-	/* A card that floats over the stage (the bar, the Lock card): a surface, a hairline and a shadow. */
-	.floating-card {
-		background: color-mix(in oklab, var(--surface) 92%, transparent);
-		border: 1px solid var(--border);
-		box-shadow: var(--surface-shadow);
-		backdrop-filter: blur(8px);
+	/* Glass: the surface of everything that floats over the stage (the side panel, the bar, the Lock
+	 * card, every pop-up, menu and tip, the bottom sheet). Tokens are in atelier-theme.css. */
+	.glass,
+	.floating-card,
+	.popover,
+	.tooltip,
+	.sheet__dialog,
+	.dropdown__popover,
+	.select__popover {
+		background: var(--glass);
+		border: 1px solid var(--glass-edge);
+		box-shadow: var(--glass-shadow);
+		-webkit-backdrop-filter: var(--glass-blur);
+		backdrop-filter: var(--glass-blur);
 	}
 }
 

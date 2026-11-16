@@ -83,6 +83,10 @@ Left to right:
      or Esc; the lock stays on.
    - While the zoom is locked, the button shows a lock icon, Fit, 100% and 200% are off, and the
      menu has **Unlock**.
+5. **Grip.** Six dots at the right end (not on a phone). Drag it left or right to move the whole
+   bar along the stage. The bar stays inside the stage, an open card closes when the drag starts,
+   and the place is saved, so a reload keeps it. A double click or Home puts the bar back in the
+   middle; the arrow keys move it 2 percent. On a phone the bar stays in the middle.
 
 A double click or a double tap on the photo toggles Fit and 100% (not while the zoom is locked).
 
@@ -175,13 +179,15 @@ Everything stays in your browser, on this device.
 
 ### The screen
 
-Two columns with no gap: the photo list on the left and the stage. A small round handle on the
-stage edge hides or shows the panel. While the panel is open, drag the thin handle on its right
+The stage fills the whole window. The photo list floats over it on the left as an inset glass card
+(a see-through dark tint with a blur), so the photo never moves when the panel opens or closes. The
+bottom bar and every pop-up, menu and tip are glass too. A small round handle on the panel edge hides
+or shows the panel. While the panel is open, drag the thin handle on its right
 edge to resize it, from 280 px to 720 px and never over half the window. The arrow keys move it
 16 px, Home and End jump to the limits, and a double click sets it back to 300 px. Under 768 px the panel is a drawer over the photo: it starts closed, the handle on
 the edge or `[` opens it, and a press outside or a picked photo closes it.
 
-The theme is light or dark and follows the system. The colors and sizes are in
+The app is dark only. The colors and sizes are in
 [design/2026-11-01-heroui-color-system.md](design/2026-11-01-heroui-color-system.md).
 
 ## How it is built
@@ -201,7 +207,7 @@ has five folders. Paths below are under `src/`.
 - `features/tools/`: the pop-up cards of the bottom bar and the settings (`settings.ts`: the start
   values and ranges of every knob).
 - `draw/`: the layers worker, its client, the typed calls and the draw hook.
-- `ui/`: parts that know nothing about photos (fields, icons, the logo, the theme hook).
+- `ui/`: parts that know nothing about photos (fields, icons, the logo).
 - `lib/`: `keys.ts` (every saved key), `storage.ts` (load and save them) and small helpers.
 - `styles/`: `index.css` and the theme `atelier-theme.css`.
 

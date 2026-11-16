@@ -1,19 +1,23 @@
-// The window layout: the stage runs flush to the side panel (no gap, no line, no frame), the panel
-// hides and stays hidden after a reload, and it lists every photo where it can be searched, shown,
-// renamed or deleted. The tools are in the bar over the stage. With SHOT=dir it also saves
+// The window layout: the side panel is an inset glass card over the stage (the stage fills the whole
+// window and never moves), the panel hides and stays hidden after a reload, and it lists every photo
+// where it can be searched, shown, renamed or deleted. The tools are in the bar over the stage. With SHOT=dir it also saves
 // screenshots of the window (a synthetic photo) to that folder.
 import { box, expect, KEYS, keptDocs as kept, stored, test } from "./studio";
 
-test("test_stage_runs_flush_to_the_panel_and_the_tools_sit_in_the_bar", async ({
+test("test_the_panel_floats_as_glass_over_the_stage_and_the_tools_sit_in_the_bar", async ({
 	studio,
 }) => {
 	const { page } = studio;
 	await studio.openSynthetic(480, 640, "one.png");
 	const files = await box(page, "files");
 	const stage = await box(page, "stage");
-	// no gap: the stage meets the panel to the pixel and fills the rest of the window
-	expect(stage.x).toBeCloseTo(files.x + files.width, 1);
-	expect(stage.x + stage.width).toBeCloseTo(page.viewportSize()?.width ?? 0, 1);
+	// the stage fills the whole window; the panel floats over it, inset by 12 px
+	const view = page.viewportSize();
+	expect(stage.x).toBeCloseTo(0, 1);
+	expect(stage.width).toBeCloseTo(view?.width ?? 0, 1);
+	expect(files.x).toBeCloseTo(12, 1);
+	expect(files.y).toBeCloseTo(12, 1);
+	expect(files.height).toBeCloseTo((view?.height ?? 0) - 24, 1);
 	// the panel holds only the photo list; the three tools are buttons in the bar over the stage
 	await expect(page.getByTestId("files").getByTestId("tool-base")).toHaveCount(
 		0,
@@ -22,36 +26,35 @@ test("test_stage_runs_flush_to_the_panel_and_the_tools_sit_in_the_bar", async ({
 		await expect(
 			page.getByTestId("stage-bar").getByTestId(`tool-${id}`),
 		).toBeVisible();
-	// no line, no frame; the stage has its own tone, the panels keep the page tone
-	const look = await page.evaluate(() => {
+	// glass: a see-through tint and a blur behind the panel, the bar and a pop-up
+	const glass = await page.evaluate(() => {
 		const css = (id: string) =>
 			getComputedStyle(
 				document.querySelector(`[data-testid=${id}]`) as HTMLElement,
 			);
-		return {
-			filesLine: css("files").borderInlineEndWidth,
-			stageFill: css("stage").backgroundColor,
-			stageRound: css("stage").borderRadius,
-			filesFill: css("files").backgroundColor,
-			pageFill: getComputedStyle(
-				document.querySelector("#root > div") as Element,
-			).backgroundColor,
-		};
+		return ["files", "stage-bar"].map((id) => ({
+			fill: css(id).backgroundColor,
+			blur: css(id).backdropFilter,
+		}));
 	});
-	expect(look.filesLine).toBe("0px");
-	expect(look.stageFill).not.toBe("rgba(0, 0, 0, 0)");
-	expect(look.stageFill).not.toBe(look.pageFill);
-	expect(look.stageRound).toBe("0px");
-	// the panel keeps the page tone, a different one from the stage
-	expect(look.filesFill).not.toBe(look.stageFill);
+	for (const g of glass) {
+		expect(g.blur).toContain("blur");
+		// an alpha below 1 in `color(srgb r g b / a)` or `rgba(r, g, b, a)`
+		expect(g.fill).toMatch(/\/ 0\.\d+\)|, 0\.\d+\)/);
+	}
+	await page.getByTestId("tool-base").click();
+	const popup = page.getByTestId("tool-popup");
+	await expect(popup).toBeVisible();
+	expect(
+		await popup.evaluate(
+			(el) => getComputedStyle(el.closest(".popover") ?? el).backdropFilter,
+		),
+	).toContain("blur");
 
 	const dir = process.env.SHOT;
 	if (dir) {
 		await studio.openSynthetic(640, 480, "sunset.png");
 		await page.waitForTimeout(800); // the tab indicator and colors finish moving
-		await page.screenshot({ path: `${dir}/layout-light.png` });
-		await page.emulateMedia({ colorScheme: "dark" });
-		await page.waitForTimeout(800);
 		await page.screenshot({ path: `${dir}/layout-dark.png` });
 		await page.getByTestId("files-fold").click();
 		await page.waitForTimeout(800);
@@ -308,10 +311,10 @@ test("test_the_panel_resizes_smoothly_and_the_width_is_kept", async ({
 	await expect
 		.poll(async () => (await box(page, "files")).width)
 		.toBeCloseTo(280, 0);
-	// the stage still meets the panel
-	const files = await box(page, "files");
+	// the stage is not moved by the panel
 	const stage = await box(page, "stage");
-	expect(stage.x).toBeCloseTo(files.x + files.width, 1);
+	expect(stage.x).toBeCloseTo(0, 1);
+	expect(stage.width).toBeCloseTo(page.viewportSize()?.width ?? 0, 1);
 	// the width is saved and comes back
 	await expect
 		.poll(async () => (await stored(page, KEYS.layout)).widths)
@@ -328,19 +331,21 @@ test("test_the_panel_resizes_smoothly_and_the_width_is_kept", async ({
 		.toBeCloseTo(300, 0);
 });
 
-test("test_logo_stays_in_the_window_corner_when_the_left_panel_is_hidden", async ({
+test("test_logo_sits_on_the_panel_and_moves_to_the_window_corner_when_it_is_hidden", async ({
 	studio,
 }) => {
 	const { page } = studio;
 	await studio.openSynthetic(480, 640, "one.png");
 	const logo = page.getByTestId("logo");
 	const open = await logo.boundingBox();
+	// open, it sits on the padding of the glass panel (12 px gap + 12 px padding)
+	expect(open?.x).toBeCloseTo(24, 0);
+	expect(open?.y).toBeCloseTo(24, 0);
 	await page.getByTestId("files-fold").click();
 	await expect(page.getByTestId("files")).toBeHidden();
 	const hidden = await logo.boundingBox();
-	expect(hidden).toEqual(open);
 	// the lockup is one SVG (the A mark and the word's rest), named Atelier for screen readers, and
-	// it sits on the panel padding (12 px)
+	// hidden, it sits in the window corner (12 px)
 	await expect(logo).toContainText("Atelier");
 	expect(hidden?.x).toBeCloseTo(12, 0);
 	expect(hidden?.y).toBeCloseTo(12, 0);

@@ -63,6 +63,9 @@ Do not bring these back.
   one. It reads the shown picture and gives a mix of white, yellow, red, lake blue, phthalo blue and black
   (`app/web/src/features/picker/`). Mixbox, a color list and a color picker panel stay dropped.
 
+- 2026-11-16: light mode and the theme hook. The app is dark only. The side panel, the bottom bar and
+  every pop-up are glass over the stage (`.glass` in `styles/index.css`); the panel no longer moves
+  the photo.
 - 2026-11-13: the Color zoom (a legend swatch shown big on a gray mat, then full screen). A legend
   swatch now holds its color in the color picker card.
 - 2026-10-30: the PDF, the CLI, the color picker, ZIP export, the recent shelf, the worker count
