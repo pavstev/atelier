@@ -24,9 +24,12 @@ export default function BarHandle(p: {
 	/** A drag began: the open card closes. */
 	onStart: () => void;
 }) {
-	const drag = useRef<{ from: number; center: number; now: number } | null>(
-		null,
-	);
+	const drag = useRef<{
+		from: number;
+		center: number;
+		now: number;
+		moved: boolean;
+	} | null>(null);
 	const frame = useRef(0);
 
 	/** The stage width, the bar width and the bar center (px from the stage's left edge). */
@@ -86,15 +89,25 @@ export default function BarHandle(p: {
 					const m = measure();
 					if (!m) return;
 					e.currentTarget.setPointerCapture(e.pointerId);
-					drag.current = { from: e.clientX, center: m.center, now: m.center };
+					drag.current = {
+						from: e.clientX,
+						center: m.center,
+						now: m.center,
+						moved: false,
+					};
 					document.body.style.cursor = "grabbing";
-					p.onStart();
 					e.preventDefault();
 				}}
 				onPointerMove={(e) => {
 					const d = drag.current;
 					const m = measure();
 					if (!d || !m) return;
+					// the open card closes when the bar really starts to move, not on a plain click
+					if (!d.moved && Math.abs(e.clientX - d.from) >= 3) {
+						d.moved = true;
+						p.onStart();
+					}
+					if (!d.moved) return;
 					d.now = clampCenter(
 						d.center + e.clientX - d.from,
 						m.bar,
@@ -112,7 +125,7 @@ export default function BarHandle(p: {
 					e.currentTarget.releasePointerCapture(e.pointerId);
 					if (frame.current) cancelAnimationFrame(frame.current);
 					frame.current = 0;
-					if (m) commit(d.now / m.stage);
+					if (m && d.moved) commit(d.now / m.stage);
 				}}
 				onPointerCancel={() => {
 					drag.current = null;

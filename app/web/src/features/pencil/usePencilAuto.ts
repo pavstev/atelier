@@ -1,13 +1,26 @@
-// Auto runs by itself, once for each photo, the first time Pencil is the base and the three knobs
-// Auto sets (Brightness, Contrast, Highlights) are still at their start. A photo the painter already
-// tuned, a saved look with other values and the Zones look (Auto has nothing to set there) are left
-// alone. The Auto button runs it again at any time.
+// Auto runs by itself for a photo, the first time Pencil is the base and the painter has not tuned
+// Brightness, Contrast and Highlights. "Not tuned" means they still hold their start values or what
+// Auto itself set for the last photo (the three knobs are shared by every photo). A hand move wins:
+// an answer that comes late never overwrites a value the painter changed meanwhile. The Zones look
+// (Auto has nothing to set there) is left alone. The Auto button runs it again at any time.
 import { useEffect, useRef } from "react";
 import type { Look } from "@/features/tools/settings";
 import { PENCIL_START } from "./knobs";
 import type { PencilExtras } from "./usePencilExtras";
 
 const ZONES = 2;
+
+/** The three knobs Auto sets. */
+type Three = { key: number; contrast: number; highlights: number };
+
+const same = (a: Three, b: Three) =>
+	a.key === b.key && a.contrast === b.contrast && a.highlights === b.highlights;
+
+const START: Three = {
+	key: PENCIL_START.key,
+	contrast: PENCIL_START.contrast,
+	highlights: PENCIL_START.highlights,
+};
 
 export function usePencilAuto(
 	photo: ImageData | null,
@@ -17,29 +30,33 @@ export function usePencilAuto(
 ) {
 	// the photos seen, so a photo is read once (a reference, so a closed one is let go)
 	const seen = useRef(new WeakSet<ImageData>());
+	// what Auto set last, so the next photo still counts as untuned
+	const applied = useRef<Three | null>(null);
 	const { runAuto, busy } = extras;
 	const on = look.base.kind === "pencil";
-	const p = look.pencil;
-	const untouched =
-		p.key === PENCIL_START.key &&
-		p.contrast === PENCIL_START.contrast &&
-		p.highlights === PENCIL_START.highlights;
-	const zones = p.look === ZONES;
+	const { key, contrast, highlights } = look.pencil;
+	const zones = look.pencil.look === ZONES;
 	// biome-ignore lint/correctness/useExhaustiveDependencies: `runAuto` is new on each render
 	useEffect(() => {
 		if (!on || !photo || busy || zones || seen.current.has(photo)) return;
 		seen.current.add(photo);
-		if (!untouched) return;
-		runAuto((a) =>
-			onLook((s) => ({
-				...s,
-				pencil: {
-					...s.pencil,
-					key: a.key,
-					contrast: a.contrast,
-					highlights: a.highlights,
-				},
-			})),
-		);
-	}, [on, photo, busy, zones, untouched]);
+		const before: Three = { key, contrast, highlights };
+		if (
+			!same(before, START) &&
+			!(applied.current && same(before, applied.current))
+		)
+			return;
+		runAuto((a) => {
+			const next: Three = {
+				key: a.key,
+				contrast: a.contrast,
+				highlights: a.highlights,
+			};
+			applied.current = next;
+			// only while the three knobs are still as they were when Auto began
+			onLook((s) =>
+				same(s.pencil, before) ? { ...s, pencil: { ...s.pencil, ...next } } : s,
+			);
+		});
+	}, [on, photo, busy, zones, key, contrast, highlights]);
 }

@@ -949,3 +949,18 @@ test("test_effect_chips_turn_an_effect_on_and_off_where_the_look_draws_it", asyn
 	expect((await studio.saved()).pencil.cross).toBe(0);
 	await expect(chip("cross")).toHaveAttribute("aria-pressed", "false");
 });
+
+test("test_auto_runs_for_the_next_photo_too_while_the_painter_has_not_tuned", async ({
+	studio,
+}) => {
+	const { page } = studio;
+	await studio.openSynthetic(480, 640, "pencil-first.png");
+	await studio.base("pencil");
+	await studio.tool("base");
+	const note = page.getByTestId("pencil-auto-note");
+	await expect(note).toContainText(/\w/);
+	// a second photo: the knobs hold what Auto set for the first, and Auto still speaks for the new one
+	await studio.openSynthetic(640, 480, "pencil-second.png");
+	await expect(page.getByTestId("layer-canvas-base")).toBeVisible();
+	await expect(note).toContainText(/\w/);
+});
