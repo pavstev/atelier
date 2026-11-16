@@ -4,6 +4,7 @@
 //! when the tone is darker than the line's own threshold (the Praun nesting, by a position hash),
 //! and a dark tone gets a second layer across the first.
 
+use super::cross::{self, THIRD_SALT, THIRD_SPACING};
 use super::ink::{darkest, darkness, grain_factor, hold_mean, lay, pressure, smoothstep, tone_of};
 use super::paper::{hash, scale};
 use crate::edges::field::{Field, bil, structure_field};
@@ -131,6 +132,19 @@ fn layers(d: f32) -> (f32, f32) {
         0.0
     };
     (first, second)
+}
+
+/// The three layers for the darkness `d` with the cross knob `cross` (0 to 1): see
+/// [`cross::split`]. At 0 these are [`layers`] and an empty third.
+fn layers3(d: f32, cross: f32) -> (f32, f32, f32) {
+    if cross <= 0.0 {
+        let (first, second) = layers(d);
+        return (first, second, 0.0);
+    }
+    if d <= 0.0 {
+        return (0.0, 0.0, 0.0);
+    }
+    cross::split(coverage(d), d, cross, FIRST_MAX)
 }
 
 /// The share (0 to 1) the strokes fade in from bare paper at the darkness `d`.
@@ -300,10 +314,11 @@ fn layer_cover(
 /// The shown L* of the Hatch look, per pixel. `tone` is the Tone picture (L*), `guide` the smoothed
 /// L* the strokes follow, `tooth` the paper tooth, `grain` 0 to 1 how much the tooth breaks the
 /// strokes, `angle_deg` the direction where the form gives none and `density` 0 to 1 how close the
-/// lines run. The 16 px box mean of the result follows `tone`; light areas stay paper.
+/// lines run, `cross` 0 to 1 how much more crossed work the darks get (0 is the plain look). The
+/// 16 px box mean of the result follows `tone`; light areas stay paper.
 #[allow(
     clippy::too_many_arguments,
-    reason = "the picture, its size, the tooth and the four knobs: a flat call is the plainest"
+    reason = "the picture, its size, the tooth and the five knobs: a flat call is the plainest"
 )]
 pub(crate) fn draw(
     tone: &[f32],
@@ -314,6 +329,7 @@ pub(crate) fn draw(
     grain: f32,
     angle_deg: f32,
     density: f32,
+    cross: f32,
 ) -> Vec<f32> {
     let px = scale(w, h);
     let spacing = (SPACING.0 + (SPACING.1 - SPACING.0) * density) * px;
@@ -324,6 +340,10 @@ pub(crate) fn draw(
     };
     let cross_lines = Lines {
         spacing: spacing * CROSS_SPACING,
+        ..first_lines
+    };
+    let third_lines = Lines {
+        spacing: spacing * THIRD_SPACING,
         ..first_lines
     };
     let turn = angle_deg.to_radians();
@@ -340,9 +360,15 @@ pub(crate) fn draw(
     let mut shown = Vec::with_capacity(tone.len());
     for (i, &d) in want.iter().enumerate() {
         let (x, y) = ((i % w) as f32, (i / w) as f32);
-        let (c1, c2) = layers(d);
+        let (c1, c2, c3) = layers3(d, cross);
         let at = bins(flow.at(x, y));
-        let cover = if c2 >= SOLID {
+        // with a third layer, the paper is solid when the two crossed layers cover it together
+        let solid = if c3 > 0.0 {
+            1.0 - (1.0 - c2) * (1.0 - c3)
+        } else {
+            c2
+        };
+        let cover = if solid >= SOLID {
             1.0
         } else {
             let first = layer_cover((x, y), at, 0, first_lines, plan(c1, lines_share(d)), 0);
@@ -354,7 +380,19 @@ pub(crate) fn draw(
                 plan(c2, 1.0),
                 CROSS_SALT,
             );
-            1.0 - (1.0 - first) * (1.0 - second)
+            if c3 > 0.0 {
+                let third = layer_cover(
+                    (x, y),
+                    at,
+                    2 * CROSS_TURN,
+                    third_lines,
+                    plan(c3, 1.0),
+                    THIRD_SALT,
+                );
+                1.0 - (1.0 - first) * (1.0 - second) * (1.0 - third)
+            } else {
+                1.0 - (1.0 - first) * (1.0 - second)
+            }
         };
         let p = pressure(d);
         let a = lay(tooth[i], p, TOOTH_EDGE);
@@ -379,7 +417,7 @@ mod tests {
         density: f32,
     ) -> Vec<f32> {
         let t = tooth(w, h, Paper::Medium, angle);
-        draw(tone, guide, w, h, &t, 0.5, angle, density)
+        draw(tone, guide, w, h, &t, 0.5, angle, density, 0.0)
     }
 
     /// A picture `w` by `h` of one tone with one dark pixel in the corner, so the tone is not the
@@ -638,6 +676,42 @@ mod tests {
         assert_eq!(
             run(&tone, &tone, (w, h), 30.0, 0.5),
             run(&tone, &tone, (w, h), 30.0, 0.5)
+        );
+    }
+
+    #[test]
+    fn test_cross_zero_is_the_two_layers_and_cross_adds_a_third_in_the_darks() {
+        for k in 0..=20 {
+            let d = k as f32 / 20.0;
+            let (first, second) = layers(d);
+            assert_eq!(layers3(d, 0.0), (first, second, 0.0));
+        }
+        // the covered share of the paper is the same, with or without the third
+        let covered = |(a, b, c): (f32, f32, f32)| 1.0 - (1.0 - a) * (1.0 - b) * (1.0 - c);
+        for d in [0.45f32, 0.6, 0.75, 0.9] {
+            assert!((covered(layers3(d, 1.0)) - covered(layers3(d, 0.0))).abs() < 1e-4);
+            assert!(layers3(d, 1.0).2 > 0.0, "d {d}");
+        }
+        // a light tone gets no third layer
+        assert_eq!(layers3(0.2, 1.0).2, 0.0);
+    }
+
+    #[test]
+    fn test_cross_changes_a_dark_patch_and_keeps_its_mean() {
+        let (w, h) = (96, 96);
+        // L* 45 is about 0.64 dark: lines still show, and the second layer is on
+        let tone = flat(45.0, w, h);
+        let t = tooth(w, h, Paper::Medium, 45.0);
+        let plain = draw(&tone, &tone, w, h, &t, 0.5, 45.0, 0.5, 0.0);
+        let crossed = draw(&tone, &tone, w, h, &t, 0.5, 45.0, 0.5, 1.0);
+        assert_ne!(plain, crossed);
+        let mean = |v: &[f32]| v.iter().sum::<f32>() / v.len() as f32;
+        assert!((mean(&plain) - mean(&crossed)).abs() < 1.0);
+        // a light patch has no crossing, so it is the same picture
+        let light = flat(80.0, w, h);
+        assert_eq!(
+            draw(&light, &light, w, h, &t, 0.5, 45.0, 0.5, 0.0),
+            draw(&light, &light, w, h, &t, 0.5, 45.0, 0.5, 1.0)
         );
     }
 }

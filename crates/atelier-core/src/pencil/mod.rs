@@ -41,6 +41,7 @@
 mod auto;
 mod build_up;
 mod choice;
+mod cross;
 mod darks;
 mod drawing;
 mod grades;
@@ -315,11 +316,19 @@ fn textured(tone: Vec<f32>, guide: &[f32], (w, h): (usize, usize), k: &Knobs) ->
     let shown = match k.look {
         Look::Drawing => {
             let tooth = paper::tooth(w, h, k.paper, angle);
-            drawing::draw(&tone, w, h, &tooth, k.grain, k.paper)
+            // the crossed tooth runs a quarter turn from the first
+            let turned = (k.cross > 0.0).then(|| paper::tooth(w, h, k.paper, angle + 90.0));
+            let crossed = turned.as_deref().map(|tooth| cross::Crossed {
+                tooth,
+                amount: k.cross,
+            });
+            drawing::draw(&tone, w, h, &tooth, k.grain, k.paper, crossed)
         }
         Look::Hatch => {
             let tooth = paper::tooth(w, h, k.paper, angle);
-            hatch::draw(&tone, guide, w, h, &tooth, k.grain, angle, k.density)
+            hatch::draw(
+                &tone, guide, w, h, &tooth, k.grain, angle, k.density, k.cross,
+            )
         }
         Look::Tone | Look::Zones | Look::ByPencil => tone,
     };

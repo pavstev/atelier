@@ -2,6 +2,7 @@
 //! tone is a few soft peaks and a dark tone fills the tooth; a soft grade lays smoother than a hard
 //! one. The tone of a patch stays the tone.
 
+use super::cross::{Crossed, tooth_mix};
 use super::grades::TONES;
 use super::ink::{darkest, darkness, grain_factor, hold_mean, lay, pressure, tone_of};
 use super::paper::Paper;
@@ -75,6 +76,7 @@ fn slope(tooth: &[f32], w: usize, h: usize, x: usize, y: usize) -> (f32, f32) {
 /// The shown L* of the Drawing look, per pixel. `tone` is the Tone picture (L*), `tooth` the paper
 /// tooth of the same size, `grain` 0 (the flat tone) to 1 (all the grain). The 16 px box mean of
 /// the result follows `tone`; no pixel is darker than the darkest of `tone` (the sheen keeps to it).
+/// With `crossed`, a second tooth mixes into the first in the darks (see [`super::cross`]).
 pub(crate) fn draw(
     tone: &[f32],
     w: usize,
@@ -82,6 +84,7 @@ pub(crate) fn draw(
     tooth: &[f32],
     grain: f32,
     paper: Paper,
+    crossed: Option<Crossed>,
 ) -> Vec<f32> {
     if grain <= 0.0 {
         return tone.to_vec();
@@ -91,9 +94,13 @@ pub(crate) fn draw(
     let edge = paper_edge(paper);
     let mut cover = Vec::with_capacity(tone.len());
     let mut shown: Vec<f32> = Vec::with_capacity(tone.len());
-    for ((&l, &d), &t) in tone.iter().zip(&flat).zip(tooth) {
+    for (i, ((&l, &d), &t)) in tone.iter().zip(&flat).zip(tooth).enumerate() {
         let p = pressure(d);
-        let a = lay(t, p, edge + SOFT_EDGE * softness(l));
+        let soft = edge + SOFT_EDGE * softness(l);
+        let mut a = lay(t, p, soft);
+        if let Some(c) = crossed {
+            a = tooth_mix(a, lay(c.tooth[i], p, soft), d, c.amount);
+        }
         cover.push(a);
         shown.push((d * (1.0 + grain * (grain_factor(a, p, d) - 1.0))).min(1.0));
     }
@@ -165,7 +172,7 @@ mod tests {
             .collect();
         for paper in [Paper::Smooth, Paper::Medium, Paper::Rough] {
             let t = tooth(w, h, paper, 45.0);
-            let shown = draw(&tone, w, h, &t, 1.0, paper);
+            let shown = draw(&tone, w, h, &t, 1.0, paper, None);
             let (mean, worst) = gaps(&shown, &tone, w, h);
             assert!(mean < 0.5 && worst < 2.5, "{paper:?}: {mean} {worst}");
         }
@@ -178,7 +185,7 @@ mod tests {
             let mut tone = vec![l; w * h];
             tone[0] = 17.0;
             let t = tooth(w, h, Paper::Medium, 45.0);
-            let shown = draw(&tone, w, h, &t, 1.0, Paper::Medium);
+            let shown = draw(&tone, w, h, &t, 1.0, Paper::Medium, None);
             let (mean, worst) = gaps(&shown, &tone, w, h);
             assert!(mean < 0.5 && worst < 2.0, "{l}: {mean} {worst}");
         }
@@ -189,9 +196,9 @@ mod tests {
         let (w, h) = (64, 64);
         let tone: Vec<f32> = (0..w * h).map(|i| 30.0 + (i % w) as f32).collect();
         let t = tooth(w, h, Paper::Medium, 45.0);
-        assert_eq!(draw(&tone, w, h, &t, 0.0, Paper::Medium), tone);
-        let half = draw(&tone, w, h, &t, 0.5, Paper::Medium);
-        let full = draw(&tone, w, h, &t, 1.0, Paper::Medium);
+        assert_eq!(draw(&tone, w, h, &t, 0.0, Paper::Medium, None), tone);
+        let half = draw(&tone, w, h, &t, 0.5, Paper::Medium, None);
+        let full = draw(&tone, w, h, &t, 1.0, Paper::Medium, None);
         let spread = |v: &[f32]| v.iter().zip(&tone).map(|(a, b)| (a - b).abs()).sum::<f32>();
         assert!(spread(&half) > 0.0 && spread(&full) > spread(&half));
     }
@@ -201,7 +208,7 @@ mod tests {
         let (w, h) = (64, 64);
         let tone: Vec<f32> = (0..w * h).map(|i| 26.0 + (i % w) as f32).collect();
         let t = tooth(w, h, Paper::Smooth, 0.0);
-        let shown = draw(&tone, w, h, &t, 1.0, Paper::Smooth);
+        let shown = draw(&tone, w, h, &t, 1.0, Paper::Smooth, None);
         assert!(shown.iter().all(|&l| l >= 26.0 - 1e-4));
         assert!(shown.iter().all(|&l| l <= PAPER + 1e-4));
     }
@@ -212,8 +219,35 @@ mod tests {
         let tone: Vec<f32> = (0..w * h).map(|i| 20.0 + (i % w) as f32 * 1.5).collect();
         let t = tooth(w, h, Paper::Rough, 60.0);
         assert_eq!(
-            draw(&tone, w, h, &t, 0.7, Paper::Rough),
-            draw(&tone, w, h, &t, 0.7, Paper::Rough)
+            draw(&tone, w, h, &t, 0.7, Paper::Rough, None),
+            draw(&tone, w, h, &t, 0.7, Paper::Rough, None)
         );
+    }
+
+    #[test]
+    fn test_a_second_tooth_changes_the_darks_and_leaves_the_lights() {
+        let (w, h) = (64, 64);
+        // the left half is light, the right half is dark (but not the darkest tone, which is solid)
+        let mut tone: Vec<f32> = (0..w * h)
+            .map(|i| if i % w < w / 2 { 85.0 } else { 45.0 })
+            .collect();
+        tone[0] = 20.0;
+        let t = tooth(w, h, Paper::Medium, 45.0);
+        let turned = tooth(w, h, Paper::Medium, 135.0);
+        let crossed = Some(Crossed {
+            tooth: &turned,
+            amount: 1.0,
+        });
+        let plain = draw(&tone, w, h, &t, 1.0, Paper::Medium, None);
+        let with = draw(&tone, w, h, &t, 1.0, Paper::Medium, crossed);
+        let gap = |from: usize, to: usize| {
+            (0..w * h)
+                .filter(|i| (from..to).contains(&(i % w)))
+                .map(|i| (plain[i] - with[i]).abs())
+                .sum::<f32>()
+        };
+        // the hold reaches about 16 px over the border, so look well to the left of it
+        assert_eq!(gap(1, w / 2 - 20), 0.0);
+        assert!(gap(w / 2, w) > 10.0);
     }
 }
