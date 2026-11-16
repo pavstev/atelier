@@ -48,6 +48,7 @@ mod hatch;
 mod ink;
 mod local;
 mod paper;
+mod smudge;
 mod tone;
 
 #[cfg(test)]
@@ -302,11 +303,11 @@ fn tone_picture(work: &Rgb, k: &Knobs, tones: &[f32], drawn_to: Option<usize>) -
 }
 
 /// The shown L* per pixel of the picture `tone` in the look of `k`: Drawing on the paper tooth,
-/// Hatch as lines that follow `guide` (the smoothed L*), the others as they are. The one place the
-/// texture looks are called.
+/// Hatch as lines that follow `guide` (the smoothed L*), the others as they are, then the smudge.
+/// The one place the texture looks are called.
 fn textured(tone: Vec<f32>, guide: &[f32], (w, h): (usize, usize), k: &Knobs) -> Vec<f32> {
     let angle = f32::from(k.angle);
-    match k.look {
+    let shown = match k.look {
         Look::Drawing => {
             let tooth = paper::tooth(w, h, k.paper, angle);
             drawing::draw(&tone, w, h, &tooth, k.grain, k.paper)
@@ -316,5 +317,10 @@ fn textured(tone: Vec<f32>, guide: &[f32], (w, h): (usize, usize), k: &Knobs) ->
             hatch::draw(&tone, guide, w, h, &tooth, k.grain, angle, k.density)
         }
         Look::Tone | Look::Zones | Look::ByPencil => tone,
+    };
+    // the stump works on the drawn graphite; By pencil keeps its tone for the step
+    match k.look {
+        Look::Tone | Look::Drawing | Look::Hatch => smudge::drag(&shown, (w, h), angle, k.smudge),
+        Look::Zones | Look::ByPencil => shown,
     }
 }

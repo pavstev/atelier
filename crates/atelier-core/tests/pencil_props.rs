@@ -451,3 +451,34 @@ fn test_tone_and_zones_at_the_start_knobs_are_the_bytes_they_were_before_the_kno
         assert_eq!(got, was, "{name} moved from the bytes before the knobs");
     }
 }
+
+/// Slots of the three effects.
+const SMUDGE: usize = 11;
+
+/// The checks every effect shares, on the 128 px fixture: at 0 and at 100, in each look it works in
+/// (`looks`) it moves the picture, and keeps its mean L* within `limit`; in the other looks it does
+/// nothing; two runs give the same bytes.
+fn check_effect(slot: usize, name: &str, looks: &[u32], limit: f64) {
+    let w = common::work();
+    let full = numbers(|n| n[slot] = 100.0);
+    for look in LOOKS {
+        let off = render(&w, look, 255, &PENCIL_START);
+        let on = render(&w, look, 255, &full);
+        if looks.contains(&look) {
+            assert!(on != off, "{name} does not move look {look}");
+            let gap = (mean_l(&on) - mean_l(&off)).abs();
+            assert!(gap <= limit, "{name} look {look}: mean moved {gap:.2} L*");
+            assert!(
+                on == render(&w, look, 255, &full),
+                "{name} look {look}: two runs differ"
+            );
+        } else {
+            assert!(on == off, "{name} should leave look {look} alone");
+        }
+    }
+}
+
+#[test]
+fn test_smudge_blends_along_the_stroke_and_keeps_the_mean_within_one_l_star() {
+    check_effect(SMUDGE, "smudge", &[TONE, DRAWING, HATCH], 1.0);
+}
