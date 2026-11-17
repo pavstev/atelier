@@ -1,5 +1,6 @@
-// The bar at the bottom center of the stage, left to right: See photo (hold) | Base, Edges and Grid
-// buttons and the color picker toggle | the zoom button. A tool button opens its controls in a card
+// The bar at the bottom center of the stage, left to right: See photo (a tap keeps the bare photo on
+// and lights the button, a press over 300 ms peeks while held) | Base, Edges, Grid and Size
+// buttons and the color picker toggle | the zoom button. Size (`features/size`) frames the photo to a paper. A tool button opens its controls in a card
 // over the bar (a bottom sheet on a phone), one card at a time. The picker has no card: it is a
 // toggle, and its mix card follows the mouse over the photo (`features/picker`). The zoom button shows the zoom now; its menu has Fit, 100%,
 // 200% and "Real size (cm)...", which locks the zoom to a real width and opens a small card for the
@@ -10,8 +11,10 @@ import { Button, Dropdown, Label } from "@heroui/react";
 import { type ReactNode, useEffect, useRef, useState } from "react";
 import { usePencilAuto } from "@/features/pencil/usePencilAuto";
 import { usePencilExtras } from "@/features/pencil/usePencilExtras";
+import SizeCard from "@/features/size/SizeCard";
+import type { SizeState } from "@/features/size/useSize";
 import { baseName, ToolBody, ToolHead } from "@/features/tools/Panel";
-import type { Look, StageId } from "@/features/tools/settings";
+import { GRID_MODE, type Look, type StageId } from "@/features/tools/settings";
 import { KEYS, loadJson, useSaved } from "@/lib/storage";
 import { NumberBox } from "@/ui/fields";
 import { Icon, IconButton, type IconName, Tip } from "@/ui/icons";
@@ -21,7 +24,7 @@ import type { Lock } from "./lockZoom";
 import Popup from "./Popup";
 import { guessScreen } from "./screens";
 
-type Open = StageId | "lock" | null;
+type Open = StageId | "size" | "lock" | null;
 
 /** The icon of each base, so the Base button shows the base now on show. */
 const BASE_ICON: Record<Look["base"]["kind"], IconName> = {
@@ -39,7 +42,10 @@ export default function StageBar(p: {
 	zoom: number;
 	lock: Lock;
 	onLock: (l: Lock) => void;
-	onHold: (down: boolean) => void;
+	/** See photo goes down (true) or up (false); `seePhoto.ts` tells a tap from a hold. */
+	onHold: (down: boolean, completed?: boolean) => void;
+	/** The bare photo is kept on after a tap. */
+	seeLatched: boolean;
 	onFit: () => void;
 	/** Zooms to this factor around the center of the stage (1 is 100%). */
 	onZoomTo: (zoom: number) => void;
@@ -47,6 +53,8 @@ export default function StageBar(p: {
 	onLook: (f: (s: Look) => Look) => void;
 	/** The photo on screen: Auto and Suggest of the Pencil card read it. */
 	photo: ImageData | null;
+	/** The paper or canvas of the photo (the Size card). */
+	size: SizeState;
 	/** The legend of Values, Shapes or Pencil, shown in the Base card. */
 	legend?: ReactNode;
 	/** The color picker is on. */
@@ -62,6 +70,8 @@ export default function StageBar(p: {
 	usePencilAuto(p.photo, p.look, p.onLook, extras);
 	const found = guessScreen();
 	const lockCard = useRef<HTMLDivElement>(null);
+	// the See photo press finished on the button (not left or cancelled)
+	const pressed = useRef(false);
 	// the bar place along the stage, saved so a refresh keeps it
 	const frame = useRef<HTMLDivElement>(null);
 	const [place, setPlace] = useState(() => ({
@@ -119,6 +129,13 @@ export default function StageBar(p: {
 		}
 	};
 
+	// "Show at real size" of the Size card: the same Lock as "Real size (cm)...", at this photo width.
+	// Without a screen width the zoom cannot be real yet, so the small card that asks for it opens.
+	const realSize = (cm: number) => {
+		p.onLock({ ...lock, on: true, cm });
+		setOpen(lock.screenCm > 0 ? null : "lock");
+	};
+
 	// Pencil is a drawing of its own: Edges is off while it is the base (its saved switch stays)
 	const noEdges = p.look.base.kind === "pencil";
 	const info: Record<StageId, { label: string; icon: IconName; tip: string }> =
@@ -147,15 +164,30 @@ export default function StageBar(p: {
 				data-testid="stage-bar"
 				className="floating-card flex items-center gap-1 rounded-full p-1"
 			>
-				<Tip text="Hold to see the bare photo (Space)" placement="top">
+				<Tip
+					text="Tap to keep the bare photo, hold to peek (Space)"
+					placement="top"
+				>
 					<Button
 						size="sm"
-						variant="ghost"
+						variant={p.seeLatched ? "secondary" : "ghost"}
 						className="touch-none select-none rounded-full"
 						aria-label="See photo"
+						aria-pressed={p.seeLatched}
+						data-latched={p.seeLatched ? "true" : undefined}
 						data-testid="photo-hold"
-						onPressStart={() => p.onHold(true)}
-						onPressEnd={() => p.onHold(false)}
+						onPressStart={() => {
+							pressed.current = false;
+							p.onHold(true);
+						}}
+						// onPress comes right after onPressEnd, and only for a press that finished on the
+						// button; a leave or a cancel has no onPress, so it only ends the peek
+						onPress={() => {
+							pressed.current = true;
+						}}
+						onPressEnd={() =>
+							queueMicrotask(() => p.onHold(false, pressed.current))
+						}
 					>
 						<Icon name="eye" />
 						<span className="@max-md:sr-only">See photo</span>
@@ -194,6 +226,36 @@ export default function StageBar(p: {
 						/>
 					</Popup>
 				))}
+				<Popup
+					id="size"
+					title="Size"
+					open={open === "size"}
+					onOpenChange={(o) =>
+						setOpen(o ? "size" : open === "size" ? null : open)
+					}
+					button={{
+						icon: "size",
+						label: "Size",
+						tip: "Size: paper and canvas",
+						testid: "tool-size",
+						on: p.size.choice.fit,
+					}}
+				>
+					{p.size.whole && (
+						<SizeCard
+							choice={p.size.choice}
+							onChange={p.size.set}
+							photoW={p.size.whole.width}
+							photoH={p.size.whole.height}
+							cells={
+								p.look.grid.on && p.look.grid.mode !== GRID_MODE.thirds
+									? p.look.grid.cells
+									: null
+							}
+							onReal={realSize}
+						/>
+					)}
+				</Popup>
 				<span className="h-5 w-px bg-separator" />
 				<IconButton
 					icon="pipette"

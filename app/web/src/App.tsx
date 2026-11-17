@@ -1,7 +1,8 @@
 // The whole screen: the photo list on the left; the photo takes the rest, with the tools in the
 // bar at the bottom of it.
 // A base (Photo, Values, Shapes, Paper or Pencil) with Edges and Grid over it; Pencil turns Edges off. The photos live in
-// `usePhotos`, the layers in `useLayers`, the middle in `StageArea`.
+// `usePhotos`, the layers in `useLayers`, the middle in `StageArea`. The Size tool cuts the photo to a paper
+// shape here (`useSize`), before the layers see its pixels.
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { Call } from "@/draw/calls";
 import { useLayers } from "@/draw/useLayers";
@@ -9,6 +10,7 @@ import { levelsOf } from "@/features/pencil/grades";
 import Files from "@/features/photos/Files";
 import { usePhotos } from "@/features/photos/usePhotos";
 import type { Fixed } from "@/features/picker/Picker";
+import { useSize } from "@/features/size/useSize";
 import StageArea from "@/features/stage/StageArea";
 import { Legend, PencilLegend } from "@/features/stage/Swatches";
 import {
@@ -23,7 +25,6 @@ import {
 import { InstallButton } from "@/pwa/InstallButton";
 import { startIntake } from "@/pwa/intake";
 import { askPersist } from "@/pwa/persist";
-import { UpdateToast } from "@/pwa/UpdateToast";
 import Logo from "@/ui/Logo";
 
 /** The call of each stacked layer; null when it is off (a Photo or Paper base draws nothing). */
@@ -61,9 +62,11 @@ export default function App() {
 	// the legend color held in the paint mix card, or none
 	const [picked, setPicked] = useState<Fixed | null>(null);
 
+	// the paper or canvas of the photo; the layers and the stage get the cut photo (Fit to paper)
+	const { framed, ...size } = useSize(ph.activeId, ph.photo);
 	const calls = useMemo(() => callsOf(look), [look]);
 	const { pictures, tones, shares, mark } = useLayers(
-		ph.photo,
+		framed,
 		calls,
 		ph.bump,
 		ph.layerFailed,
@@ -79,13 +82,13 @@ export default function App() {
 	}
 
 	const toned =
-		ph.photo !== null &&
+		framed !== null &&
 		(look.base.kind === "values" || look.base.kind === "shapes") &&
 		tones !== null &&
 		tones.length > 0;
 	// the Pencil levels (grade, tone, share), once a draw of the set of pencils on show has landed
 	const levels =
-		ph.photo !== null && look.base.kind === "pencil"
+		framed !== null && look.base.kind === "pencil"
 			? levelsOf(look.pencil.mask, tones, shares)
 			: null;
 	const openPicker = () => input.current?.click();
@@ -108,7 +111,6 @@ export default function App() {
 				<Logo className="h-[21px] w-auto" outline={layout.panels.left} />
 				<span className="sr-only">Atelier</span>
 			</div>
-			<UpdateToast />
 			<div className="fixed top-3 right-3 z-(--z-banner)">
 				<InstallButton />
 			</div>
@@ -142,8 +144,9 @@ export default function App() {
 			/>
 			<StageArea
 				root={root}
-				photo={ph.photo}
+				photo={framed}
 				photoId={ph.activeId}
+				size={size}
 				layers={shown}
 				look={look}
 				onLook={setLook}

@@ -1,5 +1,6 @@
-// The keyboard shortcuts, kept few: hold Space to see the bare photo, the arrow keys move the photo
-// (10 px, Shift for 100 px), [ hides or shows the side panel. A key does nothing
+// The keyboard shortcuts, kept few: Space shows the bare photo (a tap keeps it on until the next
+// tap, a press longer than 300 ms peeks only while held; `seePhoto.ts` decides), the arrow keys move
+// the photo (10 px, Shift for 100 px), [ hides or shows the side panel. A key does nothing
 // when the focus is in a panel, a text box, a slider, a menu or a dialog, so those keep their own
 // keys.
 import { useEffect, useEffectEvent } from "react";
@@ -58,6 +59,11 @@ export function useShortcuts(p: Handlers) {
 			holding = false;
 			hold(false);
 		};
+		// A lost focus is not a tap: the See photo state resets itself on blur (`seePhoto.ts`),
+		// so here the key only forgets that it was down.
+		const lost = () => {
+			holding = false;
+		};
 		const down = (e: KeyboardEvent) => {
 			if (act(e) && !holding) {
 				holding = true;
@@ -69,11 +75,11 @@ export function useShortcuts(p: Handlers) {
 		};
 		window.addEventListener("keydown", down);
 		window.addEventListener("keyup", up);
-		window.addEventListener("blur", release);
+		window.addEventListener("blur", lost);
 		return () => {
 			window.removeEventListener("keydown", down);
 			window.removeEventListener("keyup", up);
-			window.removeEventListener("blur", release);
+			window.removeEventListener("blur", lost);
 			release();
 		};
 	}, []);

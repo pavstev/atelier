@@ -1,7 +1,6 @@
-// The PWA state: whether an update waits, whether the app can be installed, and whether to show the
-// iOS "Add to Home Screen" tip. A plain reducer, so it can be tested without a browser.
+// The PWA state: whether the app can be installed, and whether to show the iOS "Add to Home Screen"
+// tip. A plain reducer, so it can be tested without a browser.
 export type PwaState = {
-	needRefresh: boolean;
 	canInstall: boolean;
 	standalone: boolean;
 	ios: boolean;
@@ -9,8 +8,6 @@ export type PwaState = {
 };
 
 export type PwaEvent =
-	| { type: "waiting" }
-	| { type: "dismiss" }
 	| { type: "canInstall" }
 	| { type: "installed" }
 	| { type: "installDismissed" }
@@ -18,12 +15,10 @@ export type PwaEvent =
 
 export type PwaApi = {
 	state: PwaState;
-	update: () => void;
 	install: () => void;
 };
 
 export const START: PwaState = {
-	needRefresh: false,
 	canInstall: false,
 	standalone: false,
 	ios: false,
@@ -32,10 +27,6 @@ export const START: PwaState = {
 
 export function pwaReducer(s: PwaState, e: PwaEvent): PwaState {
 	switch (e.type) {
-		case "waiting":
-			return { ...s, needRefresh: true };
-		case "dismiss":
-			return { ...s, needRefresh: false };
 		case "canInstall":
 			return { ...s, canInstall: true };
 		case "installed":

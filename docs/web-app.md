@@ -16,8 +16,9 @@ photo is open.
 
 Left to right:
 
-1. **See photo.** Hold it to see the bare photo. Holding Space does the same.
-2. **Base, Edges, Grid.** Three icon buttons. Each opens its controls in a pop-up card over the
+1. **See photo.** Tap it to keep the bare photo on until the next tap (the button lights up).
+   Hold it longer than 300 ms to peek only while you press. Space does the same.
+2. **Base, Edges, Grid, Size.** Four icon buttons (Size has its own part, [The Size tool](#the-size-tool)). Each opens its controls in a pop-up card over the
    bar. Only one pop-up is open at a time. Press the button again, press Esc, or press outside the
    card to close it. On a phone (under 768 px) the pop-up is a bottom sheet.
    - Edges and Grid look pressed when they are on. The Base button shows the current base (photo,
@@ -90,13 +91,38 @@ Left to right:
 
 A double click or a double tap on the photo toggles Fit and 100% (not while the zoom is locked).
 
+### The Size tool
+
+The Size button (a ruler) opens a pop-up where you pick the paper or canvas you paint on, so the
+Grid and the real size match it. The choice is kept for each photo (a reload keeps it). The photo
+itself is never cut in storage.
+
+- **Paper or canvas.** A row of chips: A5, A4, A3, A2, the canvases 30 x 40 (first), 18 x 24,
+  24 x 30, 40 x 50, 50 x 70 cm, and Custom. A small picture at the top shows the paper shape
+  and the photo faint behind it.
+- **Orientation.** Like photo (the start), Portrait or Landscape. Not used by Custom.
+- **Width and Height.** Always show the paper in cm. Typing in one turns the choice into Custom.
+  A side is kept between 1 and 300 cm.
+- **Whole photo** (the start) shows the photo as it is. **Fit to paper** cuts the photo to the paper
+  shape, in the middle. The Stage, Edges and Grid then work on the cut photo, so the Grid lines up
+  with the paper. The cut is made in the page before the pixels reach the layers worker; the Rust
+  core knows nothing about paper. The Size button looks pressed while Fit to paper is on.
+- **The fact line.** For example "30 x 40 cm. Grid cell: 5 cm": the long side of the paper over the
+  Grid cells. With Whole photo it says "about", because the photo and the paper may differ in
+  shape. It names a cell only while a Grid with cells is on (not Thirds).
+- **Show at real size** turns on the zoom lock (the same lock as Real size (cm)...) with the width
+  the picture has on the paper. If the screen width is not known yet, the small lock card opens so
+  you can type it.
+
+The Grid still counts cells, not whole cm (`docs/LEFTOVERS.md`).
+
 ### The layers
 
 The order is fixed ([ARCHITECTURE.md](../ARCHITECTURE.md#the-layers)): one base, then Edges, then
 Grid.
 
 - **Base:** Photo, Values, Shapes, Paper or Pencil. Values, Shapes and Pencil have one opacity.
-  Paper is white with no photo, so only the lines show (hold See photo to see the photo).
+  Paper is white with no photo, so only the lines show (use See photo to see the photo).
   - **Values:** six presets (Notan, Three, Five, Shadow family, Light family, Families), Detail,
     and Gray or Umber. The legend in the Base pop-up shows the Munsell value of each tone, V1
     (dark) to V9 (light). Press a swatch to hold that color in the paint mix card (see the color
@@ -201,7 +227,7 @@ The app is dark only. The colors and sizes are in
 ## How it is built
 
 React 19, Hero UI v3 and Tailwind CSS v4 over the Rust core in wasm. The source in `app/web/src/`
-has five folders. Paths below are under `src/`.
+has six folders. Paths below are under `src/`.
 
 - `features/photos/`: the photo list on this device and the photo on screen.
 - `features/stage/`: the stage, the bottom bar, zoom and pan, shortcuts, the real size lock and the
@@ -212,6 +238,8 @@ has five folders. Paths below are under `src/`.
 - `features/pencil/`: the list of pencils in the core's bit order (`grades.ts`: names, hints, the
   set a mask picks, the level nearest a color), the Pencils toggle row (`GradeRow.tsx`), the
   settings and their ranges (`knobs.ts`), the Auto note (`explain.ts`) and the card (`PencilCard.tsx`).
+- `features/size/`: the Size tool: the paper table and the cut (`paper.ts`), the cut of the pixels
+  (`crop.ts`), the choice per photo (`useSize.ts`) and the card (`SizeCard.tsx`, `SizePreview.tsx`).
 - `features/tools/`: the pop-up cards of the bottom bar and the settings (`settings.ts`: the start
   values and ranges of every knob).
 - `draw/`: the layers worker, its client, the typed calls and the draw hook.
@@ -236,7 +264,8 @@ has five folders. Paths below are under `src/`.
 
 - The app is a progressive web app, in production only (`vite` in dev never registers a worker).
   `/sw.js` precaches the whole build (about 1.6 MB). After the first visit the app starts with no
-  network. A new build waits as a second worker, and a toast offers Reload. The Install button
+  network. A new build takes over by itself and the page reloads once: the page looks for one on
+  open, on return to the tab and every 30 minutes. There is no update toast. The Install button
   shows when the browser can install the app.
 - `public/manifest.webmanifest` names the app (name, id, scope `/`, standalone, stage color), has
   four icons, and registers the app as an image handler (Open with on desktop) and a share target
@@ -246,7 +275,7 @@ has five folders. Paths below are under `src/`.
   page draws up to the top edge and only the window buttons float on top. Safari always keeps its
   native title bar, and Ctrl+Cmd+F hides it.
 - `src/sw/` is the worker (`sw.ts`, `routes.ts`, `precache.ts`). `src/pwa/` is the page side:
-  `register.ts`, `state.ts`, `usePwa.ts`, `UpdateToast.tsx`, `InstallButton.tsx`, `intake.ts`
+  `register.ts`, `state.ts`, `usePwa.ts`, `InstallButton.tsx`, `intake.ts`
   (launched and shared photos) and `persist.ts` (asks the browser to keep the photo store).
 - A photo is decoded and tiled off the main thread by `features/photos/decodeWorker.ts`.
 

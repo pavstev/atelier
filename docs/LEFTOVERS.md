@@ -39,6 +39,7 @@ own, with the bench in [development/bench.md](development/bench.md).
 | 67 | Pencil Smudge adds about 120 ms natively (about 40 percent) to a 1024 x 768 draw and drags along the one Hatch angle, not the form flow, so in Hatch the drag crosses the lines where they bend. In the browser it is slower. Idea: use the structure direction Hatch already reads, and time it in wasm. | `crates/atelier-core/src/pencil/smudge.rs` |
 | 68 | The effect pictures (Smudge, Lifted lights, Cross-hatch) and the Auto-first card were checked in the tests and on one screenshot only, not rated on real photos with the bench sheets. Run the tool bench and the rater before the next Pencil round. | `docs/development/bench.md` |
 | 69 | The main JS bundle is about 657 KB. Split it (lazy load the tool cards and the picker) so the first paint and the precache are lighter. | `app/web/vite.config.ts`, `app/web/src/App.tsx` |
+| 70 | Grid in cm: the Grid still counts cells; a Grid step in whole cm is not built. The Size card only tells the cell size (paper long side over the cells). | `app/web/src/features/tools/settings.ts`, `app/web/src/features/size/paper.ts` |
 
 ## Where leftovers come from
 

@@ -2,10 +2,11 @@
 // the error banner and the color picker. It owns the zoom and pan (`useViewport`) and the Lock, so a
 // drag or a wheel turn draws this part only and not the whole page.
 import { Button } from "@heroui/react";
-import { type ReactNode, type RefObject, useState } from "react";
+import { type ReactNode, type RefObject, useEffect, useState } from "react";
 import { useFacts } from "@/draw/facts";
 import type { Level } from "@/features/pencil/grades";
 import Picker, { AREA_START, type Fixed } from "@/features/picker/Picker";
+import type { SizeState } from "@/features/size/useSize";
 import {
 	LAYOUT,
 	type Layout,
@@ -20,6 +21,7 @@ import { lockedWidth, useLock } from "./lockZoom";
 import ResizeHandle from "./ResizeHandle";
 import Stage from "./Stage";
 import StageBar from "./StageBar";
+import { useSeePhoto } from "./seePhoto";
 import { useShortcuts } from "./useShortcuts";
 import { useViewport } from "./useViewport";
 
@@ -36,6 +38,8 @@ export default function StageArea(p: {
 	photo: ImageData | null;
 	/** The photo id; each photo keeps its own zoom. */
 	photoId: string | null;
+	/** The paper or canvas of the photo; `photo` above is already cut to it when Fit to paper is on. */
+	size: SizeState;
 	layers: Layers;
 	look: Look;
 	onLook: (f: (s: Look) => Look) => void;
@@ -59,7 +63,16 @@ export default function StageArea(p: {
 	const { look, layout, photo } = p;
 	const drawn = useFacts();
 	const [lock, setLock] = useLock();
-	const [hold, setHold] = useState(false);
+	const see = useSeePhoto();
+	const hold = see.on;
+	const onHold = (down: boolean, completed = true) =>
+		down
+			? see.press(performance.now())
+			: see.release(performance.now(), completed);
+	// a kept-on See photo does not carry over to another photo, which would show bare
+	const { reset: resetSee } = see;
+	// biome-ignore lint/correctness/useExhaustiveDependencies: runs when the photo changes
+	useEffect(() => resetSee(), [p.photoId, resetSee]);
 	const [picking, setPicking] = useState(false);
 	const [area, setArea] = useState(AREA_START);
 	// a color held from the legend turns the picker on
@@ -73,7 +86,7 @@ export default function StageArea(p: {
 		p.onLayout((l) => ({ ...l, panels: { left: !l.panels.left } }));
 	useShortcuts({
 		hasPhoto: photo !== null,
-		onHold: setHold,
+		onHold,
 		onPan: viewport.pan,
 		onPanel: toggle,
 	});
@@ -150,12 +163,14 @@ export default function StageArea(p: {
 						lock={lock}
 						onLock={setLock}
 						zoom={viewport.view.zoom}
-						onHold={setHold}
+						onHold={onHold}
+						seeLatched={see.latched}
 						onFit={viewport.fit}
 						onZoomTo={viewport.zoomTo}
 						look={look}
 						onLook={p.onLook}
 						photo={photo}
+						size={p.size}
 						legend={p.legend}
 						picking={picking}
 						picked={p.picked}

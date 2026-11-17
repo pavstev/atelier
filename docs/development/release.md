@@ -52,7 +52,7 @@ the wasm in mind: the page needs `'wasm-unsafe-eval'` to compile the Rust core.
 a hash of the build, so every release makes a new cache and the old one is deleted when the new
 worker activates. `_headers` serves `/sw.js`, `/index.html` and the manifest with `no-cache`, so a
 release reaches users. The smoke test `PREVIEW=1 pnpm --dir app/web exec playwright test pwa-offline.spec.ts pwa-manifest.spec.ts pwa-share.spec.ts pwa-update.spec.ts`
-checks offline start, update and share on the built app.
+checks offline start, the automatic update and share on the built app.
 
 ## Icons and share images
 

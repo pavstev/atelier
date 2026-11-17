@@ -78,9 +78,22 @@ test("test_space_holds_the_bare_photo_arrows_move_it_and_the_bracket_hides_the_p
 	const layer = page.getByTestId("layer-canvas-base");
 	await expect(layer).toBeVisible();
 	await page.mouse.click(5, 5);
+	// held: peeks only while the key is down
 	await page.keyboard.down("Space");
 	await expect(layer).toBeHidden();
+	await page.waitForTimeout(400);
 	await page.keyboard.up("Space");
+	await expect(layer).toBeVisible();
+	// a tap keeps the bare photo on, the next tap turns it off
+	// the closed Base card gives the focus back to its button, and Space on a button presses it
+	await page.evaluate(() => (document.activeElement as HTMLElement)?.blur());
+	await page.keyboard.press("Space");
+	await expect(layer).toBeHidden();
+	await expect(page.getByTestId("photo-hold")).toHaveAttribute(
+		"data-latched",
+		"true",
+	);
+	await page.keyboard.press("Space");
 	await expect(layer).toBeVisible();
 
 	const before = await canvasX(page);
@@ -311,7 +324,7 @@ test("test_icon_buttons_of_the_stage_have_tips", async ({ studio }) => {
 	await studio.openSynthetic(480, 640, "one.png");
 	for (const [id, tip] of [
 		["zoom-menu", /Zoom/],
-		["photo-hold", /Hold to see/],
+		["photo-hold", /hold to peek/],
 	] as const) {
 		await page.mouse.move(700, 300);
 		await page.getByTestId(id).hover();

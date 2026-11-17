@@ -78,6 +78,7 @@ See [docs/development/testing.md](docs/development/testing.md).
 A hand-written service worker, `/sw.js` (`app/web/src/sw/`), precaches the whole build, so the app
 starts with no network. A small Vite plugin (`app/web/scripts/swPlugin.ts`) lists the built files
 and builds the worker after the app. The cache is named `atelier-shell-<version>`, where the
-version is the first 12 hex digits of a SHA-256 over the file list and bytes. A new worker waits
-until the page asks it to take over (a prompt, never silent). The worker answers only same-origin
+version is the first 12 hex digits of a SHA-256 over the file list and bytes. A new worker takes
+over by itself once its cache is full, and the page reloads once (it looks for a new version on
+open, on return to the tab and every 30 minutes). The worker answers only same-origin
 GET and `POST /share`. Photos and models are never in its cache. Details: [docs/web-app.md](docs/web-app.md).

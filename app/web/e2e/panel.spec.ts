@@ -129,8 +129,65 @@ test("test_photo_hold_hides_layers", async ({ studio }) => {
 	await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
 	await page.mouse.down();
 	await expect(canvas).toBeHidden();
+	await page.waitForTimeout(350);
 	await page.mouse.up();
 	await expect(canvas).toBeVisible();
+	await expect(page.getByTestId("photo-hold")).not.toHaveAttribute(
+		"data-latched",
+		"true",
+	);
+});
+
+test("test_photo_tap_keeps_the_bare_photo_until_the_next_tap", async ({
+	studio,
+}) => {
+	const { page } = studio;
+	await studio.open(MAIN_PHOTO);
+	await studio.base("values");
+	const canvas = page.getByTestId("layer-canvas-base");
+	const hold = page.getByTestId("photo-hold");
+	await expect(canvas).toBeVisible();
+	await hold.click();
+	await expect(canvas).toBeHidden();
+	await expect(hold).toHaveAttribute("data-latched", "true");
+	await page.mouse.move(5, 5);
+	await expect(canvas).toBeHidden();
+	await hold.click();
+	await expect(canvas).toBeVisible();
+	await expect(hold).not.toHaveAttribute("data-latched", "true");
+});
+
+test("a press that leaves the See photo button does not keep the photo on", async ({
+	studio,
+}) => {
+	const { page } = studio;
+	await studio.open(MAIN_PHOTO);
+	await studio.base("values");
+	const canvas = page.getByTestId("layer-canvas-base");
+	const hold = page.getByTestId("photo-hold");
+	const box = await hold.boundingBox();
+	if (!box) throw new Error("no hold button");
+	await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+	await page.mouse.down();
+	await expect(canvas).toBeHidden();
+	await page.mouse.move(5, 5);
+	await page.mouse.up();
+	await expect(canvas).toBeVisible();
+	await expect(hold).not.toHaveAttribute("data-latched", "true");
+});
+
+test("a kept-on See photo is off again on another photo", async ({
+	studio,
+}) => {
+	const { page } = studio;
+	await studio.openSynthetic(480, 640, "one.png");
+	await studio.base("values");
+	const hold = page.getByTestId("photo-hold");
+	await hold.click();
+	await expect(hold).toHaveAttribute("data-latched", "true");
+	await studio.openSynthetic(320, 480, "two.png");
+	await expect(hold).not.toHaveAttribute("data-latched", "true");
+	await expect(page.getByTestId("layer-canvas-base")).toBeVisible();
 });
 
 test("the Photo base takes the base canvas away", async ({ studio }) => {
@@ -157,6 +214,7 @@ test("test_paper_base_hides_the_photo", async ({ studio }) => {
 	await hold.hover();
 	await page.mouse.down();
 	await expect(photo).toBeVisible();
+	await page.waitForTimeout(350);
 	await page.mouse.up();
 	await expect(photo).toBeHidden();
 	await studio.base("photo");

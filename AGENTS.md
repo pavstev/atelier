@@ -63,6 +63,9 @@ Do not bring these back.
   one. It reads the shown picture and gives a mix of white, yellow, red, lake blue, phthalo blue and black
   (`app/web/src/features/picker/`). Mixbox, a color list and a color picker panel stay dropped.
 
+- 2026-11-17: the paper frame came back, by the owner's request: a Size tool in the bottom bar
+  (`app/web/src/features/size/`) picks a paper or canvas and can cut the photo to its shape. It is not the
+  old canvas sizes, materials or the 18 x 24 cm idea as a workspace.
 - 2026-11-16: light mode and the theme hook. The app is dark only. The side panel, the bottom bar and
   every pop-up are glass over the stage (`.glass` in `styles/index.css`); the panel no longer moves
   the photo.

@@ -210,6 +210,8 @@ type NumberProps = {
 	/** 0 shows an empty box. */
 	value: number;
 	onChange: (v: number) => void;
+	/** The box lost focus. */
+	onBlur?: () => void;
 	placeholder?: string;
 	testid?: string;
 };
@@ -219,6 +221,7 @@ export function NumberBox({
 	label,
 	value,
 	onChange,
+	onBlur,
 	placeholder,
 	testid,
 }: NumberProps) {
@@ -236,6 +239,7 @@ export function NumberBox({
 				aria-label={label}
 				placeholder={placeholder}
 				value={value > 0 ? value : ""}
+				onBlur={onBlur}
 				onChange={(e) => {
 					const n = Number.parseFloat(e.target.value);
 					onChange(Number.isFinite(n) && n > 0 ? n : 0);

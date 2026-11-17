@@ -1,7 +1,9 @@
-// Registers the service worker (production only) and tells the page what happens: an update waits,
-// the browser offers an install, the app was installed. The page listens through a tiny store, so
-// usePwa can read it. One reload on controllerchange, after the user accepted an update.
+// Registers the service worker (production only) and tells the page what happens: the browser
+// offers an install, the app was installed. The page listens through a tiny store, so usePwa can
+// read it. A new version applies by itself: the page looks for one on open, on return to the tab
+// and every 30 minutes, and reloads once on controllerchange.
 
+import { isBusy, onIdle } from "./busy.ts";
 import type { PwaEvent, PwaState } from "./state.ts";
 import { pwaReducer, START } from "./state.ts";
 
@@ -10,7 +12,6 @@ type Listener = () => void;
 let state: PwaState = START;
 let started = false;
 let reloading = false;
-let waiting: ServiceWorker | null = null;
 type InstallEvent = Event & {
 	prompt: () => Promise<void>;
 	userChoice: Promise<{ outcome: "accepted" | "dismissed" }>;
@@ -18,12 +19,16 @@ type InstallEvent = Event & {
 let deferred: InstallEvent | null = null;
 const listeners = new Set<Listener>();
 
-/** Reload on controllerchange only for an update (the page had a controller), and only once. */
+/**
+ * Reload on controllerchange only for an update (the page had a controller), only once, and not
+ * while a photo is being saved (`busy`): then the reload waits for the save (see `registerSw`).
+ */
 export function shouldReload(
 	hadController: boolean,
 	alreadyReloaded: boolean,
+	busy = false,
 ): boolean {
-	return hadController && !alreadyReloaded;
+	return hadController && !alreadyReloaded && !busy;
 }
 
 export function send(e: PwaEvent): void {
@@ -42,9 +47,29 @@ export function getState(): PwaState {
 	return state;
 }
 
-/** Asks the waiting worker to take over. The page reloads on controllerchange. */
-export function applyUpdate(): void {
-	waiting?.postMessage({ type: "SKIP_WAITING" });
+/** How often an open tab looks for a new version. */
+export const CHECK_MS = 30 * 60 * 1000;
+
+/**
+ * Looks for a new version now, when the tab becomes visible, and on a timer. The new worker skips
+ * the wait by itself, and the page reloads on controllerchange. A failed check (offline) is ignored.
+ */
+export function watchForUpdates(
+	reg: { update: () => Promise<unknown> },
+	doc: {
+		visibilityState: string;
+		addEventListener: (type: "visibilitychange", f: () => void) => void;
+	},
+	every: (f: () => void, ms: number) => unknown = setInterval,
+): void {
+	const check = () => {
+		reg.update().catch(() => {});
+	};
+	check();
+	every(check, CHECK_MS);
+	doc.addEventListener("visibilitychange", () => {
+		if (doc.visibilityState === "visible") check();
+	});
 }
 
 /** Shows the browser's install prompt, when it offered one. */
@@ -60,24 +85,6 @@ export function promptInstall(): void {
 			}),
 		)
 		.catch(() => send({ type: "installDismissed" }));
-}
-
-function watch(reg: ServiceWorkerRegistration): void {
-	const check = (w: ServiceWorker | null) => {
-		if (w && w.state === "installed" && navigator.serviceWorker.controller) {
-			waiting = w;
-			send({ type: "waiting" });
-		}
-	};
-	if (reg.waiting) {
-		waiting = reg.waiting;
-		send({ type: "waiting" });
-	}
-	reg.addEventListener("updatefound", () => {
-		const w = reg.installing;
-		if (!w) return;
-		w.addEventListener("statechange", () => check(w));
-	});
 }
 
 export function registerSw(): void {
@@ -107,11 +114,17 @@ export function registerSw(): void {
 			hadController = true;
 			return;
 		}
-		reloading = true;
-		location.reload();
+		const reload = () => {
+			if (reloading) return;
+			reloading = true;
+			location.reload();
+		};
+		// a save is running: reload when the last one ends
+		if (shouldReload(hadController, reloading, isBusy())) reload();
+		else if (!reloading) onIdle(reload);
 	});
 	navigator.serviceWorker
 		.register("/sw.js", { scope: "/" })
-		.then(watch)
+		.then((reg) => watchForUpdates(reg, document))
 		.catch(() => {});
 }

@@ -7,6 +7,7 @@
 import { loadPhoto as sendPhoto } from "@/draw/coreClient";
 import { sha256Hex } from "@/lib/bytes";
 import { errText } from "@/lib/util";
+import { whileBusy } from "@/pwa/busy";
 import { loadPhoto as decodePhoto } from "./photo";
 import {
 	type Doc,
@@ -62,9 +63,10 @@ async function prepareJoin(
 	img: ImageData,
 	hash: string,
 ): Promise<Partial<Doc>> {
-	void saveFile(id, file);
+	const saved = saveFile(id, file);
 	const thumb = await thumbnail(img);
 	const big = await previewOf(img);
+	await saved;
 	return {
 		hash,
 		thumb,
@@ -73,14 +75,20 @@ async function prepareJoin(
 	};
 }
 
-export async function addPhotos(files: File[], c: AddContext) {
-	if (files.length === 0) return;
+/** Adds photos. The page does not reload for a new version until the saves are done (`pwa/busy`). */
+export function addPhotos(files: File[], c: AddContext): Promise<void> {
+	if (files.length === 0) return Promise.resolve();
+	return whileBusy(() => addAll(files, c));
+}
+
+async function addAll(files: File[], c: AddContext) {
 	const me = ++c.latest.current;
 	c.clear("open");
 	const at = Date.now();
 	const failed: string[] = [];
 	let reason = "";
 	let firstId: string | null = null;
+	const saving: Promise<void>[] = [];
 	const seenFiles: File[] = [];
 	const seenHashes = new Set<string>();
 	const rest: Doc[] = [];
@@ -135,10 +143,11 @@ export async function addPhotos(files: File[], c: AddContext) {
 			continue;
 		}
 		firstId = id;
-		void saveFile(id, file);
+		saving.push(saveFile(id, file));
 		c.apply({ type: "show", doc: newDoc(id, file, img, at, { hash }) });
 		c.show(id, img);
 	}
+	await Promise.all(saving);
 	if (rest.length > 0 || replaced.size > 0)
 		// new ones go right under the photo that was shown, in the order they were picked
 		c.apply({ type: "join", rest, replaced, at, after: firstId });

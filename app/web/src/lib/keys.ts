@@ -17,6 +17,8 @@ export const KEYS = {
 	lock: "atelier.lockZoom",
 	/** The zoom and position of each photo, as shares of the fit zoom and of the stage. */
 	views: "atelier-web-views",
+	/** The paper or canvas chosen for each photo (Size tool): a map photo id -> choice. */
+	sizes: "atelier-web-sizes",
 	/** Stored files that no photo of the list owned, and when they were first seen so (`store/orphans.ts`). */
 	orphans: "atelier-web-orphans",
 } as const;

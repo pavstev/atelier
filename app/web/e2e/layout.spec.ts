@@ -400,6 +400,7 @@ test("test_hold_to_see_photo_works_with_the_keyboard", async ({ studio }) => {
 	await page.getByTestId("photo-hold").focus();
 	await page.keyboard.down("Space");
 	await expect(canvas).toBeHidden();
+	await page.waitForTimeout(350);
 	await page.keyboard.up("Space");
 	await expect(canvas).toBeVisible();
 });

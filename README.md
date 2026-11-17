@@ -57,7 +57,7 @@ The bottom bar holds everything.
 
 | Control | What it does |
 |---|---|
-| **See photo** | Hold it, or hold `Space`, to see the bare photo. |
+| **See photo** | Tap it, or tap `Space`, to keep the bare photo on; hold to peek. |
 | **Base** | Photo, Values, Shapes, Paper (only the lines on white) or Pencil. |
 | **Edges**, **Grid** | Turn a see-through layer on and set it. One card opens at a time; `Esc` closes it. |
 | **Zoom** | Fit, 100%, 200% or Real size (cm). A double click toggles Fit and 100%. |

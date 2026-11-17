@@ -11,7 +11,8 @@ paths:
 - Browser tests: Playwright, Chromium, headless, 4 workers. Never a visible window. Do not edit
   `src/` or `vite.config.ts` while a run is going: Vite reloads and a test times out.
 - Test hooks are `data-testid`s set in the components under `app/web/src/` (`features/`, `ui/` and `App.tsx`; for
-  example `photo-hold`, `base`, `opacity-base`, `values-preset`, `shapes-step`,
+  example `photo-hold` (See photo; `aria-pressed` and `data-latched="true"` while a tap keeps the
+  photo on; a press over 300 ms peeks only while held), `base`, `opacity-base`, `values-preset`, `shapes-step`,
   `edges-mode`, `edges-amount`, `edges-even`, `edges-width`, `grid-mode`, `grid-cells`, `grid-width`,
   `grid-group`, `grid-center`, `grid-paint`, `grid-color`, `values-detail`, `values-tint`,
   `shapes-detail`, `layer-edges`, `layer-grid`,
@@ -41,7 +42,13 @@ paths:
   `photos`, `photo-scroll`, `photo-row` (has `data-active`), `photo-open`, `photo-add`, `photo-search-toggle`, `photo-search`, `photo-search-clear`, `photo-sort`,
   `photo-layout`, `photo-count`, `photo-rename`, `photo-name`, `photo-delete`, `stage-bar`, `stage-bar-frame` (holds `--bar-left`), `bar-handle` (the grip, a slider; not on a phone), `logo`, `files-resize`, `panel-scrim`, `photo-card`, `photo-card-image`, `logo-outline`,
   `files`, `files-fold` and `files-expand` (the handle on the stage edge), and the bottom bar:
-  `tool-base`, `tool-edges`, `tool-grid` (the bar buttons), `tool-picker` (the color picker toggle;
+  `tool-base`, `tool-edges`, `tool-grid`, `tool-size` (the bar buttons; the Size card is `tool-popup`
+  with `data-tool="size"` and holds `size-preview` (an svg with `data-fit`, `data-ratio`), the chips
+  `size-preset` (one per paper, `data-preset` is the id, `aria-checked`; ids `a5 a4 a3 a2 30x40 18x24
+  24x30 40x50 50x70 custom`), `size-orientation` and `size-fit` (rows of radios; Like photo, Portrait,
+  Landscape and Whole photo, Fit to paper), `size-width` and `size-height` (number boxes in cm),
+  `size-fact` and `size-real`; the choice is saved per photo under `KEYS.sizes`; with Fit to paper the
+  `photo-canvas` has the paper shape), `tool-picker` (the color picker toggle;
   has `aria-pressed`; while on, `picker-card` follows the mouse, has `data-pinned`, `data-color`,
   `data-mix` and `data-error`, and holds `picker-swatch`, `picker-result`, `picker-parts` and one
   `picker-verdict`, `picker-ring` (the area under the mouse), and one `picker-white|yellow|red|lake|phthalo|black` row with `data-share` and
@@ -87,7 +94,9 @@ paths:
 
 - The worker is `src/sw/sw.ts`, built by `scripts/swPlugin.ts` after the app. Production only: dev never
   registers it. Cache `atelier-shell-<version>` (the plugin hashes the build); share cache `atelier-share`.
-- An update waits for `{type:"SKIP_WAITING"}` from the page. Never skip silently.
+- A new worker takes over by itself (`skipWaiting` on install, owner's choice 2026-11-17). The page
+  asks for a new version on open, on return to the tab and every 30 minutes, and reloads once on
+  `controllerchange`. There is no update toast.
 - The worker answers only same-origin GET and `POST /share`. A new file in `public/` is precached
   by the plugin, so check its size.
 - Slow test: `PREVIEW=1 pnpm --dir app/web exec playwright test pwa-offline.spec.ts pwa-manifest.spec.ts pwa-share.spec.ts pwa-update.spec.ts`.

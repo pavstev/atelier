@@ -1,5 +1,7 @@
 // Takes photos that the OS hands to the app: the launch queue (Open with on desktop) and the share
 // cache (Share on Android, filled by the worker on POST /share). Each batch goes to `add`.
+import { begin, end } from "./busy.ts";
+
 const SHARE_CACHE = "atelier-share";
 
 /** What the real adder is called with (T8 wraps addPhotos into this). */
@@ -30,7 +32,18 @@ const EXT: Record<string, string> = {
 	"image/heic": "heic",
 };
 
+// The share cache is emptied before `add` has saved the photos, so the page stays busy from the first
+// read until `add` has been called (it marks itself busy at once, see `addPhotos`).
 async function takeShared(win: IntakeWindow, add: AddFiles) {
+	begin();
+	try {
+		await readShared(win, add);
+	} finally {
+		end();
+	}
+}
+
+async function readShared(win: IntakeWindow, add: AddFiles) {
 	win.history.replaceState(null, "", win.location.pathname);
 	if (!win.caches) return;
 	const cache = await win.caches.open(SHARE_CACHE);
@@ -50,8 +63,13 @@ async function takeShared(win: IntakeWindow, add: AddFiles) {
 /** Starts listening for launched and shared photos. */
 export function startIntake(win: IntakeWindow, add: AddFiles): void {
 	win.launchQueue?.setConsumer(async (p) => {
-		const files = await Promise.all(p.files.map((h) => h.getFile()));
-		if (files.length) add(files);
+		begin();
+		try {
+			const files = await Promise.all(p.files.map((h) => h.getFile()));
+			if (files.length) add(files);
+		} finally {
+			end();
+		}
 	});
 	if (new URLSearchParams(win.location.search).has("shared")) {
 		void takeShared(win, add).catch(() => {});
