@@ -1,28 +1,23 @@
-// The Grid Cells slider: the steps 3, 4, 6, 8, 9, 10, 12, 18, 20, 24, 30, 40 and 50, and no error on the way.
+// The Grid Cells select: the steps 3, 4, 6, 8, 9, 10, 12, 18, 20, 24, 30, 40 and 50, and no error on the way.
 // The Width slider, the heavy lines every 2 or 4 cells, and the line color: Contrast or one color.
 import { expect, MAIN_PHOTO, readCanvas, test } from "./studio";
 
 const STEPS = [3, 4, 6, 8, 9, 10, 12, 18, 20, 24, 30, 40, 50];
 
-test("test_cells_no_error", async ({ studio }) => {
+test("test_cells_select", async ({ studio }) => {
 	const { page } = studio;
 	await studio.open(MAIN_PHOTO);
 	await studio.layer("grid", true);
-	const input = page.locator("[data-testid=grid-cells] input[type=range]");
-	const shown = page.locator("[data-testid=grid-cells] output");
-	const value = async () => Number(await shown.textContent());
-	await input.focus();
-	await studio.drawn(() => page.keyboard.press("Home"));
-	const seen = [await value()];
-	for (let i = 1; i < STEPS.length; i++) {
-		await studio.drawn(() => page.keyboard.press("ArrowRight"));
-		seen.push(await value());
-		await expect(page.getByTestId("error")).toHaveCount(0);
-	}
-	expect(seen).toEqual(STEPS);
-	// The end stops at 50.
-	await page.keyboard.press("ArrowRight");
-	expect(await value()).toBe(50);
+	const cells = page.getByTestId("grid-cells");
+	await cells.locator("button").first().click();
+	const options = page.getByRole("option");
+	await expect(options).toHaveText(STEPS.map(String));
+	await studio.drawn(() => options.nth(STEPS.indexOf(12)).click());
+	await expect(cells).toContainText("12");
+	await expect(page.getByTestId("error")).toHaveCount(0);
+	// the last step, 50, draws without an error too
+	await studio.knob("grid-cells", STEPS.length - 1);
+	await expect(cells).toContainText("50");
 	await expect(page.getByTestId("error")).toHaveCount(0);
 });
 

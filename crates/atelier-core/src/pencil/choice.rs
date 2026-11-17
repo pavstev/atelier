@@ -107,6 +107,7 @@ pub(super) fn suggest(smooth: &[f32], count: u32) -> Option<u32> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::test_support::next_lcg;
 
     /// A histogram with `n` pixels at each of the bins.
     fn at(bins: &[(usize, u64)]) -> [u64; BINS] {
@@ -152,7 +153,7 @@ mod tests {
         let mut seed = 99u32;
         let h: Vec<(usize, u64)> = (0..40)
             .map(|_| {
-                seed = seed.wrapping_mul(1_664_525).wrapping_add(1_013_904_223);
+                let seed = next_lcg(&mut seed);
                 ((seed >> 8) as usize % BINS, u64::from(seed >> 24) + 1)
             })
             .collect();

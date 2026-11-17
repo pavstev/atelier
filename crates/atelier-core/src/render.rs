@@ -13,8 +13,8 @@
 //! | values | 0 notan, 1 three, 2 five, 3 shadow family, 4 light family, 5 families | `detail`, `tint` 0 gray 1 umber |
 //! | shapes | step 0 shadows, 1 halftones, 2 lights, 3 accents | `detail` |
 //! | edges | mode 0 lines, 1 transfer, 2 masses | `amount`, `width`, `even` |
-//! | pencil | `look` 0 tone, 1 drawing, 2 zones, 3 hatch, 4 by pencil; `mask` the pencils, bit 0 the 9B to bit 7 the 4H (255 all) | [`PENCIL_NUMBERS`] numbers in this order: `detail`, `key`, `contrast` (percent, 50 changes nothing), `highlights` 0 to 25 and `darks` 0 to 100 (whole percent), `local`, `grain` (percent), `paper` 0 smooth 1 medium 2 rough, `angle` 0 to 179 (whole degrees), `density` (percent), `step` 1 to 8 (by pencil; the lightest is 1), then `smudge`, `lift` and `cross` (percent, 0 off). The answer also has the level `mark`. `pencil_auto` reads the photo and gives the start of `key`, `contrast` and `highlights` with what it read; `pencil_suggest` gives the `mask` of the best 3 to 6 of the eight pencils |
-//! | layers | `edges_layer`, `values_layer`, `shapes_layer`, `pencil_layer`, `grid_layer`: RGBA | edges: alpha is 255 minus the largest channel; values, shapes and pencil: alpha 255; grid: alpha only on lines (`mode` 0 thirds, 1 grid, 2 both; `cells` 3 to 50 across the width; `width` 1 to 16; `group` 2 to 4; `color`; `center` 0 or 1) |
+//! | pencil | `look` 0 tone, 1 drawing, 3 hatch (2 is not a look), 4 by pencil; `mask` the pencils, bit 0 the 9B to bit 7 the 4H (255 all) | [`PENCIL_NUMBERS`] numbers in this order: `detail`, `key`, `contrast` (percent, 50 changes nothing), `highlights` 0 to 25 and `darks` 0 to 100 (whole percent), `local`, `grain` (percent), `paper` 0 smooth 1 medium 2 rough, `angle` 0 to 179 (whole degrees), `density` (percent), `step` 1 to 8 (by pencil; the lightest is 1), then `smudge`, `lift` and `cross` (percent, 0 off). The answer also has the level `mark`. `pencil_auto` reads the photo and gives the start of `key`, `contrast` and `highlights` with what it read; `pencil_suggest` gives the `mask` of the best 3 to 6 of the eight pencils |
+//! | layers | `edges_layer`, `values_layer`, `shapes_layer`, `pencil_layer`, `grid_layer`: RGBA | edges: alpha is 255 minus the largest channel; values, shapes and pencil: alpha 255; grid: alpha only on lines (`mode` 0 thirds, 1 grid, 2 both; `cells` one of the `CELL_STEPS` (3 to 50) across the width; `width` 1 to 16; `group` 2 or 4; `color`; `center` 0 or 1) |
 //!
 //! The photo comes in as RGB, already decoded and turned upright by the page (the browser
 //! decoder). [`prepare_work`] brings it to the work size.
@@ -30,7 +30,7 @@ use crate::grid;
 use crate::img::Rgb;
 use crate::pencil;
 use crate::resize::resize_lanczos;
-use crate::shapes::{self, Fill, ShapesView};
+use crate::shapes::{self, ShapesView};
 use crate::values;
 
 /// The long side range of the prepare view, in px.
@@ -57,7 +57,7 @@ pub(crate) fn pick(v: u32, lo: u32, hi: u32, name: &str) -> Result<u8> {
 pub(crate) fn image<'a>(img: &'a Rgb, channels: usize, name: &str) -> Result<&'a Rgb> {
     if !img.is_well_formed(channels) {
         return Err(Error::bad(format!(
-            "{name} must be a {channels} channel image"
+            "{name} must be a non-empty {channels} channel image"
         )));
     }
     Ok(img)
@@ -106,8 +106,6 @@ pub fn prepare_work(photo: &Rgb, long: u32) -> Result<Rgb> {
 /// color guide at half weight.
 const SHAPES_SMOOTH: u8 = 1;
 const SHAPES_GUIDE: f32 = 0.5;
-/// The Shapes view blocks in the auto level.
-const SHAPES_AUTO: u8 = 3;
 
 /// Values. `preset` 0 to 5, `detail` in percent, `tint` 0 gray or 1 umber. Gives the picture and
 /// its tones as painted bytes, darkest first.
@@ -132,15 +130,7 @@ pub fn values_view(work: &Rgb, preset: u32, detail: f64, tint: u32) -> Result<(R
 pub fn shapes_view(work: &Rgb, step: u32, detail: f64) -> Result<(Rgb, Vec<[u8; 3]>)> {
     let work = image(work, 3, "work")?;
     let step = pick(step, 0, u32::from(shapes::STEP_MAX), "shapes step")?;
-    let v = ShapesView {
-        level: SHAPES_AUTO,
-        detail: knob(detail, "detail")?,
-        fill: Fill::Color,
-        smooth: SHAPES_SMOOTH,
-        guide: SHAPES_GUIDE,
-        outline: 1.0,
-    };
-    shapes::steps_view(work, step, &v)
+    shapes::steps_view(work, step, knob(detail, "detail")?, SHAPES_GUIDE)
 }
 
 /// Edges as a picture of ink on white paper. `mode` 0 lines, 1 transfer, 2 masses. `amount` is
@@ -166,14 +156,13 @@ pub fn edges_view(work: &Rgb, mode: u32, amount: f64, width: u32, even: f64) -> 
         let v = ShapesView {
             level: masses_level(amount),
             detail: MASSES_DETAIL,
-            fill: Fill::Outline,
             smooth: SHAPES_SMOOTH,
             guide: SHAPES_GUIDE,
             outline: scale,
         };
         return shapes::view(work, &v);
     }
-    let edges = edges::map::strength(work)?;
+    let edges = edges::map::strength(work);
     edges::trace::view_amount(work, mode == 1, amount as f32, scale, even, &edges)
 }
 
@@ -295,7 +284,7 @@ pub struct PencilLayer {
 }
 
 /// Pencil as an opaque layer: the photo as a graphite study. `look` 0 is the smooth tone picture,
-/// 1 the drawing (grain and hatching on paper), 2 the flat zones, 3 hatch, 4 by pencil. `mask` has
+/// 1 the drawing (grain and hatching on paper), 3 hatch, 4 by pencil (2 is not a look). `mask` has
 /// one bit per pencil, bit 0 the 9B, then 7B, 5B, 2B, HB, H, 3H, and bit 7 the 4H (255 is all
 /// eight), at least one set.
 ///
@@ -339,7 +328,7 @@ const SUGGEST_RANGE: (u32, u32) = (3, 6);
 /// An image that is not RGB or is empty.
 pub fn pencil_auto(work: &Rgb) -> Result<[f64; 9]> {
     let work = image(work, 3, "work")?;
-    Ok(pencil::read_auto(work)?.numbers())
+    Ok(pencil::read_auto(work).numbers())
 }
 
 /// The `mask` of the best `count` pencils (3 to 6) of the eight for the photo, found exactly by
@@ -378,7 +367,7 @@ fn pencil_knobs(look: u32, mask: u32, numbers: &[f64]) -> Result<pencil::Knobs> 
         )));
     };
     Ok(pencil::Knobs {
-        look: pencil::Look::from_index(pick(look, 0, 4, "pencil look")?)?,
+        look: pencil::Look::from_number(pick(look, 0, 4, "pencil look")?)?,
         mask: u32::from(pick(mask, 1, 255, "pencil set")?),
         detail: knob(detail, "detail")?,
         key: knob(key, "pencil key")?,
@@ -415,9 +404,9 @@ pub fn grid_layer(
 ) -> Result<Layer> {
     let work = image(work, 3, "work")?;
     let mode = pick(mode, 0, 2, "grid mode")?;
-    let cells = usize::from(pick(cells, 3, 50, "cells")?);
+    let cells = grid::cells_of(cells)?;
     let width = usize::from(pick(width, 1, 16, "grid width")?);
-    let group = usize::from(pick(group, 2, 4, "grid group")?);
+    let group = grid::group_of(group)?;
     let center = pick(center, 0, 1, "grid center")? == 1;
     Ok(Layer {
         width: work.width,

@@ -633,3 +633,27 @@ test("test_a_tall_held_skin_card_stays_inside_a_short_stage", async ({
 	expect(h.y + h.height).toBeLessThanOrEqual(stage.y + stage.height + 1);
 	await expect(card).toHaveAttribute("data-pinned", "true");
 });
+
+test("test_a_strip_swatch_holds_its_color_and_a_pencil_swatch_holds_its_grade", async ({
+	studio,
+}) => {
+	const { page } = studio;
+	await studio.openSynthetic(480, 640, "strip.png");
+	await studio.base("values");
+	await page.keyboard.press("Escape");
+	const strip = page.getByTestId("legend-strip");
+	await expect(strip).toBeVisible();
+	await strip.getByTestId("legend-swatch").first().getByRole("button").click();
+	await expect(page.getByTestId("picker-card")).toBeVisible();
+	await expect(page.getByTestId("picker-card").getByRole("heading")).toHaveText(
+		/^Paint mix · V\d+$/,
+	);
+	await page.keyboard.press("Escape");
+	await studio.base("pencil");
+	await page.keyboard.press("Escape");
+	const row = page.getByTestId("legend-strip").getByTestId("legend-swatch");
+	await expect(row.first()).toBeVisible();
+	const grade = await row.first().getAttribute("data-grade");
+	await row.first().getByRole("button").click();
+	await expect(page.getByTestId("picker-card")).toContainText(grade ?? "");
+});

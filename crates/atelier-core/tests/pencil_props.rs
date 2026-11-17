@@ -11,7 +11,7 @@ mod common;
 use common::support::PENCIL_START;
 
 /// The look numbers of the five looks.
-const LOOKS: [u32; 5] = [0, 1, 2, 3, 4];
+const LOOKS: [u32; 4] = [0, 1, 3, 4];
 const TONE: u32 = 0;
 const DRAWING: u32 = 1;
 const HATCH: u32 = 3;
@@ -276,7 +276,7 @@ fn test_by_pencil_stops_at_the_step_and_marks_its_level() {
         }
     }
     // the other looks mark nothing
-    for look in [TONE, DRAWING, 2, HATCH] {
+    for look in [TONE, DRAWING, HATCH] {
         assert_eq!(
             render(&img, look, 255, &PENCIL_START).mark,
             None,
@@ -441,12 +441,13 @@ fn test_drawing_and_hatch_with_the_effects_off_are_the_bytes_of_commit_372f8530(
 }
 
 #[test]
-fn test_tone_and_zones_at_the_start_knobs_are_the_bytes_they_were_before_the_knobs() {
-    // Rule zero of Pencil v2: a neutral knob changes nothing. These two hashes were taken from the
+fn test_tone_at_the_start_knobs_are_the_bytes_they_were_before_the_knobs() {
+    // Rule zero of Pencil v2: a neutral knob changes nothing. This hash was taken from the
     // view as it was before the knobs (commit 528c2c77) on the 128 px fixture of the reference
     // tests. The reference check allows a mean difference of 3.0, so it would miss a small drift.
     let w = common::work();
-    for (look, name, was) in [(0, "tone", 507_565_147), (2, "zones", 3_620_119_264)] {
+    {
+        let (look, name, was) = (0, "tone", 507_565_147);
         let got = fnv(&render(&w, look, 255, &PENCIL_START));
         assert_eq!(got, was, "{name} moved from the bytes before the knobs");
     }

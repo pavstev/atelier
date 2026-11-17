@@ -38,9 +38,6 @@ export const PAPER_GRADE: Grade = {
 	pressure: null,
 };
 
-/** Every pencil on: the mask of the core that selects all eight. */
-export const ALL_PENCILS = 255;
-
 /** The grades of `mask`, darkest first, then Paper: the order of the levels the core answers. */
 export function gradesOf(mask: number): Grade[] {
 	return [...GRADES.filter((_, bit) => (mask >> bit) & 1), PAPER_GRADE];

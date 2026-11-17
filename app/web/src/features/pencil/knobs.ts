@@ -3,7 +3,7 @@
 
 /** What the Pencil base keeps: the look, the pencils and every knob. */
 export type PencilLook = {
-	/** 0 Tone, 1 Drawing, 2 Zones, 3 Hatch, 4 By pencil (`LABELS.pencilLook`). */
+	/** 0 Tone, 1 Drawing, 3 Hatch, 4 By pencil (`PENCIL_LOOKS`). 2 was Zones and is gone. */
 	look: number;
 	/** The pencils the painter has, one bit each: bit 0 the 9B up to bit 7 the 4H (255 all). */
 	mask: number;
@@ -35,6 +35,37 @@ export type PencilLook = {
 	/** More crossed work in the darks (Drawing, Hatch). 0 off. */
 	cross: number;
 };
+
+/** The looks of the Pencil base: the core's id, the name and one plain line of what it is for. */
+export const PENCIL_LOOKS: readonly {
+	id: number;
+	label: string;
+	hint: string;
+}[] = [
+	{
+		id: 0,
+		label: "Tone",
+		hint: "Smooth gray tones. Good for judging the values.",
+	},
+	{
+		id: 1,
+		label: "Drawing",
+		hint: "The tones with paper grain, like a pencil drawing.",
+	},
+	{
+		id: 3,
+		label: "Hatch",
+		hint: "Lines that follow the form, crossed in the darks. The slowest look.",
+	},
+	{
+		id: 4,
+		label: "By pencil",
+		hint: "The drawing built up one pencil at a time, lightest first.",
+	},
+];
+
+/** The three knobs Auto sets. */
+export const AUTO_KEYS = ["key", "contrast", "highlights"] as const;
 
 /** The start values, as the core's `Knobs::default` (By pencil starts at its first pencil). */
 export const PENCIL_START: PencilLook = {
@@ -94,6 +125,9 @@ export function cleanPencil(raw: unknown): PencilLook {
 		if (typeof x === "number" && Number.isInteger(x) && x >= lo && x <= hi)
 			out[key] = x;
 	}
+	// a look that is gone (2, Zones) or unknown falls back to Tone
+	if (!PENCIL_LOOKS.some((l) => l.id === out.look))
+		out.look = PENCIL_START.look;
 	return out;
 }
 

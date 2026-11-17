@@ -49,6 +49,17 @@ pub fn assert_same_at_2048<C: std::fmt::Debug>(
     }
 }
 
+/// The next number of a seeded linear congruential generator (a fixed test sequence, no clock).
+pub fn next_lcg(seed: &mut u32) -> u32 {
+    *seed = seed.wrapping_mul(1_664_525).wrapping_add(1_013_904_223);
+    *seed
+}
+
+/// The mean of `v`.
+pub fn mean(v: &[f32]) -> f32 {
+    v.iter().sum::<f32>() / v.len() as f32
+}
+
 /// The gray byte (sRGB) of CIE L* `l`, 0 to 100.
 pub fn gray_for_l(l: impl Into<f64>) -> u8 {
     let l: f64 = l.into();

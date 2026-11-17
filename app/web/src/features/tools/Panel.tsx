@@ -1,9 +1,8 @@
 // The controls of the three tools, one body each: Base, Edges and Grid. `StageBar` shows a body in a
 // pop-up card over the bottom bar (a bottom sheet on a phone). `ToolHead` is the top row of a card:
 // its name and, for Edges and Grid, the on/off switch. A body is three groups split by thin lines:
-// the main choice at full width, its settings one line each, then Opacity.
+// Opacity first, the main choice at full width, then its settings one line each.
 import { Switch } from "@heroui/react";
-import type { ReactNode } from "react";
 import PencilCard from "@/features/pencil/PencilCard";
 import type { PencilExtras } from "@/features/pencil/usePencilExtras";
 import { Choice, ColorField, Knob, Row, Segment } from "@/ui/fields";
@@ -86,12 +85,9 @@ export function ToolHead(p: Props & { id: StageId }) {
 /** A thin line between the groups of a card. */
 const Rule = () => <div className="my-0.5 h-px bg-separator" />;
 
-/** The controls of one tool, in three groups: the main choice at full width, its settings, then
- * Opacity last. `legend` is the legend of Values, Shapes or Pencil (Base only); `extras` is what the
- * Pencil card holds for the photo (Auto note, suggestion). */
-export function ToolBody(
-	p: Props & { id: StageId; legend?: ReactNode; extras: PencilExtras },
-) {
+/** The controls of one tool: Opacity first, then the main choice at full width, then its settings.
+ * `extras` is what the Pencil card holds for the photo (Auto note, suggestion). */
+export function ToolBody(p: Props & { id: StageId; extras: PencilExtras }) {
 	const s = p.look;
 	const set = setter(p);
 	/** The `value` and `onChange` of a field that holds one setting of one part. */
@@ -132,6 +128,7 @@ export function ToolBody(
 						value={baseIndex(s.base.kind)}
 						onChange={(i) => set("base", { kind: BASES[i]?.id ?? "photo" })}
 					/>
+					{toned && opacity("base")}
 					{toned && <Rule />}
 					{s.base.kind === "values" && (
 						<>
@@ -156,9 +153,9 @@ export function ToolBody(
 					)}
 					{s.base.kind === "shapes" && (
 						<>
-							<Choice
+							<Segment
 								testid="shapes-step"
-								label="Step"
+								label="Paint step"
 								options={LABELS.shapesStep}
 								{...bind("shapes", "step")}
 							/>
@@ -176,17 +173,12 @@ export function ToolBody(
 							extras={p.extras}
 						/>
 					)}
-					{toned && (
-						<>
-							<Rule />
-							{opacity("base")}
-						</>
-					)}
-					{p.legend && <div className="pt-1">{p.legend}</div>}
 				</>
 			)}
 			{p.id === "edges" && (
 				<>
+					{opacity("edges")}
+					<Rule />
 					<Segment
 						bare
 						testid="edges-mode"
@@ -217,12 +209,12 @@ export function ToolBody(
 							{...bind("edges", "even")}
 						/>
 					)}
-					<Rule />
-					{opacity("edges")}
 				</>
 			)}
 			{p.id === "grid" && (
 				<>
+					{opacity("grid")}
+					<Rule />
 					<Segment
 						bare
 						testid="grid-mode"
@@ -231,11 +223,14 @@ export function ToolBody(
 						{...bind("grid", "mode")}
 					/>
 					<Rule />
-					<Knob
+					<Choice
 						testid="grid-cells"
 						label="Cells"
-						steps={GRID_CELLS}
-						{...bind("grid", "cells")}
+						options={GRID_CELLS.map(String)}
+						value={Math.max(0, GRID_CELLS.indexOf(s.grid.cells))}
+						onChange={(i) =>
+							set("grid", { cells: GRID_CELLS[i] ?? s.grid.cells })
+						}
 						disabled={thirds}
 					/>
 					<Segment
@@ -282,8 +277,6 @@ export function ToolBody(
 							)
 						}
 					/>
-					<Rule />
-					{opacity("grid")}
 				</>
 			)}
 		</div>

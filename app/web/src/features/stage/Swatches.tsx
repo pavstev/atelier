@@ -1,37 +1,10 @@
-// The legends of the base card. Values and Shapes: one swatch per tone or pile, with its Munsell
+// The legends of the legend strip. Values and Shapes: one swatch per tone or pile, with its Munsell
 // value; a press holds that color in the paint mix card of the color picker (`features/picker`).
-// Pencil: one row per level with its grade, a hint and its share of the photo; no press.
+// Pencil: one swatch per level with its grade; the hint and the share are in the tooltip. A press
+// holds that grade in the picker card.
 import type { Level } from "@/features/pencil/grades";
+import { css, hex, ink, munsellValue } from "@/features/picker/color";
 import type { Fixed } from "@/features/picker/Picker";
-
-/** The CIE L* of each Munsell value V0 to V10. */
-const MUNSELL_L = [
-	0, 10.6, 20.5, 30.8, 41.2, 51.6, 61.7, 71.6, 81.3, 91.1, 100,
-];
-
-const BLACK = "#000";
-const WHITE = "#fff";
-
-/** The Munsell value (0 to 10) of an sRGB color: the nearest L* in the table. */
-function munsellValue([r, g, b]: number[]): number {
-	const lin = (c: number) => {
-		const x = c / 255;
-		return x <= 0.04045 ? x / 12.92 : ((x + 0.055) / 1.055) ** 2.4;
-	};
-	const y = 0.2126 * lin(r) + 0.7152 * lin(g) + 0.0722 * lin(b);
-	const l = y > 216 / 24389 ? 116 * y ** (1 / 3) - 16 : (24389 / 27) * y;
-	let best = 0;
-	for (let v = 1; v < MUNSELL_L.length; v++) {
-		if (Math.abs(MUNSELL_L[v] - l) < Math.abs(MUNSELL_L[best] - l)) best = v;
-	}
-	return best;
-}
-
-const css = (t: number[]) => `rgb(${t[0]}, ${t[1]}, ${t[2]})`;
-const hex = (t: number[]) =>
-	`#${t.map((c) => c.toString(16).padStart(2, "0")).join("")}`;
-const ink = (t: number[]) =>
-	0.299 * t[0] + 0.587 * t[1] + 0.114 * t[2] > 128 ? BLACK : WHITE;
 
 /** The legend: one button per tone or pile. A press holds that color in the paint mix card. */
 export function Legend(p: {
@@ -43,7 +16,7 @@ export function Legend(p: {
 		<ol
 			data-testid="legend"
 			aria-label={p.label}
-			className="flex flex-wrap gap-1 text-xs"
+			className="flex flex-nowrap gap-1 text-xs"
 		>
 			{p.tones.map((t, i) => (
 				<li
@@ -77,20 +50,25 @@ export function Legend(p: {
 const shareWords = (share: number) => (share > 0 ? `${share}%` : "not used");
 
 /**
- * The Pencil legend: one row per level, darkest first and Paper last (the order of the answer),
- * with the swatch, the grade, a short hint and the share. A swatch is not a button: a pencil
- * grade is read from the card of the picker. In By pencil `mark` is the level the picture is drawn
- * up to: its row has `data-step="true"`, `aria-current="step"` and a "step" badge.
+ * The Pencil legend: one compact swatch per level, darkest first and Paper last (the order of the
+ * answer), with the grade on it. The hint and the share are in the tooltip and the accessible name.
+ * A press holds that grade in the picker card. In By pencil `mark` is the level the picture is
+ * drawn up to: its swatch has `data-step="true"` and `aria-current="step"`.
  */
-export function PencilLegend(p: { levels: Level[]; mark?: number | null }) {
+export function PencilLegend(p: {
+	levels: Level[];
+	mark?: number | null;
+	onPick?: (f: Fixed) => void;
+}) {
 	return (
 		<ol
 			data-testid="legend"
 			aria-label="Pencil legend"
-			className="flex flex-col gap-1 text-xs"
+			className="flex flex-nowrap gap-1 text-xs"
 		>
 			{p.levels.map(({ grade, tone, share }, i) => {
 				const step = p.mark === i;
+				const name = `${grade.id}: ${grade.hint}, ${shareWords(share)}`;
 				return (
 					<li
 						key={grade.id}
@@ -99,28 +77,28 @@ export function PencilLegend(p: { levels: Level[]; mark?: number | null }) {
 						data-share={share}
 						data-step={step ? "true" : undefined}
 						aria-current={step ? "step" : undefined}
-						className={`flex items-center gap-2 ${share > 0 ? "" : "text-muted opacity-75"} ${step ? "-mx-1 rounded-(--radius-chip) bg-default px-1 py-0.5" : ""}`}
+						title={name}
+						className={`shrink-0 rounded-(--radius-chip) border ${step ? "border-accent ring-2 ring-accent" : "border-separator"} ${share > 0 ? "" : "opacity-60"}`}
+						style={{ backgroundColor: css(tone) }}
 					>
-						<span
-							aria-hidden="true"
-							className="size-5 shrink-0 rounded-(--radius-chip) border border-separator"
-							style={{ backgroundColor: css(tone) }}
-						/>
-						<span className="w-9 shrink-0 font-medium">{grade.id}</span>
-						<span className="min-w-0 flex-1 leading-tight text-muted">
-							{grade.hint}
-						</span>
-						{step && (
-							<span
-								data-testid="legend-step"
-								className="shrink-0 rounded-full bg-accent px-1.5 text-[0.65rem] leading-4 text-accent-foreground"
-							>
-								step
-							</span>
-						)}
-						<span className="shrink-0 text-end tabular-nums">
-							{shareWords(share)}
-						</span>
+						<button
+							type="button"
+							aria-label={name}
+							onClick={() =>
+								p.onPick?.({
+									rgb: [
+										tone[0] as number,
+										tone[1] as number,
+										tone[2] as number,
+									],
+									label: grade.id,
+								})
+							}
+							className="flex h-9 min-w-9 cursor-pointer items-center justify-center rounded-(--radius-chip) px-1 font-medium atelier-focus"
+							style={{ color: ink(tone) }}
+						>
+							{grade.id}
+						</button>
 					</li>
 				);
 			})}

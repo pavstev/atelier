@@ -16,16 +16,16 @@ paths:
   `edges-mode`, `edges-amount`, `edges-even`, `edges-width`, `grid-mode`, `grid-cells`, `grid-width`,
   `grid-group`, `grid-center`, `grid-paint`, `grid-color`, `values-detail`, `values-tint`,
   `shapes-detail`, `layer-edges`, `layer-grid`,
-  Pencil base: `pencil-look` (a select with Tone, Drawing, Zones, Hatch and By pencil; set it like the
+  Pencil base: `pencil-look` (a select with Tone, Drawing, Hatch and By pencil; set it like the
   other hidden selects) and `pencil-look-hint` (the line under it); the Tone group `pencil-tone-group`
   with the sliders `pencil-key` (label Brightness), `pencil-contrast` and `pencil-detail`; the
   effect chips `pencil-effects` with `pencil-effect-smudge|lift|cross` (`aria-pressed`; cross in
-  Drawing and Hatch only; none in Zones and By pencil); the fold `pencil-fine` (a `<details>`, closed
+  Drawing and Hatch only; none in By pencil); the fold `pencil-fine` (a `<details>`, closed
   at the start) with `pencil-highlights`, `pencil-darks`, `pencil-local`, the amounts `pencil-smudge`,
   `pencil-lift`, `pencil-cross` and the Texture group `pencil-texture-group` (Drawing and Hatch only)
   with `pencil-grain`, `pencil-paper` (a row of radios: Smooth, Medium, Rough), `pencil-hatch-angle`
   and `pencil-hatch-density` (Hatch only); `pencil-step` (a slider, By pencil only) and
-  `pencil-step-line` ("Step 4 of 8: HB"); `pencil-reset`; `pencil-auto` (not in Zones) and
+  `pencil-step-line` ("Step 4 of 8: HB"); `pencil-reset`; `pencil-auto` and
   `pencil-auto-note` (`aria-live` polite; empty when there is no note); `pencil-suggest-count` (radios
   3 to 6), `pencil-suggest`, `pencil-suggested` (`data-mask`) with one `pencil-suggested-grade`
   (`data-grade`) per chip, `pencil-suggest-apply` (disabled when the suggestion is the set) and
@@ -38,7 +38,7 @@ paths:
   `picker-pressure` replace the paint rows; while Pencil is the base `tool-edges` is disabled
   (`aria-disabled`),
   `stage`, `facts`, `file`, `error`, `legend`, `legend-swatch`, `lock-width`, `screen-width`, `screen-found`, `lock-card`
-  (the small cm card),
+  (gone: `zoom-real` with no screen width opens the Paper card, `tool-popup` `data-tool="size"`),
   `photos`, `photo-scroll`, `photo-row` (has `data-active`), `photo-open`, `photo-add`, `photo-search-toggle`, `photo-search`, `photo-search-clear`, `photo-sort`,
   `photo-layout`, `photo-count`, `photo-rename`, `photo-name`, `photo-delete`, `stage-bar`, `stage-bar-frame` (holds `--bar-left`), `bar-handle` (the grip, a slider; not on a phone), `logo`, `files-resize`, `panel-scrim`, `photo-card`, `photo-card-image`, `logo-outline`,
   `files`, `files-fold` and `files-expand` (the handle on the stage edge), and the bottom bar:

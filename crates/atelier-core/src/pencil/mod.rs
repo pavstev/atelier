@@ -27,8 +27,7 @@
 //!    graphite catches the peaks first and fills the valleys as the tone darkens, so the tones hold;
 //!    `grain` sets how much tooth shows, `paper` its size, `angle` its streak. Hatch draws the
 //!    picture as lines of graphite that follow the form, with a cross layer in the darks;
-//!    `density` sets how close they run. Zones is the old flat map: one flat tone per pencil, cut where
-//!    the pencils change, small shapes merged as in Values. By pencil is the Tone picture with
+//!    `density` sets how close they run. By pencil is the Tone picture with
 //!    only the lightest `step` pencils drawn: a tone darker than the pencil of the step is drawn in
 //!    that pencil, the shares stay those of the finished picture and the answer marks the level.
 //! 5. Accent rule: the 9B and the 7B are for the deepest accents. When they would cover over
@@ -59,10 +58,9 @@ mod tests;
 use crate::error::{Error, Result};
 use crate::filters::Sorted;
 use crate::img::Rgb;
-use crate::values::{fields, smooth_of, zone_labels};
-use darks::accent_moves;
+use crate::values::{fields, smooth_of};
 use grades::{level_of, levels, mids, shares, tint};
-use tone::{SPREAD, ToneMap, cuts};
+use tone::ToneMap;
 
 pub(crate) use paper::Paper;
 
@@ -79,8 +77,6 @@ pub(crate) enum Look {
     Tone,
     /// Tone with graphite grain and hatching.
     Drawing,
-    /// One flat tone per pencil.
-    Zones,
     /// Tonal hatching.
     Hatch,
     /// The Tone picture with only the lightest pencils of the set drawn so far.
@@ -88,15 +84,14 @@ pub(crate) enum Look {
 }
 
 impl Look {
-    /// The look of this number (0 Tone, 1 Drawing, 2 Zones, 3 Hatch, 4 By pencil).
-    pub(crate) fn from_index(i: u8) -> Result<Self> {
-        match i {
+    /// The look of this number (0 Tone, 1 Drawing, 3 Hatch, 4 By pencil). 2 is not a look.
+    pub(crate) fn from_number(n: u8) -> Result<Self> {
+        match n {
             0 => Ok(Self::Tone),
             1 => Ok(Self::Drawing),
-            2 => Ok(Self::Zones),
             3 => Ok(Self::Hatch),
             4 => Ok(Self::ByPencil),
-            _ => Err(Error::bad("pencil look must be 0 to 4")),
+            _ => Err(Error::bad("pencil look must be 0, 1, 3 or 4")),
         }
     }
 }
@@ -191,8 +186,7 @@ pub struct Pencil {
 /// A picture and how many pixels each level covers.
 type Painting = (Rgb, Vec<usize>);
 
-/// The Pencil view of `work`. See [`Knobs`] for what it takes. `detail` also sets, for Zones, the
-/// smallest zone that survives as in Values.
+/// The Pencil view of `work`. See [`Knobs`] for what it takes.
 ///
 /// # Errors
 /// `BadInput` for a `mask` that is 0 or has a bit over the pencils, a `detail` outside 0 to 1, or
@@ -202,10 +196,7 @@ pub(crate) fn view(work: &Rgb, k: &Knobs) -> Result<Pencil> {
     let flat: Vec<[u8; 3]> = tones.iter().map(|&l| tint(l)).collect();
     // the set always has paper after its pencils
     let mark = (k.look == Look::ByPencil).then(|| build_up::level(tones.len() - 1, k.step));
-    let (image, count) = match k.look {
-        Look::Zones => zones(work, k, &tones, &flat)?,
-        _ => tone_picture(work, k, &tones, mark)?,
-    };
+    let (image, count) = tone_picture(work, k, &tones, mark)?;
     Ok(Pencil {
         image,
         tones: flat,
@@ -215,11 +206,8 @@ pub(crate) fn view(work: &Rgb, k: &Knobs) -> Result<Pencil> {
 }
 
 /// What Auto reads from `work` and the Key, Contrast and Highlights it sets: see [`auto::Auto`].
-///
-/// # Errors
-/// `BadInput` for an image that is not RGB or is empty.
-pub(crate) fn read_auto(work: &Rgb) -> Result<auto::Auto> {
-    Ok(auto::auto(&smooth_of(work)?))
+pub(crate) fn read_auto(work: &Rgb) -> auto::Auto {
+    auto::auto(&smooth_of(work))
 }
 
 /// The mask of the `count` pencils (1 to 8) that best fit `work`: see [`choice`].
@@ -227,31 +215,8 @@ pub(crate) fn read_auto(work: &Rgb) -> Result<auto::Auto> {
 /// # Errors
 /// `BadInput` for a `count` outside 1 to 8, or an image that is not RGB or is empty.
 pub(crate) fn suggest(work: &Rgb, count: u32) -> Result<u32> {
-    let smooth = smooth_of(work)?;
+    let smooth = smooth_of(work);
     choice::suggest(&smooth, count).ok_or_else(|| Error::bad("pencil count must be 1 to 8"))
-}
-
-/// The Zones look: one flat tone (the color `flat`) per pencil, the accent rule applied to the
-/// zones.
-fn zones(work: &Rgb, k: &Knobs, tones: &[f32], flat: &[[u8; 3]]) -> Result<Painting> {
-    let n = tones.len();
-    let high_q = k.white_q();
-    let (_, labels) = zone_labels(work, k.detail, |smooth| {
-        cuts(&Sorted::new(smooth), tones, SPREAD, high_q)
-    })?;
-    let mut seen = vec![0usize; n];
-    for &z in &labels {
-        seen[usize::from(z).min(n - 1)] += 1;
-    }
-    let moves = accent_moves(&seen, tones, labels.len(), k.accent_share());
-    let mut image = Rgb::new(work.width, work.height, 3);
-    let mut count = vec![0usize; n];
-    for (px, &z) in image.data.chunks_exact_mut(3).zip(&labels) {
-        let zone = moves[usize::from(z).min(n - 1)];
-        count[zone] += 1;
-        px.copy_from_slice(&flat[zone]);
-    }
-    Ok((image, count))
 }
 
 /// The photo lightness each pixel is drawn from: the simplified photo plus the share of the fine
@@ -330,11 +295,11 @@ fn textured(tone: Vec<f32>, guide: &[f32], (w, h): (usize, usize), k: &Knobs) ->
                 &tone, guide, w, h, &tooth, k.grain, angle, k.density, k.cross,
             )
         }
-        Look::Tone | Look::Zones | Look::ByPencil => tone,
+        Look::Tone | Look::ByPencil => tone,
     };
     // the stump works on the drawn graphite; By pencil keeps its tone for the step
     match k.look {
         Look::Tone | Look::Drawing | Look::Hatch => smudge::drag(&shown, (w, h), angle, k.smudge),
-        Look::Zones | Look::ByPencil => shown,
+        Look::ByPencil => shown,
     }
 }

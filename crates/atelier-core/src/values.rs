@@ -785,7 +785,6 @@ pub(crate) struct Fields {
 /// The run of a Pencil draw, after the checks of its numbers and its picture.
 fn pencil_run(work: &Rgb, detail: f32) -> Result<ViewRun> {
     unit(detail, "pencil detail is not 0 to 1")?;
-    work.require_rgb("pencil needs a non-empty RGB image")?;
     Ok(ViewRun::new(work, detail, 0))
 }
 
@@ -798,22 +797,8 @@ pub(crate) fn fields(work: &Rgb, detail: f32) -> Result<Fields> {
 
 /// Only the simplified photo (L* after the shadow lift, the median and the guided filter), for the
 /// calls that read the photo and draw nothing: Auto and Suggest.
-pub(crate) fn smooth_of(work: &Rgb) -> Result<Vec<f32>> {
-    work.require_rgb("pencil needs a non-empty RGB image")?;
-    Ok(analyze(work, &ValuesOpts::default()).smooth)
-}
-
-/// [`fields`] and the zone labels, for the Zones look: `cuts_of` gives the cuts from the smoothed
-/// L* (rising, in the same L* scale), and the label map is cleaned as the presets do (mode filter,
-/// small shapes merged). A pixel's label is how many cuts its L* has passed.
-pub(crate) fn zone_labels(
-    work: &Rgb,
-    detail: f32,
-    cuts_of: impl FnOnce(&[f32]) -> Vec<f32>,
-) -> Result<(Fields, Vec<u8>)> {
-    let run = pencil_run(work, detail)?;
-    let labels = run.labels_for(&cuts_of(&run.a.smooth));
-    Ok((run.into_fields(), labels))
+pub(crate) fn smooth_of(work: &Rgb) -> Vec<f32> {
+    analyze(work, &ValuesOpts::default()).smooth
 }
 
 /// The view of the Values tool: flat tones made of whole shapes.
@@ -842,11 +827,9 @@ pub(crate) fn zone_labels(
 /// 1 paints umber (see [`tone_color`]).
 ///
 /// # Errors
-/// `BadInput` for a `tint` above 1, a `preset` of 6 or more, a `detail` outside 0 to 1, an image that is not RGB or
-/// is empty.
+/// `BadInput` for a `tint` above 1, a `preset` of 6 or more, a `detail` outside 0 to 1.
 pub fn view(work: &Rgb, preset: u8, detail: f32, tint: u8) -> Result<(Rgb, Vec<[u8; 3]>)> {
     check_view_args(preset, detail, tint)?;
-    work.require_rgb("values needs a non-empty RGB image")?;
     let run = ViewRun::new(work, detail, tint);
     Ok(match preset {
         0 => run.notan(),

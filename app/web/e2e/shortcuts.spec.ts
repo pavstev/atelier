@@ -135,7 +135,7 @@ test("test_keys_are_left_to_the_search_box", async ({ studio }) => {
 	expect((await canvasX(page)).x).toBeCloseTo(before.x, 0);
 });
 
-test("test_the_lock_card_closes_on_an_outside_press_and_fit_is_off_while_locked", async ({
+test("test_real_size_locks_the_zoom_and_fit_is_off_while_locked", async ({
 	studio,
 }) => {
 	const { page } = studio;
@@ -145,8 +145,9 @@ test("test_the_lock_card_closes_on_an_outside_press_and_fit_is_off_while_locked"
 	await expect(page.getByTestId("zoom-fit")).toBeEnabled();
 	await expect(page.getByTestId("zoom-unlock")).toHaveCount(0);
 	await page.getByTestId("zoom-real").click();
-	const card = page.getByTestId("lock-card");
+	const card = page.getByTestId("tool-popup");
 	await expect(card).toBeVisible();
+	await expect(card).toHaveAttribute("data-tool", "size");
 	// locked: the button shows a lock, Fit, 100% and 200% are off, the menu has Unlock
 	await expect(page.getByTestId("zoom-menu")).toHaveAttribute(
 		"data-locked",
@@ -160,7 +161,7 @@ test("test_the_lock_card_closes_on_an_outside_press_and_fit_is_off_while_locked"
 	await page.keyboard.press("Escape");
 	// a press inside the card keeps it
 	await expect(card).toBeVisible();
-	await card.click({ position: { x: 4, y: 4 } });
+	await card.click({ position: { x: 4, y: 4 }, force: true });
 	await expect(card).toBeVisible();
 	// a press outside closes it; the lock stays on
 	await page.getByTestId("files").click({ position: { x: 20, y: 400 } });
@@ -169,13 +170,18 @@ test("test_the_lock_card_closes_on_an_outside_press_and_fit_is_off_while_locked"
 		"data-locked",
 		"true",
 	);
-	// Esc closes it too
+	// Esc closes it too (Real size toggles, so unlock first)
+	await studio.zoom("unlock");
 	await studio.zoom("real");
 	await expect(card).toBeVisible();
 	// the menu has left (it takes the first Esc while it is still closing)
 	await expect(page.getByRole("menu")).toHaveCount(0);
 	await page.keyboard.press("Escape");
 	await expect(card).toHaveCount(0);
+	await expect(page.getByTestId("zoom-menu")).toHaveAttribute(
+		"data-locked",
+		"true",
+	);
 	// Unlock turns the lock off
 	await studio.zoom("unlock");
 	await expect(card).toHaveCount(0);

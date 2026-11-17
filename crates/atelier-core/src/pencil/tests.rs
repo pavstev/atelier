@@ -5,7 +5,6 @@ use super::*;
 
 const TONE: Look = Look::Tone;
 const DRAWING: Look = Look::Drawing;
-const ZONES: Look = Look::Zones;
 const HATCH: Look = Look::Hatch;
 
 /// A ramp from black to white, left to right.
@@ -61,7 +60,8 @@ fn mean(img: &Rgb) -> f64 {
 
 #[test]
 fn test_a_ramp_uses_every_pencil_darkest_first() {
-    for look in [TONE, ZONES] {
+    {
+        let look = TONE;
         let p = view_of(&ramp(256, 64), 255, 0.5, look).unwrap();
         assert_eq!(p.tones.len(), 9);
         assert!(
@@ -77,11 +77,9 @@ fn test_a_ramp_uses_every_pencil_darkest_first() {
 }
 
 #[test]
-fn test_tone_is_a_smooth_gray_picture_and_zones_are_flat() {
+fn test_tone_is_a_smooth_gray_picture() {
     let w = ramp(256, 32);
     let tone = view_of(&w, 255, 0.5, TONE).unwrap();
-    let zones = view_of(&w, 255, 0.5, ZONES).unwrap();
-    assert_eq!(colors(&zones.image).len(), 9);
     assert!(
         colors(&tone.image).len() > 60,
         "{}",
@@ -100,8 +98,6 @@ fn test_a_dropped_pencil_is_never_drawn() {
     // nothing is darker than the darkest pencil of the set (the 9B)
     let darkest = tone.tones[0][1];
     assert!(tone.image.data.chunks_exact(3).all(|c| c[1] >= darkest));
-    let zones = view_of(&ramp(256, 64), 0b1111_1001, 0.5, ZONES).unwrap();
-    assert!(colors(&zones.image).iter().all(|c| zones.tones.contains(c)));
 }
 
 #[test]
@@ -139,7 +135,8 @@ fn test_a_big_dark_mass_is_not_an_accent_pencil() {
         let v = if x < 70 { 4 } else { (60 + (x - 70) * 6) as u8 };
         px.copy_from_slice(&[v, v, v]);
     }
-    for look in [TONE, ZONES] {
+    {
+        let look = TONE;
         let p = view_of(&img, 255, 0.5, look).unwrap();
         assert_eq!(p.shares[0], 0, "look {look:?}: {:?}", p.shares);
         assert_eq!(p.shares[1], 0, "look {look:?}: {:?}", p.shares);
@@ -153,9 +150,6 @@ fn test_a_big_dark_mass_is_not_an_accent_pencil() {
         let q = view(&img, &k).unwrap();
         assert!(q.shares[0] >= 60, "look {look:?}: {:?}", q.shares);
     }
-    // a lone 9B on paper keeps its zone: paper never takes the dark mass
-    let q = view_of(&img, 1, 0.5, ZONES).unwrap();
-    assert!(q.shares[0] >= 60, "{:?}", q.shares);
 }
 
 #[test]
@@ -183,7 +177,7 @@ fn test_detail_keeps_more_of_the_fine_texture() {
 #[test]
 fn test_same_input_same_bytes() {
     let w = ramp(64, 64);
-    for look in [TONE, DRAWING, ZONES, HATCH] {
+    for look in [TONE, DRAWING, HATCH] {
         assert_eq!(
             view_of(&w, 255, 0.5, look),
             view_of(&w, 255, 0.5, look),
@@ -198,8 +192,7 @@ fn test_bad_numbers_are_bad_input() {
     assert!(view_of(&w, 0, 0.5, TONE).is_err());
     assert!(view_of(&w, 256, 0.5, TONE).is_err());
     assert!(view_of(&w, 255, 1.5, TONE).is_err());
-    assert!(view_of(&Rgb::new(0, 0, 3), 255, 0.5, TONE).is_err());
-    assert!(Look::from_index(5).is_err());
+    assert!(Look::from_number(5).is_err());
     assert!(Paper::from_index(3).is_err());
     // a Highlights over 100 is clamped, not a panic
     let k = Knobs {
@@ -211,7 +204,7 @@ fn test_bad_numbers_are_bad_input() {
 
 #[test]
 fn test_a_flat_photo_does_not_panic() {
-    for look in [TONE, DRAWING, ZONES, HATCH] {
+    for look in [TONE, DRAWING, HATCH] {
         let p = view_of(&Rgb::filled(32, 32, &[120, 120, 120]), 255, 0.5, look).unwrap();
         assert!(p.shares.iter().map(|&s| u32::from(s)).sum::<u32>() >= 100);
     }
@@ -267,14 +260,6 @@ fn test_more_highlights_leave_more_bare_paper() {
     let shares = [0, 1, 5, 25].map(paper);
     assert!(shares.windows(2).all(|p| p[0] <= p[1]), "{shares:?}");
     assert!(shares[3] > shares[1] + 10, "{shares:?}");
-    // Zones read the same knob
-    let zone = |h: u8| {
-        *ramp_with(ZONES, |k| k.highlights = h)
-            .shares
-            .last()
-            .unwrap()
-    };
-    assert!(zone(25) > zone(1));
 }
 
 #[test]
@@ -436,7 +421,8 @@ fn test_nothing_is_darker_than_the_darkest_pencil_and_shares_cover_the_picture()
     for _ in 0..24 {
         seed = seed.wrapping_mul(1_664_525).wrapping_add(1_013_904_223);
         let mask = (seed >> 24).max(1);
-        for look in [TONE, ZONES] {
+        {
+            let look = TONE;
             let p = view_of(&ramp(128, 8), mask, 0.5, look).unwrap();
             assert_eq!(p.tones.len(), mask.count_ones() as usize + 1);
             let darkest = p.tones[0][1];
@@ -448,4 +434,17 @@ fn test_nothing_is_darker_than_the_darkest_pencil_and_shares_cover_the_picture()
             assert!(sum >= 100, "mask {mask} look {look:?}: {:?}", p.shares);
         }
     }
+}
+
+#[test]
+fn look_two_is_bad_input() {
+    assert!(matches!(Look::from_number(2), Err(Error::BadInput(_))));
+}
+
+#[test]
+fn looks_keep_ids() {
+    assert_eq!(Look::from_number(0).unwrap(), Look::Tone);
+    assert_eq!(Look::from_number(1).unwrap(), Look::Drawing);
+    assert_eq!(Look::from_number(3).unwrap(), Look::Hatch);
+    assert_eq!(Look::from_number(4).unwrap(), Look::ByPencil);
 }

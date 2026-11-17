@@ -18,19 +18,30 @@ Left to right:
 
 1. **See photo.** Tap it to keep the bare photo on until the next tap (the button lights up).
    Hold it longer than 300 ms to peek only while you press. Space does the same.
-2. **Base, Edges, Grid, Size.** Four icon buttons (Size has its own part, [The Size tool](#the-size-tool)). Each opens its controls in a pop-up card over the
+2. **Base, Edges, Grid.** Three icon buttons. Each opens its controls in a pop-up card over the
    bar. Only one pop-up is open at a time. Press the button again, press Esc, or press outside the
-   card to close it. On a phone (under 768 px) the pop-up is a bottom sheet.
-   - Edges and Grid look pressed when they are on. The Base button shows the current base (photo,
-     values, shapes, paper or pencil) and looks pressed when the base is not Photo. While the base
-     is Pencil, the Edges button is dimmed and does not open; its tip says "Off in Pencil mode".
-   - A pop-up has the tool name and the controls, one line each: the main choice at full width,
-     then its settings, then Opacity last. The Edges and Grid pop-ups also have an on/off switch. The
-     legend of Values, Shapes or Pencil is in the Base pop-up. Pressing a Values or Shapes legend
-     swatch closes the open pop-up and holds that color in the color picker card (see 3). A Pencil
-     legend row is not pressable.
+   card to close it. A drag on the photo pans it and keeps the card open. On a phone (under 768 px)
+   the pop-up is a bottom sheet.
+   - **Edges and Grid are split buttons.** The main part switches the layer on or off and looks
+     pressed when the layer is on. The small chevron next to it opens the card. The Base button has
+     no switch; it shows the current base (photo, values, shapes, paper or pencil) and looks
+     pressed when the base is not Photo. While the base is Pencil, the Edges button is dimmed and
+     does not open; its tip says "Off in Pencil mode".
+   - A pop-up has the tool name and the controls, one line each: Opacity first (for Base only when
+     the base is Values, Shapes or Pencil), then the main choice at full width, then its settings.
+     The Edges and Grid pop-ups also have an on/off switch in the head.
    - Swiping down also closes the phone sheet.
-3. **Color picker.** A pipette toggle. While it is on, the cursor is a crosshair and a card
+3. **Paper.** A ruler button that opens the Paper card ([The Paper tool](#the-paper-tool)).
+4. **Zoom.** One button that shows the zoom now (for example "62%", with a chevron). Its menu has:
+   - **Fit**, **100%** and **200%**.
+   - **Real size** is a toggle. When it is off, it locks the zoom to the width the picture has on
+     the paper (see the Paper tool). When it is on, it sets the zoom free. On a built-in MacBook
+     screen the app fills in the screen width itself. On any other screen the Paper card opens so
+     you can type the width of the lit part once (measure it with a ruler). The wheel and a
+     trackpad pinch do not zoom while it is on; a drag still moves the photo.
+   - While the zoom is locked, the button shows a lock icon and Fit, 100% and 200% are off. The old
+     **Unlock** item stays for now as another way to turn it off.
+5. **Color picker.** A pipette toggle. While it is on, the cursor is a crosshair and a card
    follows the mouse over the photo. It reads the picture you see now, so it works in Photo, Values,
    Shapes, Paper and Pencil, with Edges and Grid over them (on Pencil the card is different, see below). On the left of the card is the color (the top
    half is the photo, the bottom half is what the recipe makes). On the right is how much white,
@@ -43,8 +54,8 @@ Left to right:
      button and a **Sample area** choice: Point, Small, Medium or Large. A larger area averages the
      light of a patch, as a painter judges it, and not one grain of the photo. Esc also lets go.
      A drag still moves the photo.
-   - **Legend swatches.** Pressing a swatch of the Values or Shapes legend holds that color in the
-     same card (it has no sample area). The Base pop-up closes.
+   - **Legend swatches.** Pressing a swatch of the legend strip holds that color in the same card
+     (Values and Shapes have no sample area). An open pop-up closes.
    - **Pencil.** With the Pencil base the card shows no paint mix. It names the pencil of the spot:
      the level of the Pencil legend nearest in lightness, as a big grade ("2B"), a short hint and how
      hard to press. The sample area is never smaller than Small, because the drawing look has grain
@@ -75,25 +86,28 @@ Left to right:
    - The spectra are typical shapes of each pigment, not measurements of your tubes, so the recipe
      is a good start and not a promise. Test it on your palette. The paints are in `PAINTS` in
      `app/web/src/features/picker/paints.ts`.
-4. **Zoom.** One button that shows the zoom now (for example "62%", with a chevron). Its menu has:
-   - **Fit**, **100%** and **200%**.
-   - **Real size (cm)...** opens a small card where you type the photo width in cm. On a built-in
-     MacBook screen the app fills in the screen width itself. On any other screen, type the width
-     of the lit part once (measure it with a ruler). The zoom locks at once: the wheel and a
-     trackpad pinch do not zoom, a drag still moves the photo. The card closes on a press outside
-     or Esc; the lock stays on.
-   - While the zoom is locked, the button shows a lock icon, Fit, 100% and 200% are off, and the
-     menu has **Unlock**.
-5. **Grip.** Six dots at the right end (not on a phone). Drag it left or right to move the whole
+6. **Grip.** Six dots at the right end (not on a phone). Drag it left or right to move the whole
    bar along the stage. The bar stays inside the stage, an open card closes when the drag starts,
    and the place is saved, so a reload keeps it. A double click or Home puts the bar back in the
    middle; the arrow keys move it 2 percent. On a phone the bar stays in the middle.
 
+### The legend strip
+
+With Values, Shapes or Pencil as the base, a glass strip of swatches sits at the top center of
+the stage, above the bar. It stays on one row and scrolls sideways when it is too wide. Values and
+Shapes show one swatch per tone or pile with its Munsell value. Pencil shows one swatch per level
+with its grade; the hint and the share of the photo are in the tip. Pressing a swatch of any legend
+holds that color or grade in the color picker card, and the strip needs no pop-up open.
+
+### Add photo on the stage
+
+When the photo list is hidden, a round plus button at the top left of the stage adds photos.
+
 A double click or a double tap on the photo toggles Fit and 100% (not while the zoom is locked).
 
-### The Size tool
+### The Paper tool
 
-The Size button (a ruler) opens a pop-up where you pick the paper or canvas you paint on, so the
+The Paper button (a ruler) opens a pop-up titled Paper where you pick the paper or canvas you paint on, so the
 Grid and the real size match it. The choice is kept for each photo (a reload keeps it). The photo
 itself is never cut in storage.
 
@@ -106,13 +120,15 @@ itself is never cut in storage.
 - **Whole photo** (the start) shows the photo as it is. **Fit to paper** cuts the photo to the paper
   shape, in the middle. The Stage, Edges and Grid then work on the cut photo, so the Grid lines up
   with the paper. The cut is made in the page before the pixels reach the layers worker; the Rust
-  core knows nothing about paper. The Size button looks pressed while Fit to paper is on.
+  core knows nothing about paper. The Paper button looks pressed while Fit to paper is on.
 - **The fact line.** For example "30 x 40 cm. Grid cell: 5 cm": the long side of the paper over the
   Grid cells. With Whole photo it says "about", because the photo and the paper may differ in
   shape. It names a cell only while a Grid with cells is on (not Thirds).
-- **Show at real size** turns on the zoom lock (the same lock as Real size (cm)...) with the width
-  the picture has on the paper. If the screen width is not known yet, the small lock card opens so
-  you can type it.
+- **Real size** is a switch. On, it locks the zoom (the same lock as Real size in the zoom menu) to the
+  width the picture has on the paper, and it follows the paper when you change it. Under it are the
+  **Screen width, cm** box (type the width of the lit part of the screen once; a built-in MacBook
+  screen is found by itself and named) and a short hint while the width is not known. Off, the zoom
+  is free.
 
 The Grid still counts cells, not whole cm (`docs/LEFTOVERS.md`).
 
@@ -124,55 +140,55 @@ Grid.
 - **Base:** Photo, Values, Shapes, Paper or Pencil. Values, Shapes and Pencil have one opacity.
   Paper is white with no photo, so only the lines show (use See photo to see the photo).
   - **Values:** six presets (Notan, Three, Five, Shadow family, Light family, Families), Detail,
-    and Gray or Umber. The legend in the Base pop-up shows the Munsell value of each tone, V1
+    and Gray or Umber. The legend strip (below) shows the Munsell value of each tone, V1
     (dark) to V9 (light). Press a swatch to hold that color in the paint mix card (see the color
     picker in the bottom bar).
-  - **Shapes:** Step and Detail. Step is the paint order: 1 Shadows, 2 Halftones, 3 Lights,
-    4 Accents. The legend lists the piles of paint to mix in that step.
+  - **Shapes:** Paint step and Detail. Paint step is the paint order: Shadows, Halftones, Lights,
+    Accents (a row of four buttons). The legend lists the piles of paint to mix in that step.
   - **Pencil:** the photo as a study for graphite pencils, easy to copy by hand. How each look and
     knob draws, with its numbers: [how-it-works/pencil.md](how-it-works/pencil.md). The card has
     these controls, top to bottom. A control that a look does not use is hidden.
-    - **Look** (a select): Tone (the photo as a smooth gray picture in graphite tones; the start),
-      Drawing (Tone on a paper tooth), Zones (flat zones, one tone per pencil), Hatch (lines that
-      follow the form; the heaviest look) and By pencil (only the lightest pencils up to a step).
-      A line under the select says what the look is for.
-    - **Brightness** (the core's Key: lighter or darker), **Contrast** and **Detail** (how much fine
-      detail stays): the three sliders you reach for first. Zones shows only Detail.
-    - **Effects:** chips you switch on and off, each a stronger or weaker effect on the picture:
-      **Smudge** (a blending stump softens the tone along the strokes), **Lifted lights** (eraser
-      marks pull the light tones back toward paper) and **Cross-hatch** (more crossed lines in the
-      darks). A chip shows only in the looks that draw it: Smudge and Lifted lights in Tone, Drawing
-      and Hatch; Cross-hatch in Drawing and Hatch. A chip sets 60; the exact amount is a slider in
-      Fine tune.
-    - **Fine tune** (a fold, closed at the start): **Highlights** (the percent of the photo left as
-      bare paper), **Deep darks** (the most of the picture the 9B and 7B may cover), **Local
-      contrast** (more texture, 0 is off), the three effect amounts, and, in Drawing and Hatch, a
-      **Texture** group: **Grain**, **Paper** (Smooth, Medium or Rough), **Hatch angle** and, in
-      Hatch only, **Hatch density**.
-    - **Step** (By pencil only): how many pencils are down, from the lightest. A line says which pencil
-      the step is ("Step 4 of 8: HB"). The legend marks that pencil, and the slider stops at the
-      number of pencils in the set.
-    - **Auto** (every look but Zones): sets Brightness, Contrast and Highlights from the photo and
-      says in a note what it did and why. It runs by itself, once for a photo, the first time Pencil
-      is the base and those three are still at their start; the button runs it again. The note goes
-      away when you move one of the three by hand or open another photo. It is not saved.
-    - **Suggest pencils:** a count row (3, 4, 5 or 6), the **Suggest** button, the suggested pencils
-      as chips, and **Apply**, which sets them as your set (the legend then shows only those pencils).
-      Not saved.
-    - **Reset:** every knob and effect back to its start. The look and the set of pencils stay.
-    - **Pencils** is a row of eight toggles, 9B, 7B, 5B, 2B, HB, H, 3H and 4H: tick the pencils you
-      own. The tones of the picture are the tones of those pencils and bare paper. At least one
-      pencil stays on.
-    - **Legend:** one row per level, darkest first and Paper last, with the tone, the grade, a short
-      hint and its share of the photo (a grade the photo does not use says "not used"). In By pencil
-      the row of the step has a mark.
+    - **Opacity** is the first row. Under it are three tabs: **Look**, **Effects** and **Pencils**.
+      The open tab is not saved.
+    - **Look tab.**
+      - **Look** (a select): Tone (the photo as a smooth gray picture in graphite tones; the start),
+        Drawing (Tone on a paper tooth), Hatch (lines that follow the form; the heaviest look) and
+        By pencil (only the lightest pencils up to a step). A line under the select says what the
+        look is for.
+      - **Brightness** (the core's Key: lighter or darker), **Contrast**, **Detail** (how much fine
+        detail stays) and **Highlights** (the percent of the photo left as bare paper): the sliders
+        you reach for first.
+      - **Pencils down** (By pencil only): how many pencils are down, from the lightest. A line says
+        which pencil the step is ("Step 4 of 8: HB"). The legend marks that pencil, and the slider
+        stops at the number of pencils in the set.
+      - **Auto** sets Brightness, Contrast and Highlights from the photo and says in a note what it
+        did and why. It runs by itself, once for a photo, the first time Pencil is the base and
+        those three are still at their start; the button runs it again. The note goes away when you
+        move one of the three by hand or open another photo. It is not saved.
+      - **Reset:** every knob and effect back to its start. The look and the set of pencils stay.
+    - **Effects tab:** **Smudge** (a blending stump softens the tone along the strokes), **Lifted
+      lights** (eraser marks pull the light tones back toward paper) and **Cross-hatch** (more
+      crossed lines in the darks), each a slider and shown only in the looks that draw it: Smudge and
+      Lifted lights in Tone, Drawing and Hatch; Cross-hatch in Drawing and Hatch. Then **Deep darks**
+      (the most of the picture the 9B and 7B may cover), **Local contrast** (more texture, 0 is
+      off) and, in Drawing and Hatch, a texture group: **Texture** (grain), **Paper** (Smooth,
+      Medium or Rough), **Hatch angle** and, in Hatch only, **Hatch density**.
+    - **Pencils tab:** a row of eight toggles, 9B, 7B, 5B, 2B, HB, H, 3H and 4H: tick the pencils
+      you own. The tones of the picture are the tones of those pencils and bare paper. At least one
+      pencil stays on. Below it: **Suggest pencils** with a count row (3, 4, 5 or 6), the **Suggest**
+      button, the suggested pencils as chips, and **Apply**, which sets them as your set (the legend
+      then shows only those pencils). Not saved.
+    - **Legend:** one swatch per level in the legend strip, darkest first and Paper last, with the
+      grade; the hint and the share of the photo (a grade the photo does not use says "not used")
+      are in the tip. A press holds the grade in the color picker card. In By pencil the swatch of
+      the step has a mark.
     - Pencil is a base of its own, so Edges is off while it is shown; the Edges switch you saved stays
       and comes back with another base. Grid works as on any base, with the dark Contrast lines of
       Paper. On a phone the card is a bottom sheet whose body scrolls inside it, so every control can
       be reached.
 - **Edges:** Lines, Transfer or Masses. Amount 0 to 100 (starts at 67). Width 1 to 10 (starts at 5).
   Even 0 to 100 (starts at 50; Lines only).
-- **Grid:** Thirds, Grid or Both. Cells 3, 4, 6, 8, 9, 10, 12, 18, 20, 24, 30, 40 or 50. Center.
+- **Grid:** Thirds, Grid or Both. Cells is a select: 3, 4, 6, 8, 9, 10, 12, 18, 20, 24, 30, 40 or 50. Center.
   Group of 2 x 2 or 4 x 4 cells. Width 1 to 16. Contrast lines, or one color you pick.
 
 ### Keys
@@ -230,20 +246,21 @@ React 19, Hero UI v3 and Tailwind CSS v4 over the Rust core in wasm. The source 
 has six folders. Paths below are under `src/`.
 
 - `features/photos/`: the photo list on this device and the photo on screen.
-- `features/stage/`: the stage, the bottom bar, zoom and pan, shortcuts, the real size lock and the
-  color swatches.
+- `features/stage/`: the stage, the bottom bar, zoom and pan, shortcuts, the real size lock, the
+  legend strip and the color swatches.
 - `features/picker/`: the color picker: `spectral.ts` (the color science), `paints.ts` (the six
   paints), `mix.ts` (the recipe of a color), `sample.ts` (the color the stage shows at a photo
   pixel) and `Picker.tsx` (the card).
 - `features/pencil/`: the list of pencils in the core's bit order (`grades.ts`: names, hints, the
   set a mask picks, the level nearest a color), the Pencils toggle row (`GradeRow.tsx`), the
   settings and their ranges (`knobs.ts`), the Auto note (`explain.ts`) and the card (`PencilCard.tsx`).
-- `features/size/`: the Size tool: the paper table and the cut (`paper.ts`), the cut of the pixels
+- `features/size/`: the Paper tool (was Size): the paper table and the cut (`paper.ts`), the cut of the pixels
   (`crop.ts`), the choice per photo (`useSize.ts`) and the card (`SizeCard.tsx`, `SizePreview.tsx`).
 - `features/tools/`: the pop-up cards of the bottom bar and the settings (`settings.ts`: the start
   values and ranges of every knob).
 - `draw/`: the layers worker, its client, the typed calls and the draw hook.
-- `ui/`: parts that know nothing about photos (fields, icons, the logo).
+- `ui/`: parts that know nothing about photos (fields, icons, the logo, `useFrameDrag.ts`: the drag
+  of the bar grip and the panel edge).
 - `lib/`: `keys.ts` (every saved key), `storage.ts` (load and save them) and small helpers.
 - `styles/`: `index.css` and the theme `atelier-theme.css`.
 

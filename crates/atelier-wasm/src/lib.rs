@@ -94,22 +94,19 @@ fn grid_of(
     )?))
 }
 
-/// How many work pictures a photo keeps: the one on screen.
-const KEEP_WORK: usize = 1;
-
 /// One work picture of a photo.
 struct Prepared {
     long: u32,
     work: Rgb,
 }
 
-/// One photo kept between draws: the RGB copy and the last work pictures (the resize to `long`).
+/// One photo kept between draws: the RGB copy and the last work picture (the resize to `long`).
 /// A knob change then redraws from the kept work picture.
 #[wasm_bindgen]
 pub struct Photo {
     rgb: Rgb,
-    /// Newest last, at most [`KEEP_WORK`].
-    prepared: Vec<Prepared>,
+    /// The work picture on screen.
+    prepared: Option<Prepared>,
 }
 
 impl Photo {
@@ -117,24 +114,18 @@ impl Photo {
     fn from_rgba(rgba: &[u8], width: u32, height: u32) -> Result<Self> {
         Ok(Self {
             rgb: rgb_from_rgba(rgba, width, height)?,
-            prepared: Vec::new(),
+            prepared: None,
         })
     }
 
     /// The work picture at `long`.
     fn prepare(&mut self, long: u32) -> Result<&Rgb> {
-        if let Some(at) = self.prepared.iter().position(|p| p.long == long) {
-            let p = self.prepared.remove(at);
-            self.prepared.push(p);
-        } else {
+        if self.prepared.as_ref().is_none_or(|p| p.long != long) {
             let work = render::prepare_work(&self.rgb, long)?;
-            if self.prepared.len() >= KEEP_WORK {
-                self.prepared.remove(0);
-            }
-            self.prepared.push(Prepared { long, work });
+            self.prepared = Some(Prepared { long, work });
         }
         self.prepared
-            .last()
+            .as_ref()
             .map(|p| &p.work)
             .ok_or_else(|| Error::BadInput("no work picture".into()))
     }
@@ -184,7 +175,7 @@ impl Photo {
     }
 
     /// The Pencil layer: the photo as a graphite study, opaque. `look` 0 is the smooth tone picture, 1
-    /// the drawing, 2 the flat zones, 3 hatch, 4 by pencil. `mask` is the pencils, bit 0 the 9B up to
+    /// the drawing, 3 hatch, 4 by pencil (2 is refused). `mask` is the pencils, bit 0 the 9B up to
     /// bit 7 the 4H (255 is all). `numbers` is a `Float64Array` of 14 numbers, in the order
     /// `detail`, `key`, `contrast`, `highlights`, `darks`, `local`, `grain`, `paper`, `angle`,
     /// `density`, `step`, `smudge`, `lift`, `cross` (their ranges are in `atelier_core::render`;

@@ -1,27 +1,14 @@
 // One typed call per see-through layer, as the page sends it to the core in the worker.
+import type { PencilLook } from "@/features/pencil/knobs";
+
 export type LayerId = "edges" | "shapes" | "values" | "pencil" | "grid";
 
 /** A color as red, green and blue, 0 to 255. */
 export type Rgb = [number, number, number];
 
-/** The knobs of a Pencil draw. The core reads them as one array of numbers (`pencilNumbers`). */
-export type PencilKnobs = {
-	detail: number;
-	key: number;
-	contrast: number;
-	highlights: number;
-	darks: number;
-	local: number;
-	grain: number;
-	paper: number;
-	angle: number;
-	density: number;
-	step: number;
-	/** The effects, 0 off to 100. */
-	smudge: number;
-	lift: number;
-	cross: number;
-};
+/** The knobs of a Pencil draw: the saved Pencil settings without the look and the pencils. The core
+ * reads them as one array of numbers (`pencilNumbers`). */
+export type PencilKnobs = Omit<PencilLook, "look" | "mask">;
 
 /** The Pencil knobs in the order the core reads them (`PENCIL_NUMBERS` in `render.rs`): detail, key,
  * contrast, highlights, darks, local, grain, paper, angle, density, step, smudge, lift, cross. */

@@ -47,7 +47,6 @@ and nothing uses a clock or a random number.
 |---|---|
 | **Tone** (the start) | The picture of the curve, smooth. |
 | **Drawing** | Tone laid on a paper tooth (a fixed noise of three sizes, stretched 2.2 times along the Hatch angle so it reads as strokes). Graphite sits on the peaks first, so a light tone is a few soft peaks and a dark tone fills the tooth; a softer pencil lays a softer edge. Tones under L* 30 get a slight sheen of at most 2 L*. The tone of a patch stays the tone. |
-| **Zones** | Flat tones, one per pencil, cut where the pencils change (the cuts lean 35 percent to equal shares). The zone map is cleaned as in Values (a mode filter, small shapes merged). Detail also sets the smallest zone. Use it to see where each pencil goes. |
 | **Hatch** | Lines that follow the form (the direction of the structure in the photo, read over about 2.7 percent of the long side; the Hatch angle where the form gives none). A darker tone adds lines (a line shows when the tone is darker than its own threshold) and, in the darks, a second layer across the first, turned 60 degrees. A light tone is a few faint lines; the lightest work has a rare gap (3 percent of a line at most). It is a texture of the tone, not a line drawing (Edges is the line tool) and not a stroke order. |
 | **By pencil** | The Tone picture drawn with only the lightest pencils up to a Step. Every tone darker than the pencil of the step is drawn in that pencil. It shows what each pencil adds to the study. It is a view of the tone, not a stroke order. |
 
@@ -63,7 +62,7 @@ A level with no pixel shows 0.
 
 ## The knobs
 
-Every knob has a start value at which it changes nothing. At the start values Tone and Zones draw
+Every knob has a start value at which it changes nothing. At the start values Tone draws
 the same bytes as before the knobs existed, and with the three effects at 0 Drawing and Hatch draw
 the same bytes as before the effects existed (a test pins both).
 
@@ -84,12 +83,9 @@ the same bytes as before the effects existed (a test pins both).
 | Lift | 0 to 100 | 0 (off) | A kneaded eraser: soft streaks that pull a light tone toward paper. One mark at most per 40 px cell, with a hashed place, angle, length and width. At 100 a mark takes a tone 70 percent of the way to paper. Only tones lighter than L* 70 are touched (full effect from L* 82). Tone, Drawing, Hatch. The mean moves 2 L* at most. | Our choice |
 | Cross | 0 to 100 | 0 (off) | More crossed work in the darks. Hatch: the first layer tops out lower, so the second layer starts at a lighter tone, and a third layer joins it, turned 120 degrees. The covered share of the paper stays as it was. Drawing: a second paper tooth, turned a quarter, mixes into the first in the darks (up to half at 100). Lights are not touched. Drawing, Hatch. | Our choice |
 
-The three effects (Smudge, Lift, Cross) are off at 0. Zones and By pencil ignore them, because they
+The three effects (Smudge, Lift, Cross) are off at 0. By pencil ignores them, because they
 show the tone and the shares as they are. Each effect is a hash of the position, so the same photo
 and the same numbers give the same bytes.
-
-Zones uses Detail, Highlights and Deep darks only. Key, Contrast and Local contrast do not apply to
-it, because its tones are cut from the photo as it is.
 
 Reset puts every knob back to its start. It keeps the look and the set of pencils.
 
@@ -132,11 +128,11 @@ A 1024 px work picture, in ms. The browser row is the wasm build in headless Chr
 portrait photo, mean of three; the native rows are release builds, the mean and the slowest of 16
 photos.
 
-| | Shapes, step 3 | Tone | Drawing | Zones | Hatch | By pencil |
-|---|---|---|---|---|---|---|
-| Browser (wasm), one photo | 630 | 234 | 287 | 194 | 439 | 220 |
-| Native, mean of 16 photos | | 233 | 278 | 183 | 387 | 231 |
-| Native, slowest photo | | 324 | 381 | 259 | 526 | 318 |
+| | Shapes, step 3 | Tone | Drawing | Hatch | By pencil |
+|---|---|---|---|---|---|
+| Browser (wasm), one photo | 630 | 234 | 287 | 439 | 220 |
+| Native, mean of 16 photos | | 233 | 278 | 387 | 231 |
+| Native, slowest photo | | 324 | 381 | 526 | 318 |
 
 - Every Pencil look stays under Shapes, the slowest of the other parts. Hatch is the heaviest look
   (its card hint says so).

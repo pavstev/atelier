@@ -21,6 +21,8 @@ function useNarrow(): boolean {
 }
 
 type ButtonProps = {
+	/** Set by Popup: the element the card anchors to in a split button. */
+	groupRef?: React.RefObject<HTMLDivElement | null>;
 	icon: IconName;
 	/** The accessible name. */
 	label: string;
@@ -32,10 +34,52 @@ type ButtonProps = {
 	/** The part is off for now: the button stays in the bar, dimmed, and its tip says why. */
 	disabled?: boolean;
 	onPress?: () => void;
+	/** Makes a split button: the main part calls this, the chevron opens the card. */
+	onToggle?: () => void;
+	/** Set by Popup: wraps the chevron of a split button in the popover it triggers. */
+	wrap?: (chevron: ReactNode) => ReactNode;
 };
 
 /** The round icon button of the bar. It has no `aria-pressed`, only the look of a pressed one. */
 function BarButton(p: ButtonProps) {
+	if (p.onToggle) {
+		const chevron = (
+			<IconButton
+				icon="down"
+				label={`${p.label} options`}
+				tip={p.disabled ? p.tip : undefined}
+				disabled={p.disabled}
+				testid={p.testid}
+				variant="ghost"
+				size="row"
+				placement="top"
+				className="-ml-1 touch-none rounded-full select-none"
+				data-bar-button
+				onPress={p.onPress}
+			/>
+		);
+		return (
+			<div
+				ref={p.groupRef}
+				className="flex items-center rounded-full"
+				data-testid={`group-${p.testid.replace(/^tool-/, "")}`}
+			>
+				<IconButton
+					icon={p.icon}
+					label={p.label}
+					tip={p.tip}
+					testid={`toggle-${p.testid.replace(/^tool-/, "")}`}
+					pressed={!!p.on}
+					disabled={p.disabled}
+					placement="top"
+					className="touch-none rounded-full select-none"
+					data-bar-button
+					onPress={p.onToggle}
+				/>
+				{p.wrap ? p.wrap(chevron) : chevron}
+			</div>
+		);
+	}
 	return (
 		<IconButton
 			icon={p.icon}
@@ -67,31 +111,46 @@ export default function Popup(p: {
 	// When a bar button is pressed, the popover sees a focus change and asks to close; the button's
 	// own press then decides. So a close asked just after a bar button went down is ignored here.
 	const barDown = useRef(0);
+	const groupRef = useRef<HTMLDivElement | null>(null);
 
 	// A press outside the card closes it. The bar buttons decide for themselves (a press on the
 	// button of this card closes it, a press on another opens that one), and the lists and menus a
 	// card opens are part of the card.
 	useEffect(() => {
 		if (!open || narrow) return;
-		const away = (e: PointerEvent) => {
+		let down: { x: number; y: number } | null = null;
+		const inside = (t: Element | null) =>
+			!!t?.closest(
+				'[data-testid="tool-popup"], [data-bar-button], [role="listbox"], [role="menu"]',
+			);
+		const press = (e: PointerEvent) => {
 			const t = e.target as Element | null;
 			if (t?.closest("[data-bar-button]")) barDown.current = e.timeStamp;
-			if (
-				t?.closest(
-					'[data-testid="tool-popup"], [data-bar-button], [role="listbox"], [role="menu"]',
-				)
-			)
-				return;
-			onOpenChange(false);
+			down = inside(t) ? null : { x: e.clientX, y: e.clientY };
 		};
-		document.addEventListener("pointerdown", away, true);
-		return () => document.removeEventListener("pointerdown", away, true);
+		// Only a still press closes: a drag that starts outside pans the photo and keeps the card.
+		const release = (e: PointerEvent) => {
+			const d = down;
+			down = null;
+			if (d && Math.hypot(e.clientX - d.x, e.clientY - d.y) <= 6)
+				onOpenChange(false);
+		};
+		document.addEventListener("pointerdown", press, true);
+		document.addEventListener("pointerup", release, true);
+		return () => {
+			document.removeEventListener("pointerdown", press, true);
+			document.removeEventListener("pointerup", release, true);
+		};
 	}, [open, narrow, onOpenChange]);
 
 	if (narrow)
 		return (
 			<>
-				<BarButton {...p.button} onPress={() => onOpenChange(!open)} />
+				<BarButton
+					{...p.button}
+					groupRef={groupRef}
+					onPress={() => onOpenChange(!open)}
+				/>
 				<Sheet isOpen={open} onOpenChange={onOpenChange}>
 					<Sheet.Backdrop variant="transparent">
 						<Sheet.Content className="max-h-[75dvh]">
@@ -110,7 +169,25 @@ export default function Popup(p: {
 				</Sheet>
 			</>
 		);
-	return (
+	const card = (
+		<Popover.Content
+			placement="top"
+			offset={12}
+			isNonModal
+			triggerRef={p.button.onToggle ? groupRef : undefined}
+			shouldCloseOnInteractOutside={() => false}
+		>
+			<Popover.Dialog
+				aria-label={p.title}
+				data-testid="tool-popup"
+				data-tool={p.id}
+				className="flex max-h-[min(70dvh,34rem)] w-[min(20rem,calc(100vw-1rem))] flex-col gap-2.5 overflow-y-auto"
+			>
+				{p.children}
+			</Popover.Dialog>
+		</Popover.Content>
+	);
+	const frame = (trigger: ReactNode) => (
 		<Popover
 			isOpen={open}
 			onOpenChange={(o) => {
@@ -118,17 +195,18 @@ export default function Popup(p: {
 				onOpenChange(o);
 			}}
 		>
-			<BarButton {...p.button} onPress={() => onOpenChange(!open)} />
-			<Popover.Content placement="top" offset={12} isNonModal>
-				<Popover.Dialog
-					aria-label={p.title}
-					data-testid="tool-popup"
-					data-tool={p.id}
-					className="flex max-h-[min(70dvh,34rem)] w-[min(20rem,calc(100vw-1rem))] flex-col gap-2.5 overflow-y-auto"
-				>
-					{p.children}
-				</Popover.Dialog>
-			</Popover.Content>
+			{trigger}
+			{card}
 		</Popover>
 	);
+	// A split button wraps only its chevron in the popover, so the main part is not a trigger.
+	const button = (
+		<BarButton
+			{...p.button}
+			groupRef={groupRef}
+			wrap={p.button.onToggle ? frame : undefined}
+			onPress={() => onOpenChange(!open)}
+		/>
+	);
+	return p.button.onToggle ? button : frame(button);
 }

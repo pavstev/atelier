@@ -3,11 +3,7 @@
 // It is a display copy for the page only. The pixel work of the layers stays in the core.
 import { tileOff } from "./decodeClient.ts";
 import { fitLongSide } from "./fit.ts";
-
-/** The long side of the tiny preview, in px (for sharp tiles on any screen). */
-const SMALL = 128;
-
-const fitTo = fitLongSide;
+import { TILE_QUALITY, TILE_SIDE } from "./photo.ts";
 
 /** A canvas element of `w` by `h` px with the bitmap drawn on it, stretched to fill it. */
 function paint(bitmap: ImageBitmap, w: number, h: number) {
@@ -24,14 +20,14 @@ export async function thumbnail(
 	source: ImageBitmap | ImageData,
 ): Promise<string> {
 	try {
-		const { w, h } = fitTo(source.width, source.height, SMALL);
+		const { w, h } = fitLongSide(source.width, source.height, TILE_SIDE);
 		const bitmap = await createImageBitmap(source, {
 			resizeWidth: w,
 			resizeHeight: h,
 			resizeQuality: "medium",
 		});
 		try {
-			return paint(bitmap, w, h).toDataURL("image/jpeg", 0.62);
+			return paint(bitmap, w, h).toDataURL("image/jpeg", TILE_QUALITY);
 		} finally {
 			bitmap.close();
 		}
@@ -89,7 +85,7 @@ export async function previewOfFile(
 /** Scales a bitmap to the long side `BIG` (never up), makes a JPEG, and lets the bitmap go. */
 async function shrink(bitmap: ImageBitmap): Promise<Blob | null> {
 	try {
-		const { w, h } = fitTo(bitmap.width, bitmap.height, BIG);
+		const { w, h } = fitLongSide(bitmap.width, bitmap.height, BIG);
 		const canvas = paint(bitmap, w, h);
 		return await new Promise<Blob | null>((done) =>
 			canvas.toBlob(done, "image/jpeg", 0.82),

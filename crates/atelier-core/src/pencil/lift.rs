@@ -110,10 +110,7 @@ pub(crate) fn lift(tone: &[f32], (w, h): (usize, usize), amount: f32) -> Vec<f32
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    fn mean(v: &[f32]) -> f32 {
-        v.iter().sum::<f32>() / v.len() as f32
-    }
+    use crate::test_support::mean;
 
     #[test]
     fn test_zero_is_the_same_picture_to_the_byte() {

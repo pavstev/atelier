@@ -3,9 +3,6 @@
 
 use crate::filters::Sorted;
 
-/// How far the cuts of the Zones look lean to equal shares of pixels (0 the plain stretch, 1
-/// equal shares), so a middle grade is used as much as a soft one.
-pub(super) const SPREAD: f32 = 0.35;
 /// The same lean for the tone curve of Tone and Drawing. It stays small, so the picture follows
 /// the photo: a bimodal photo (a light face on a dark ground) keeps the shading of its face.
 pub(super) const TONE_SPREAD: f32 = 0.10;

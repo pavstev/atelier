@@ -142,7 +142,6 @@ fn test_view_bad_preset() {
     for detail in [-0.1f32, 1.1, f32::NAN] {
         assert!(view(&img, 1, detail).is_err(), "detail {detail}");
     }
-    assert!(view(&Rgb::from_vec(2, 2, 1, vec![0; 4]), 1, 0.5).is_err());
 }
 
 #[test]
@@ -338,24 +337,16 @@ fn test_families_keeps_two_flat_tones_apart() {
 }
 
 #[test]
-fn test_the_pencil_fields_agree_with_and_without_labels() {
+fn test_the_pencil_fields_agree_with_the_smooth_of_the_photo() {
     let (w, h) = (96usize, 64usize);
     let img = gray_picture(w, h, |x, y| 20.0 + (x * 60 / w + y * 10 / h) as f64);
     let plain = fields(&img, 0.5).unwrap();
-    let (with, labels) = zone_labels(&img, 0.5, |_| vec![40.0, 60.0]).unwrap();
-    assert_eq!(plain.smooth, with.smooth);
-    assert_eq!(plain.fine, with.fine);
-    assert_eq!(plain.smooth, smooth_of(&img).unwrap());
-    assert_eq!(labels.len(), w * h);
-    assert!(labels.iter().all(|&l| l <= 2));
-    assert!(labels.contains(&0) && labels.contains(&2));
+    assert_eq!(plain.smooth, smooth_of(&img));
 }
 
 #[test]
-fn test_the_pencil_fields_refuse_a_bad_picture_or_detail() {
+fn test_the_pencil_fields_refuse_a_bad_detail() {
     let img = gray_picture(16, 16, |_, _| 50.0);
     assert!(fields(&img, 1.5).is_err());
-    assert!(zone_labels(&img, -0.1, |_| vec![]).is_err());
-    assert!(fields(&Rgb::new(4, 4, 1), 0.5).is_err());
-    assert!(smooth_of(&Rgb::new(0, 0, 3)).is_err());
+    assert!(fields(&img, -0.1).is_err());
 }

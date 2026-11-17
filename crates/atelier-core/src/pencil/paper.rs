@@ -4,9 +4,8 @@
 use super::ink::smoothstep;
 use crate::error::{Error, Result};
 use crate::filters::box_mean;
+use crate::img::size_factor;
 
-/// The long side the feature sizes below are tuned for, in px.
-const TUNED_LONG: f32 = 1024.0;
 /// The octaves of the tooth: cell size as a multiple of the paper cell, and weight. The finest
 /// octave is the grain; the coarser two give it a little clumping, as real paper has.
 /// The grain of the three papers in px at a long side of 1024 (hot pressed, sketch, cold pressed),
@@ -62,7 +61,7 @@ impl Paper {
 /// The factor that scales px sizes tuned for a long side of 1024 to a bigger picture. A smaller
 /// picture keeps the sizes, so a tiny test picture does not alias.
 pub(crate) fn scale(w: usize, h: usize) -> f32 {
-    (w.max(h) as f32 / TUNED_LONG).max(1.0)
+    size_factor(w, h)
 }
 
 /// A hash of two integers, from -1 to 1. Uniform, so its mean is zero. The only hash of the Pencil

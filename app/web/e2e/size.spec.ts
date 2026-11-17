@@ -31,7 +31,7 @@ test("test_size_frames_the_photo_to_a4_and_keeps_the_choice", async ({
 	await studio.openSynthetic(480, 640, "frame.png");
 	await expect(page.getByTestId("tool-size")).toHaveAttribute(
 		"aria-label",
-		"Size",
+		"Paper",
 	);
 	await openSize(page);
 	await expect(page.getByTestId("size-preset")).toHaveCount(10);
@@ -120,7 +120,9 @@ test("test_size_custom_and_grid_cell_fact", async ({ studio }) => {
 	).toBeDisabled();
 });
 
-test("test_size_real_size_turns_the_zoom_lock_on", async ({ studio }) => {
+test("test_size_real_switch_turns_the_zoom_lock_on_and_off", async ({
+	studio,
+}) => {
 	const { page } = studio;
 	await studio.openSynthetic(480, 640, "real.png");
 	await expect(page.getByTestId("zoom-menu")).toHaveAttribute(
@@ -130,17 +132,34 @@ test("test_size_real_size_turns_the_zoom_lock_on", async ({ studio }) => {
 	await openSize(page);
 	await preset(page, "a4").click();
 	await page.getByTestId("size-fit").getByRole("radio").nth(1).click();
-	await page.getByTestId("size-real").click();
+	await page.getByTestId("paper-real").click();
 	await expect(page.getByTestId("zoom-menu")).toHaveAttribute(
 		"data-locked",
 		"true",
 	);
-	await expect(opened(page)).toHaveCount(0);
-	// the zoom menu keeps sharing the lock: the lock card shows the paper width
-	await page.getByTestId("zoom-menu").click();
-	await page.getByTestId("zoom-real").click();
-	await expect(page.getByTestId("lock-width")).toBeVisible();
-	await expect(page.getByTestId("lock-width").locator("input")).toHaveValue(
-		"21",
+	// the switch turns it off again
+	await openSize(page);
+	await page.getByTestId("paper-real").click();
+	await expect(page.getByTestId("zoom-menu")).toHaveAttribute(
+		"data-locked",
+		"false",
 	);
+});
+
+test("test_size_real_switch_needs_screen", async ({ studio }) => {
+	const { page } = studio;
+	await studio.openSynthetic(480, 640, "screen.png");
+	await openSize(page);
+	await page.getByTestId("paper-real").click();
+	// the switch is on, the screen width is not known: the box asks for it
+	await expect(page.getByTestId("zoom-menu")).toHaveAttribute(
+		"data-locked",
+		"true",
+	);
+	const screen = page.getByTestId("screen-width");
+	await expect(screen).toBeVisible();
+	await expect(screen.locator("input")).toHaveAttribute("placeholder", "ruler");
+	await expect(opened(page)).toContainText("measure the lit part");
+	await screen.locator("input").fill("30.4");
+	await expect(screen.locator("input")).toHaveValue("30.4");
 });

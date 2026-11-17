@@ -1,7 +1,7 @@
 /* @ts-self-types="./atelier_wasm.d.ts" */
 
 /**
- * One photo kept between draws: the RGB copy and the last work pictures (the resize to `long`).
+ * One photo kept between draws: the RGB copy and the last work picture (the resize to `long`).
  * A knob change then redraws from the kept work picture.
  */
 export class Photo {
@@ -114,7 +114,7 @@ export class Photo {
     }
     /**
      * The Pencil layer: the photo as a graphite study, opaque. `look` 0 is the smooth tone picture, 1
-     * the drawing, 2 the flat zones, 3 hatch, 4 by pencil. `mask` is the pencils, bit 0 the 9B up to
+     * the drawing, 3 hatch, 4 by pencil (2 is refused). `mask` is the pencils, bit 0 the 9B up to
      * bit 7 the 4H (255 is all). `numbers` is a `Float64Array` of 14 numbers, in the order
      * `detail`, `key`, `contrast`, `highlights`, `darks`, `local`, `grain`, `paper`, `angle`,
      * `density`, `step`, `smudge`, `lift`, `cross` (their ranges are in `atelier_core::render`;

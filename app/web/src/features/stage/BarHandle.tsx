@@ -1,10 +1,11 @@
 // The grip at the right end of the bottom bar. Drag it left or right to move the whole bar along
 // the stage; it stays inside the stage. While you drag, the place goes straight to a CSS variable on
-// the bar's frame, once per frame, so React does not render for each move; when you let go the place
+// the bar's frame, once per frame (see `useFrameDrag`), so React does not render for each move; when you let go the place
 // is saved (`barPlace.ts`). A double click, or Home, puts the bar back in the middle. The arrow keys
 // move it 2 percent. On a phone the bar stays in the middle and the grip is hidden.
 import { type RefObject, useRef } from "react";
 import { Icon, Tip } from "@/ui/icons";
+import { useFrameDrag } from "@/ui/useFrameDrag";
 import { BAR_START, clampCenter } from "./barPlace";
 
 /** The room kept between the bar and the stage edge, in px. */
@@ -25,12 +26,10 @@ export default function BarHandle(p: {
 	onStart: () => void;
 }) {
 	const drag = useRef<{
-		from: number;
 		center: number;
 		now: number;
 		moved: boolean;
 	} | null>(null);
-	const frame = useRef(0);
 
 	/** The stage width, the bar width and the bar center (px from the stage's left edge). */
 	const measure = () => {
@@ -45,20 +44,39 @@ export default function BarHandle(p: {
 			center: b.left + b.width / 2 - s.left,
 		};
 	};
-	const paint = () => {
-		frame.current = 0;
-		const d = drag.current;
-		const m = measure();
-		if (d && m)
-			p.frame.current?.style.setProperty(
-				"--bar-left",
-				barLeft(d.now / m.stage),
-			);
-	};
 	const commit = (x: number) => {
 		p.frame.current?.style.setProperty("--bar-left", barLeft(x));
 		p.onCommit(x);
 	};
+
+	const grip = useFrameDrag({
+		onMove: (dx) => {
+			const d = drag.current;
+			const m = measure();
+			if (!d || !m) return;
+			// the open card closes when the bar really starts to move, not on a plain click
+			if (!d.moved && Math.abs(dx) >= 3) {
+				d.moved = true;
+				p.onStart();
+			}
+			if (!d.moved) return;
+			d.now = clampCenter(d.center + dx, m.bar, m.stage, BAR_EDGE);
+			p.frame.current?.style.setProperty(
+				"--bar-left",
+				barLeft(d.now / m.stage),
+			);
+		},
+		onEnd: () => {
+			const d = drag.current;
+			const m = measure();
+			drag.current = null;
+			if (d && m && d.moved) commit(d.now / m.stage);
+		},
+		onCancel: () => {
+			drag.current = null;
+			p.frame.current?.style.setProperty("--bar-left", barLeft(p.x));
+		},
+	});
 
 	return (
 		<Tip
@@ -88,49 +106,8 @@ export default function BarHandle(p: {
 					if (e.button !== 0) return;
 					const m = measure();
 					if (!m) return;
-					e.currentTarget.setPointerCapture(e.pointerId);
-					drag.current = {
-						from: e.clientX,
-						center: m.center,
-						now: m.center,
-						moved: false,
-					};
-					document.body.style.cursor = "grabbing";
-					e.preventDefault();
-				}}
-				onPointerMove={(e) => {
-					const d = drag.current;
-					const m = measure();
-					if (!d || !m) return;
-					// the open card closes when the bar really starts to move, not on a plain click
-					if (!d.moved && Math.abs(e.clientX - d.from) >= 3) {
-						d.moved = true;
-						p.onStart();
-					}
-					if (!d.moved) return;
-					d.now = clampCenter(
-						d.center + e.clientX - d.from,
-						m.bar,
-						m.stage,
-						BAR_EDGE,
-					);
-					if (!frame.current) frame.current = requestAnimationFrame(paint);
-				}}
-				onPointerUp={(e) => {
-					const d = drag.current;
-					const m = measure();
-					if (!d) return;
-					drag.current = null;
-					document.body.style.cursor = "";
-					e.currentTarget.releasePointerCapture(e.pointerId);
-					if (frame.current) cancelAnimationFrame(frame.current);
-					frame.current = 0;
-					if (m && d.moved) commit(d.now / m.stage);
-				}}
-				onPointerCancel={() => {
-					drag.current = null;
-					document.body.style.cursor = "";
-					p.frame.current?.style.setProperty("--bar-left", barLeft(p.x));
+					drag.current = { center: m.center, now: m.center, moved: false };
+					grip.onPointerDown(e);
 				}}
 				onDoubleClick={() => commit(BAR_START)}
 			>

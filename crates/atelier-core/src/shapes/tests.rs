@@ -129,11 +129,10 @@ fn cells() -> Rgb {
     Rgb::from_vec(w, h, 3, data)
 }
 
-fn sv(level: u8, fill: Fill) -> ShapesView {
+fn sv(level: u8) -> ShapesView {
     ShapesView {
         level,
         detail: 0.5,
-        fill,
         smooth: 0,
         guide: 0.5,
         outline: 1.0,
@@ -154,7 +153,7 @@ fn test_view_levels_nest() {
         for smooth in [0, 2] {
             let at = |level| ShapesView {
                 smooth,
-                ..sv(level, Fill::Outline)
+                ..sv(level)
             };
             let (big, mid, small) = (
                 boundary(&view(&img, &at(0)).unwrap()),
@@ -178,27 +177,26 @@ fn test_view_levels_nest() {
 #[test]
 fn test_view_auto_picks_a_level() {
     for img in [cells(), ramps(), four_rects()] {
-        let (s, level) = cut(&img, &sv(3, Fill::Color)).unwrap();
+        let (s, level) = cut(&img, &sv(3)).unwrap();
         assert!([BIG, MID, SMALL].contains(&level));
         assert_eq!(level, s.auto);
-        let auto = view(&img, &sv(3, Fill::Color)).unwrap();
-        let named = view(&img, &sv(level as u8, Fill::Color)).unwrap();
+        let auto = view(&img, &sv(3)).unwrap();
+        let named = view(&img, &sv(level as u8)).unwrap();
         assert_eq!(auto, named);
     }
     // a flat image has no jump, so the pick is the medium level
     let flat = Rgb::filled(48, 32, &[90, 120, 150]);
-    assert_eq!(cut(&flat, &sv(3, Fill::Color)).unwrap().1, MID);
+    assert_eq!(cut(&flat, &sv(3)).unwrap().1, MID);
 }
 
 #[test]
-fn test_view_fill_modes_differ() {
+fn test_view_draws_outlines_on_paper() {
     let img = cells();
-    let color = view(&img, &sv(1, Fill::Color)).unwrap();
-    let outline = view(&img, &sv(1, Fill::Outline)).unwrap();
-    assert_ne!(color, outline);
-    for out in [&color, &outline] {
-        assert_eq!((out.width, out.height, out.channels), (160, 120, 3));
-    }
+    let outline = view(&img, &sv(1)).unwrap();
+    assert_eq!(
+        (outline.width, outline.height, outline.channels),
+        (160, 120, 3)
+    );
     let marks = boundary(&outline);
     assert!(marks.iter().any(|&b| b));
     for (p, &on) in outline.data.chunks_exact(3).zip(&marks) {
@@ -208,7 +206,7 @@ fn test_view_fill_modes_differ() {
 
 #[test]
 fn test_view_outline_is_dark_ink_on_light_paper() {
-    let out = view(&cells(), &sv(1, Fill::Outline)).unwrap();
+    let out = view(&cells(), &sv(1)).unwrap();
     let luma = |p: &[u8]| (u32::from(p[0]) + u32::from(p[1]) + u32::from(p[2])) / 3;
     let marks = boundary(&out);
     for (p, &on) in out.data.chunks_exact(3).zip(&marks) {
@@ -392,10 +390,7 @@ fn test_snap_keeps_a_thin_shape_with_real_edges() {
 #[test]
 fn test_smooth_keeps_levels_nested_and_deterministic() {
     let img = ramps();
-    let v = ShapesView {
-        smooth: 3,
-        ..sv(2, Fill::Color)
-    };
+    let v = ShapesView { smooth: 3, ..sv(2) };
     let (a, _) = cut(&img, &v).unwrap();
     let (b, _) = cut(&img, &v).unwrap();
     assert!(a.is_nested());
@@ -409,7 +404,7 @@ fn test_view_detail_moves_the_count() {
         let count = |detail| {
             let v = ShapesView {
                 detail,
-                ..sv(level, Fill::Color)
+                ..sv(level)
             };
             let (s, l) = cut(&img, &v).unwrap();
             s.levels[l].shapes.len()
@@ -427,7 +422,7 @@ fn test_view_tiny_images_do_not_panic() {
         for level in 0..4 {
             let v = ShapesView {
                 smooth: 3,
-                ..sv(level, Fill::Outline)
+                ..sv(level)
             };
             let out = view(&img, &v).unwrap();
             assert_eq!((out.width, out.height), (w, h));
@@ -439,31 +434,23 @@ fn test_view_tiny_images_do_not_panic() {
 fn test_view_bad_args() {
     let img = cells();
     for v in [
-        ShapesView {
-            level: 4,
-            ..sv(0, Fill::Color)
-        },
-        ShapesView {
-            smooth: 4,
-            ..sv(0, Fill::Color)
-        },
+        ShapesView { level: 4, ..sv(0) },
+        ShapesView { smooth: 4, ..sv(0) },
         ShapesView {
             detail: 1.5,
-            ..sv(0, Fill::Color)
+            ..sv(0)
         },
         ShapesView {
             guide: -0.1,
-            ..sv(0, Fill::Color)
+            ..sv(0)
         },
         ShapesView {
             detail: f32::NAN,
-            ..sv(0, Fill::Color)
+            ..sv(0)
         },
     ] {
         assert!(view(&img, &v).is_err(), "{v:?}");
     }
-    let grey = crate::img::Image::<u8>::filled(8, 8, &[100]);
-    assert!(view(&grey, &sv(0, Fill::Color)).is_err());
 }
 
 #[test]
@@ -496,7 +483,7 @@ fn blob_on_fields() -> Rgb {
 #[test]
 fn test_auto_keeps_a_small_clear_subject() {
     let img = blob_on_fields();
-    let (shapes, level) = cut(&img, &sv(3, Fill::Color)).unwrap();
+    let (shapes, level) = cut(&img, &sv(3)).unwrap();
     let blob_at = |lv: usize| {
         let l = &shapes.levels[lv];
         let w = shapes.width;
@@ -513,7 +500,7 @@ fn test_auto_keeps_a_small_clear_subject() {
 
 #[test]
 fn test_auto_does_not_split_a_calm_picture() {
-    let (shapes, level) = cut(&four_rects(), &sv(3, Fill::Color)).unwrap();
+    let (shapes, level) = cut(&four_rects(), &sv(3)).unwrap();
     assert_eq!(level, jump_pick(&shapes.merge_ratio));
 }
 
@@ -535,10 +522,10 @@ fn test_outline_skips_a_border_between_alike_shapes() {
         }
     }
     let ramp = Rgb::from_vec(w, h, 3, data);
-    let out = view(&ramp, &sv(2, Fill::Outline)).unwrap();
+    let out = view(&ramp, &sv(2)).unwrap();
     assert!(boundary(&out).iter().all(|&b| !b), "a band of a gradient");
     // a real step keeps its line
-    let out = view(&cells(), &sv(2, Fill::Outline)).unwrap();
+    let out = view(&cells(), &sv(2)).unwrap();
     assert!(boundary(&out).iter().any(|&b| b));
     let (a, b) = (shape_of([0.60, 0.0, 0.0]), shape_of([0.62, 0.01, 0.0]));
     assert!(same_paint(&a, &b));
@@ -600,8 +587,7 @@ fn test_steps_view_paints_shadows_first_and_accents_last() {
         let i = img.idx(x, y);
         [img.data[i], img.data[i + 1], img.data[i + 2]]
     };
-    let v = sv(3, Fill::Color);
-    let (first, piles) = steps_view(&img, 0, &v).unwrap();
+    let (first, piles) = steps_view(&img, 0, 0.5, 0.5).unwrap();
     assert_ne!(
         at(&first, 20, 64),
         CANVAS,
@@ -609,12 +595,12 @@ fn test_steps_view_paints_shadows_first_and_accents_last() {
     );
     assert_eq!(at(&first, 230, 64), CANVAS, "the light waits");
     assert_eq!(piles.len(), 1);
-    let (lights, mixed) = steps_view(&img, 2, &v).unwrap();
+    let (lights, mixed) = steps_view(&img, 2, 0.5, 0.5).unwrap();
     assert!(lights.data.chunks(3).all(|p| p != CANVAS));
     // the piles of a step come darkest first
     let l: Vec<f32> = mixed.iter().map(|&p| oklab::from_srgb(p)[0]).collect();
     assert!(l.windows(2).all(|x| x[0] <= x[1]), "{l:?}");
-    assert!(steps_view(&img, 4, &v).is_err());
+    assert!(steps_view(&img, 4, 0.5, 0.5).is_err());
 }
 
 #[test]
@@ -648,9 +634,8 @@ fn test_steps_view_keeps_a_tiny_light_as_an_accent() {
         let i = img.idx(128, 63);
         [img.data[i], img.data[i + 1], img.data[i + 2]]
     };
-    let v = sv(3, Fill::Color);
-    let (under, _) = steps_view(&img, STEP_MAX - 1, &v).unwrap();
-    let (last, mixed) = steps_view(&img, STEP_MAX, &v).unwrap();
+    let (under, _) = steps_view(&img, STEP_MAX - 1, 0.5, 0.5).unwrap();
+    let (last, mixed) = steps_view(&img, STEP_MAX, 0.5, 0.5).unwrap();
     assert!(
         at(&under)[0] < 120,
         "the underpaint is dark: {:?}",

@@ -210,29 +210,35 @@ struct Setup {
     heavy: Line,
 }
 
+/// `cells` as the count the grid takes: one of [`CELL_STEPS`]. The one home of that range.
+///
+/// # Errors
+/// [`Error::BadInput`] for any other number.
+pub fn cells_of(cells: u32) -> Result<usize> {
+    CELL_STEPS
+        .into_iter()
+        .find(|&c| c == cells as usize)
+        .ok_or_else(|| Error::bad("cells must be 3, 4, 6, 8, 9, 10, 12, 18, 20, 24, 30, 40 or 50"))
+}
+
+/// `group` as the count the grid takes: one of [`GROUPS`]. The one home of that range.
+///
+/// # Errors
+/// [`Error::BadInput`] for any other number.
+pub fn group_of(group: u32) -> Result<usize> {
+    GROUPS
+        .into_iter()
+        .find(|&g| g == group as usize)
+        .ok_or_else(|| Error::bad("grid group must be 2 or 4"))
+}
+
 /// The checks and the numbers [`layer`] needs: the size and the thin and heavy lines.
-fn setup(
-    work: &Rgb,
-    mode: u8,
-    cells: usize,
-    width: usize,
-    group: usize,
-    color: u32,
-) -> Result<Setup> {
-    work.require_work()?;
+fn setup(work: &Rgb, mode: u8, width: usize, color: u32) -> Result<Setup> {
     if mode >= 3 {
         return Err(Error::bad("grid mode must be 0 to 2"));
     }
-    if !CELL_STEPS.contains(&cells) {
-        return Err(Error::bad(
-            "cells must be 3, 4, 6, 8, 9, 10, 12, 18, 20, 24, 30, 40 or 50",
-        ));
-    }
     if !(1..=MAX_WIDTH).contains(&width) {
         return Err(Error::bad("grid width must be 1 to 16"));
-    }
-    if !GROUPS.contains(&group) {
-        return Err(Error::bad("grid group must be 2 or 4"));
     }
     if color > CONTRAST {
         return Err(Error::bad("grid color must be 0xRRGGBB or Contrast"));
@@ -256,9 +262,9 @@ fn setup(
 /// is `0xRRGGBB` or [`CONTRAST`]. A pixel is clear (alpha 0) exactly where no line reaches.
 ///
 /// # Errors
-/// [`Error::BadInput`] for a mode of 3 or more, `cells` not in [`CELL_STEPS`], `width` outside 1
-/// to [`MAX_WIDTH`], `group` not in [`GROUPS`], `color` above [`CONTRAST`], or an image that is not
-/// RGB.
+/// [`Error::BadInput`] for a mode of 3 or more, `width` outside 1 to [`MAX_WIDTH`], or `color`
+/// above [`CONTRAST`]. `work` is a checked RGB picture, and `cells` and `group` come from
+/// [`cells_of`] and [`group_of`].
 pub fn layer(
     work: &Rgb,
     mode: u8,
@@ -268,7 +274,7 @@ pub fn layer(
     color: u32,
     center: bool,
 ) -> Result<Vec<u8>> {
-    let Setup { size, thin, heavy } = setup(work, mode, cells, width, group, color)?;
+    let Setup { size, thin, heavy } = setup(work, mode, width, color)?;
     let mask = if mode == 0 {
         let mut m = vec![0u8; size.0 * size.1];
         thirds_into(&mut m, size, thin);
@@ -477,7 +483,7 @@ mod tests {
     fn test_line_width_follows_the_knob() {
         // `width` px at a long side of 2048, scaled with the long side
         for width in 1..=MAX_WIDTH {
-            let at = |w: usize, h: usize| setup(&flat(w, h, 120), 1, 6, width, 2, 0).unwrap();
+            let at = |w: usize, h: usize| setup(&flat(w, h, 120), 1, width, 0).unwrap();
             let big = at(2048, 1024);
             assert_eq!(
                 big.thin,
@@ -491,11 +497,7 @@ mod tests {
             assert!(at(100, 80).thin.px >= 1, "width {width} at 100");
         }
         // under 1 px: 1 px and see-through in step; the thinnest line on the screen picture
-        let screen = |width| {
-            setup(&flat(1024, 768, 120), 1, 6, width, 2, 0)
-                .unwrap()
-                .thin
-        };
+        let screen = |width| setup(&flat(1024, 768, 120), 1, width, 0).unwrap().thin;
         assert_eq!(screen(1), Line { px: 1, alpha: 128 });
         assert_eq!(screen(2), Line { px: 1, alpha: 255 });
         assert_eq!(screen(4), Line { px: 2, alpha: 255 });
@@ -539,11 +541,12 @@ mod tests {
     fn test_view_bad_cells() {
         let work = flat(120, 90, 100);
         for cells in [0, 2, 5, 7, 11, 13, 14, 16, 25, 60, 100] {
-            assert!(view(&work, 1, cells).is_err(), "{cells} cells");
-            assert!(view(&work, 0, cells).is_err(), "{cells} cells, thirds");
+            assert!(cells_of(cells).is_err(), "{cells} cells");
         }
         for cells in CELL_STEPS {
+            assert_eq!(cells_of(cells as u32).unwrap(), cells);
             assert!(view(&work, 1, cells).is_ok(), "{cells} cells");
+            assert!(view(&work, 0, cells).is_ok(), "{cells} cells, thirds");
         }
         assert!(view(&work, 3, 8).is_err());
         for width in [0, 17, 100] {
@@ -553,11 +556,9 @@ mod tests {
             );
         }
         for group in [0, 1, 3, 5, 8] {
-            assert!(
-                layer(&work, 1, 8, 2, group, 0, false).is_err(),
-                "group {group}"
-            );
+            assert!(group_of(group).is_err(), "group {group}");
         }
+        assert_eq!(group_of(4).unwrap(), 4);
         assert!(layer(&work, 1, 8, 2, 2, CONTRAST, false).is_ok());
         for color in [CONTRAST + 1, u32::MAX] {
             assert!(
@@ -565,8 +566,6 @@ mod tests {
                 "color {color}"
             );
         }
-        assert!(view(&Image::<u8>::filled(2, 2, &[1]), 1, 8).is_err());
-        assert!(view(&Image::<u8>::new(0, 0, 3), 1, 8).is_err());
     }
 
     #[test]

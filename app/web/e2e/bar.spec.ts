@@ -88,3 +88,30 @@ test("test_on_a_phone_the_bar_has_no_grip_and_stays_in_the_middle", async ({
 	const b = await box(page, "stage-bar");
 	expect(b.x + b.width / 2).toBeCloseTo(195, 0);
 });
+
+test("test_toggle_does_not_open_a_card_and_a_drag_keeps_one", async ({
+	studio,
+}) => {
+	const { page } = studio;
+	await studio.openSynthetic(480, 640, "one.png");
+	// a split button: the main part toggles, the chevron opens the card
+	const toggle = page.getByTestId("toggle-grid");
+	if (await toggle.count()) {
+		await toggle.click();
+		await expect(page.getByTestId("tool-popup")).toHaveCount(0);
+		await expect(toggle).toHaveAttribute("aria-pressed", "true");
+	}
+	// a card stays open when a drag pans the stage, and a still click outside closes it
+	await page.getByTestId("tool-base").click();
+	await expect(page.getByTestId("tool-popup")).toBeVisible();
+	const s = await box(page, "stage");
+	const x = s.x + s.width / 2;
+	const y = s.y + 80;
+	await page.mouse.move(x, y);
+	await page.mouse.down();
+	await page.mouse.move(x + 40, y, { steps: 6 });
+	await page.mouse.up();
+	await expect(page.getByTestId("tool-popup")).toBeVisible();
+	await page.mouse.click(x, y);
+	await expect(page.getByTestId("tool-popup")).toHaveCount(0);
+});

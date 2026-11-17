@@ -15,8 +15,9 @@ import {
 	PANEL_MIN,
 	type StageId,
 } from "@/features/tools/settings";
-import { ICON_BUTTON, Tip } from "@/ui/icons";
+import { ICON_BUTTON, IconButton, Tip } from "@/ui/icons";
 import EdgeHandle from "./EdgeHandle";
+import LegendStrip from "./LegendStrip";
 import { lockedWidth, useLock } from "./lockZoom";
 import ResizeHandle from "./ResizeHandle";
 import Stage from "./Stage";
@@ -47,7 +48,7 @@ export default function StageArea(p: {
 	levels?: Level[] | null;
 	/** The level By pencil is drawn up to (an index into `levels`), or none. */
 	mark?: number | null;
-	/** The legend of Values, Shapes or Pencil, for the Base card. */
+	/** The legend of Values, Shapes or Pencil, shown in the strip at the top of the stage. */
 	legend?: ReactNode;
 	layout: Layout;
 	onLayout: (f: (s: Layout) => Layout) => void;
@@ -158,6 +159,20 @@ export default function StageArea(p: {
 						onReset={() => widthOf(LAYOUT.widths.left)}
 					/>
 				)}
+				{photo && p.legend && <LegendStrip>{p.legend}</LegendStrip>}
+				{photo && layout.panels.left && (
+					<div className="absolute top-14 left-3 z-(--z-bar)">
+						<IconButton
+							icon="plus"
+							label="Add photo"
+							testid="add-photo-bar"
+							variant="secondary"
+							placement="right"
+							className="rounded-full"
+							onPress={p.onOpen}
+						/>
+					</div>
+				)}
 				{photo && (
 					<StageBar
 						lock={lock}
@@ -171,7 +186,6 @@ export default function StageArea(p: {
 						onLook={p.onLook}
 						photo={photo}
 						size={p.size}
-						legend={p.legend}
 						picking={picking}
 						picked={p.picked}
 						onPicking={(on) => {

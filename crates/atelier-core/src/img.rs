@@ -131,25 +131,6 @@ impl Image<u8> {
                 .and_then(|n| n.checked_mul(channels))
                 == Some(self.data.len())
     }
-
-    /// `Err(BadInput(msg))` unless the image has 3 channels and at least one pixel. Each tool
-    /// passes its own message.
-    pub(crate) fn require_rgb(&self, msg: &str) -> crate::error::Result<()> {
-        if self.channels != 3 || self.width == 0 || self.height == 0 {
-            return Err(crate::error::Error::bad(msg));
-        }
-        Ok(())
-    }
-
-    /// [`require_rgb`](Self::require_rgb) for the `work` image of a job, and its data must have
-    /// the size the width and height say.
-    pub(crate) fn require_work(&self) -> crate::error::Result<()> {
-        self.require_rgb("work must be a 3 channel image")?;
-        if !self.is_well_formed(3) {
-            return Err(crate::error::Error::bad("work size mismatch"));
-        }
-        Ok(())
-    }
 }
 
 #[cfg(test)]

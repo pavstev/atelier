@@ -49,12 +49,11 @@ fn test_shapes_reference() {
 #[test]
 fn test_pencil_reference() {
     let w = work();
-    // the tone, the drawing, the zones and the hatch with all eight pencils, the tone with a set of
+    // the tone, the drawing and the hatch with all eight pencils, the tone with a set of
     // three, and By pencil at the fourth step (the HB, level 4 of 0 to 7 counted from the 9B)
     for (look, mask, step, name) in [
         (0, 255, 1.0, "tone"),
         (1, 255, 1.0, "drawing"),
-        (2, 255, 1.0, "zones"),
         (3, 255, 1.0, "hatch"),
         (0, 0b1001_0100, 1.0, "tone_three"),
         (4, 255, 4.0, "by_pencil"),

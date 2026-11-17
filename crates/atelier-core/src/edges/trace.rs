@@ -18,9 +18,8 @@
 //! no randomness and no hash map: the same input gives the same bytes.
 
 use crate::edges::field::{
-    Chain, Cover, Kind, LineSet, LinesOpts, RawChain, bil, blur, bridge, dist, drop_duplicates,
-    ink_scale, link, nms, path_length, rank, rank_transfer, simplify_vw, structure_field,
-    thin_corners,
+    Chain, Cover, Kind, LineSet, RawChain, bil, blur, bridge, dist, drop_duplicates, ink_scale,
+    link, nms, path_length, rank, rank_transfer, simplify_vw, structure_field, thin_corners,
 };
 use crate::error::{Error, Result, unit};
 use crate::img::{Image, Rgb, neighbors8, size_factor};
@@ -64,6 +63,15 @@ pub(crate) struct EdgeOpts {
     pub transfer_chains: usize,
     /// The widest line (long forms) gets this much more half width than the thinnest.
     pub weight_gain: f32,
+    /// Transfer always keeps the silhouette: the longest hard chain and the closed or near closed
+    /// chains with a point within this many px of it.
+    pub silhouette_reach: f32,
+}
+
+impl Default for EdgeOpts {
+    fn default() -> Self {
+        some_opts()
+    }
 }
 
 /// The ink of the three tones a chain's contrast puts it in: black, dark grey and grey. Every
@@ -118,6 +126,7 @@ fn some_opts() -> EdgeOpts {
         taper: 10.0,
         transfer_chains: 40,
         weight_gain: 1.0,
+        silhouette_reach: 8.0,
     }
 }
 
@@ -288,20 +297,13 @@ impl Run<'_> {
     /// doubles, in raster order.
     fn kept_chains(&self, edges: &[u8]) -> Vec<RawChain> {
         let o = self.o;
-        let lo = LinesOpts {
-            bridge_gap: o.bridge_gap,
-            bridge_deg: o.bridge_deg,
-            dup_dist: o.dup_dist,
-            dup_share: o.dup_share,
-            ..LinesOpts::default()
-        };
-        let raw = bridge(link(edges, self.w, self.h), &lo);
+        let raw = bridge(link(edges, self.w, self.h), o);
         let raw: Vec<RawChain> = raw
             .into_iter()
             .map(|c| self.close_chain(c))
             .filter(|c| path_length(&c.pts) >= o.min_len * self.long)
             .collect();
-        let mut kept = drop_duplicates(raw, self.w, self.h, &lo);
+        let mut kept = drop_duplicates(raw, self.w, self.h, o);
         kept.sort_by(|a, b| {
             let ka = (a.pts[0][1] as usize, a.pts[0][0] as usize);
             let kb = (b.pts[0][1] as usize, b.pts[0][0] as usize);
@@ -629,6 +631,7 @@ fn lerp_opts(a: &EdgeOpts, b: &EdgeOpts, t: f32) -> EdgeOpts {
         taper: lerp(a.taper, b.taper, t),
         transfer_chains: lerp_count(a.transfer_chains, b.transfer_chains, t),
         weight_gain: lerp(a.weight_gain, b.weight_gain, t),
+        silhouette_reach: lerp(a.silhouette_reach, b.silhouette_reach, t),
     }
 }
 
@@ -647,6 +650,7 @@ fn scale_opts(o: EdgeOpts, k: f32) -> EdgeOpts {
         smooth_rounds: (o.smooth_rounds as f32 * k * k).round() as usize,
         simplify_area: o.simplify_area * k * k,
         taper: o.taper * k,
+        silhouette_reach: o.silhouette_reach * k,
         ..o
     }
 }
@@ -677,22 +681,16 @@ fn view_opts(
     let long = work.width.max(work.height) as f32;
     let budget = opts.ink_budget * long;
     if transfer {
-        let lo = LinesOpts {
-            transfer_chains: opts.transfer_chains,
-            silhouette_reach: LinesOpts::default().silhouette_reach * k,
-            ..LinesOpts::default()
-        };
-        rank_transfer(&mut set.chains, budget, &lo);
+        rank_transfer(&mut set.chains, budget, &opts);
     } else {
         rank(&mut set.chains, budget);
     }
     Ok(draw(&set, &opts, transfer, scale, even))
 }
 
-/// The range checks of `view_opts`: `work` is a non empty 3 channel image, `ink` is 0 to 1 and
+/// The range checks of `view_opts` (render checks that `work` is a 3 channel image): `ink` is 0 to 1 and
 /// `edges` is a 1 channel image of the work size.
 fn check_view_inputs(work: &Rgb, ink: f32, edges: &Image<u8>) -> Result<()> {
-    work.require_rgb("lines needs a non empty 3 channel image")?;
     unit(ink, "lines ink must be 0 to 1")?;
     if (edges.width, edges.height) != (work.width, work.height)
         || edges.channels != 1

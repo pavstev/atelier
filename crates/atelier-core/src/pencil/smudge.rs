@@ -49,6 +49,7 @@ pub(crate) fn drag(tone: &[f32], (w, h): (usize, usize), angle_deg: f32, amount:
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::test_support::mean;
 
     /// A picture of `w` by `h` with the value `f(x, y)`.
     fn picture(w: usize, h: usize, f: impl Fn(usize, usize) -> f32) -> Vec<f32> {
@@ -58,10 +59,6 @@ mod tests {
     /// How far `a` is from `b`, summed.
     fn spread(a: &[f32], b: &[f32]) -> f32 {
         a.iter().zip(b).map(|(x, y)| (x - y).abs()).sum()
-    }
-
-    fn mean(v: &[f32]) -> f32 {
-        v.iter().sum::<f32>() / v.len() as f32
     }
 
     #[test]

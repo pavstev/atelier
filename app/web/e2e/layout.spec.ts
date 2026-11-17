@@ -352,37 +352,45 @@ test("test_logo_sits_on_the_panel_and_moves_to_the_window_corner_when_it_is_hidd
 	await expect(logo.locator("svg")).toBeVisible();
 });
 
-test("test_color_legend_is_in_the_base_card_and_real_size_is_in_the_zoom_menu", async ({
+test("test_color_legend_is_in_the_strip_and_real_size_is_in_the_zoom_menu", async ({
 	studio,
 }) => {
 	const { page } = studio;
 	await studio.openSynthetic(480, 640, "one.png");
 	await studio.base("values");
 	await expect(
-		page.getByTestId("tool-popup").getByTestId("legend"),
+		page.getByTestId("legend-strip").getByTestId("legend"),
 	).toBeVisible();
-	await expect(page.getByTestId("stage").getByTestId("legend")).toHaveCount(0);
-	// the real size is in the zoom menu; its widths open in a card over the bar
-	await expect(page.getByTestId("lock-card")).toHaveCount(0);
+	await expect(
+		page.getByTestId("tool-popup").getByTestId("legend"),
+	).toHaveCount(0);
+	// the real size is in the zoom menu; with no screen width it opens the Paper card
+	await page.keyboard.press("Escape");
+	await expect(page.getByTestId("tool-popup")).toHaveCount(0);
 	await studio.zoom("real");
-	await expect(page.getByTestId("lock-card")).toBeVisible();
-	await expect(page.getByTestId("lock-width")).toBeVisible();
+	await expect(
+		page.locator("[data-testid=tool-popup][data-tool=size]"),
+	).toBeVisible();
+	await expect(page.getByTestId("paper-real").locator("input")).toBeChecked();
+	await expect(page.getByTestId("screen-width")).toBeVisible();
 	await expect(page.getByTestId("zoom-menu")).toHaveAttribute(
 		"data-locked",
 		"true",
 	);
 });
 
-test("test_the_bar_and_the_lock_card_stay_inside_a_narrow_stage", async ({
+test("test_the_bar_and_the_strip_stay_inside_a_narrow_stage", async ({
 	studio,
 }) => {
 	const { page } = studio;
 	// 800 px is the narrowest window with a docked panel; under 768 px the panel is a drawer (phone.spec.ts)
 	await page.setViewportSize({ width: 800, height: 700 });
 	await studio.openSynthetic(480, 640, "one.png");
-	await studio.zoom("real");
+	await studio.base("values");
+	await page.keyboard.press("Escape");
+	await expect(page.getByTestId("tool-popup")).toHaveCount(0);
 	const stage = await box(page, "stage");
-	for (const id of ["stage-bar", "lock-card"]) {
+	for (const id of ["stage-bar", "legend-strip"]) {
 		const b = await box(page, id);
 		expect(b.x).toBeGreaterThanOrEqual(stage.x - 0.5);
 		expect(b.x + b.width).toBeLessThanOrEqual(stage.x + stage.width + 0.5);
@@ -403,4 +411,31 @@ test("test_hold_to_see_photo_works_with_the_keyboard", async ({ studio }) => {
 	await page.waitForTimeout(350);
 	await page.keyboard.up("Space");
 	await expect(canvas).toBeVisible();
+});
+
+test("test_strip_shows_without_a_card_and_add_photo_shows_when_the_panel_is_hidden", async ({
+	studio,
+}) => {
+	const { page } = studio;
+	await studio.openSynthetic(480, 640, "one.png");
+	await studio.base("values");
+	await page.keyboard.press("Escape");
+	await expect(page.getByTestId("tool-popup")).toHaveCount(0);
+	const strip = await box(page, "legend-strip");
+	const bar = await box(page, "stage-bar");
+	// the strip is at the top of the stage, never over the bar
+	expect(strip.y + strip.height).toBeLessThanOrEqual(bar.y + 1);
+	expect(strip.y).toBeLessThan(bar.y / 2);
+	// an open card does not cover the strip
+	await page.getByTestId("tool-base").click();
+	await expect(page.getByTestId("tool-popup")).toBeVisible();
+	const card = await box(page, "tool-popup");
+	expect(strip.y + strip.height).toBeLessThanOrEqual(card.y + 1);
+	await page.keyboard.press("Escape");
+	// the panel is shown: no add photo button on the stage
+	await expect(page.getByTestId("add-photo-bar")).toHaveCount(0);
+	await page.getByTestId("files-fold").click();
+	const chooser = page.waitForEvent("filechooser");
+	await page.getByTestId("add-photo-bar").click();
+	await chooser;
 });

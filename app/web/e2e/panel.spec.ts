@@ -70,7 +70,7 @@ test("test_legend_color_is_held_in_the_paint_mix_card", async ({ studio }) => {
 	const bg = (el: Element) => getComputedStyle(el).backgroundColor;
 	const first = await swatches.first().evaluate(bg);
 	await swatches.first().getByRole("button").click();
-	// there is no full screen zoom any more: the base card gives way to the paint mix card
+	// there is no full screen zoom any more: the paint mix card shows, and no bar card is open
 	await expect(page.getByTestId("swatch-zoom")).toHaveCount(0);
 	await expect(page.getByTestId("tool-popup")).toHaveCount(0);
 	const card = page.getByTestId("picker-card");
@@ -85,7 +85,6 @@ test("test_legend_color_is_held_in_the_paint_mix_card", async ({ studio }) => {
 	// a legend color has no photo spot, so no sample area
 	await expect(page.getByTestId("picker-area")).toHaveCount(0);
 	// another swatch replaces it; Esc and the close button let go
-	await page.getByTestId("tool-base").click();
 	await swatches.nth(1).getByRole("button").click();
 	expect(await page.getByTestId("picker-swatch").evaluate(bg)).toBe(
 		await swatches.nth(1).evaluate(bg),

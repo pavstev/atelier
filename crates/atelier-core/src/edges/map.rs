@@ -4,7 +4,6 @@
 
 use crate::deblock;
 use crate::edges::field::blur;
-use crate::error::Result;
 use crate::filters::{box_mean, percentile, sobel};
 use crate::img::Rgb;
 use crate::srgb::luma601;
@@ -73,10 +72,8 @@ fn noise_spread(p99: f32, median: f32) -> f32 {
 
 /// Edge strength 0..255 of every pixel of an RGB image.
 ///
-/// # Errors
-/// [`crate::error::Error::BadInput`] for an image that is not a prepared RGB work image.
-pub(crate) fn strength(work: &Rgb) -> Result<Rgb> {
-    work.require_work()?;
+/// `work` is a prepared RGB work image, checked by `render`.
+pub(crate) fn strength(work: &Rgb) -> Rgb {
     // block noise would fill Lines with short wiggles along the 8 px grid
     let calmed = deblock::calm(work);
     let work: &Rgb = &calmed;
@@ -89,7 +86,7 @@ pub(crate) fn strength(work: &Rgb) -> Result<Rgb> {
     let top = mag.iter().copied().fold(0.0_f32, f32::max);
     let mut out = Rgb::new(w, h, 1);
     if top <= 0.0 {
-        return Ok(out);
+        return out;
     }
     // a picture of noise only has a narrow spread: its p99 is a few times its median. A real
     // photo spreads wider, so the scale never drops under a small multiple of the median. A busy
@@ -104,7 +101,7 @@ pub(crate) fn strength(work: &Rgb) -> Result<Rgb> {
     for ((o, &f), &c) in out.data.iter_mut().zip(&fine).zip(&coarse) {
         *o = (f.max(c) * 255.0).round().clamp(0.0, 255.0) as u8;
     }
-    Ok(out)
+    out
 }
 
 #[cfg(test)]
@@ -114,7 +111,7 @@ mod tests {
     #[test]
     fn test_a_flat_photo_has_no_edges() {
         let flat = Rgb::filled(64, 48, &[120, 120, 120]);
-        let map = strength(&flat).unwrap();
+        let map = strength(&flat);
         assert_eq!((map.width, map.height, map.channels), (64, 48, 1));
         assert!(map.data.iter().all(|&v| v == 0));
     }
@@ -127,7 +124,7 @@ mod tests {
                 img.data[(y * 64 + x) * 3..(y * 64 + x) * 3 + 3].copy_from_slice(&[230, 230, 230]);
             }
         }
-        let map = strength(&img).unwrap();
+        let map = strength(&img);
         let at = |x: usize, y: usize| map.data[y * 64 + x];
         assert_eq!(at(31, 32), 255);
         assert!(at(8, 32) < 10 && at(56, 32) < 10);
@@ -146,7 +143,7 @@ mod tests {
                 img.data[(y * w + x) * 3..(y * w + x) * 3 + 3].copy_from_slice(&[v, v, v]);
             }
         }
-        let map = strength(&img).unwrap();
+        let map = strength(&img);
         let peak = (60..68).map(|x| map.data[32 * w + x]).max().unwrap();
         assert!(peak >= 250, "the step is at {peak}");
     }

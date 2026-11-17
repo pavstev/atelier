@@ -1,4 +1,5 @@
-// The Pencil base: it draws its five looks, it turns Edges off and leaves Grid, its legend has one
+// The Pencil base: it draws its four looks (Tone, Drawing, Hatch, By pencil), the card has three
+// tabs (Look, Effects, Pencils), it turns Edges off and leaves Grid, its legend has one
 // row per pencil of the set and Paper, the last pencil cannot be switched off, the picker card names
 // a grade, every knob changes the picture and comes back after a reload, old and bad saves load with
 // the start values, Reset, Auto, Suggest pencils, By pencil (the legend marks the step) and the phone
@@ -12,9 +13,52 @@ const grade = (id: string) => `[data-testid=pencil-grade][data-grade="${id}"]`;
 
 type Page = import("@playwright/test").Page;
 
-/** The five looks, in the order of the select (the look number is the index). */
-const LOOK = { tone: 0, drawing: 1, zones: 2, hatch: 3, byPencil: 4 };
-const LOOK_NAMES = ["Tone", "Drawing", "Zones", "Hatch", "By pencil"];
+/** The four looks by their saved number (the core skips 2, the old Zones). The Look row shows them
+ * in the order of `LOOK_IDS`, so a button index is not the saved number. */
+const LOOK = { tone: 0, drawing: 1, hatch: 3, byPencil: 4 };
+const LOOK_NAMES = ["Tone", "Drawing", "Hatch", "By pencil"];
+const LOOK_IDS = [0, 1, 3, 4];
+
+type Studio = import("./studio").Studio;
+type TabName = "look" | "effects" | "pencils";
+
+/** The tab each control of the card lives in. */
+const TAB_OF: Record<string, TabName> = {
+	"pencil-smudge": "effects",
+	"pencil-lift": "effects",
+	"pencil-cross": "effects",
+	"pencil-darks": "effects",
+	"pencil-local": "effects",
+	"pencil-grain": "effects",
+	"pencil-paper": "effects",
+	"pencil-hatch-angle": "effects",
+	"pencil-hatch-density": "effects",
+	"pencil-suggest-count": "pencils",
+	"pencil-suggest": "pencils",
+	"pencil-grades": "pencils",
+};
+
+/** Opens the Base card and one of its tabs. */
+async function openTab(studio: Studio, name: TabName) {
+	await studio.tool("base");
+	await studio.page.getByTestId(`pencil-tab-${name}`).click();
+	await expect(studio.page.getByTestId(`pencil-tab-${name}`)).toHaveAttribute(
+		"aria-selected",
+		"true",
+	);
+}
+
+/** Sets a knob of the card: opens its tab first. */
+async function set(studio: Studio, id: string, value: number) {
+	await openTab(studio, TAB_OF[id] ?? "look");
+	await studio.knob(id, value);
+}
+
+/** Picks a look by its saved number. */
+async function setLook(studio: Studio, look: number) {
+	await openTab(studio, "look");
+	await studio.knob("pencil-look", LOOK_IDS.indexOf(look));
+}
 
 /** The start of every Pencil setting, spelled out here on purpose: a change of a start value in the
  * app must show up as a failing test, not move this table with it. */
@@ -128,27 +172,24 @@ test("test_pencil_base_draws_a_map_and_a_drawing", async ({ studio }) => {
 	await expect(page.getByTestId("pencil-look")).toHaveCount(0);
 	await studio.base("pencil");
 	await expect(page.getByTestId("layer-canvas-base")).toBeVisible();
-	// the look is a select with five options
-	await page.getByTestId("pencil-look").locator("button").first().click();
-	await expect(page.getByRole("option")).toHaveText(LOOK_NAMES);
-	await page.keyboard.press("Escape");
-	await expect(page.getByRole("option")).toHaveCount(0);
+	// the look is a row of four buttons: no Zones
+	await expect(page.getByTestId("pencil-look").getByRole("radio")).toHaveText(
+		LOOK_NAMES,
+	);
 	await expect(page.getByTestId("pencil-detail")).toBeVisible();
+	await openTab(studio, "pencils");
 	await expect(page.locator("[data-testid=pencil-grade]")).toHaveCount(8);
 	// the start look is Tone, a smooth gray picture: many colors
 	expect((await studio.saved()).pencil.look).toBe(LOOK.tone);
 	expect(await colors(page)).toBeGreaterThan(30);
-	// Zones are flat: one color per level, nine at most (eight pencils and paper)
-	await studio.knob("pencil-look", 2);
-	expect(await colors(page)).toBeLessThanOrEqual(9);
-	const flat = await studio.stats("layer-canvas-base");
 	// the picture is opaque, like Values
-	expect(flat.min).toBeGreaterThanOrEqual(0);
-	await studio.knob("pencil-detail", 90);
-	await studio.knob("pencil-look", 1);
+	const tone = await studio.stats("layer-canvas-base");
+	expect(tone.min).toBeGreaterThanOrEqual(0);
+	await set(studio, "pencil-detail", 90);
+	await setLook(studio, LOOK.drawing);
 	expect(await colors(page)).toBeGreaterThan(30);
 	await expect(page.getByTestId("error")).toHaveCount(0);
-	// opacity is there as for the other bases
+	// opacity is there as for the other bases (the Base card shows it above the Pencil tabs)
 	await studio.opacity("base", 50);
 	await expect(page.getByTestId("layer-canvas-base")).toHaveCSS(
 		"opacity",
@@ -212,7 +253,7 @@ test("test_pencil_legend_has_a_row_per_pencil_and_paper", async ({
 		...names,
 		"Paper",
 	]);
-	// each row has its grade, its hint and a share (or "not used"); a swatch is not a button
+	// the strip shows the grade; the hint and the share are in the title and the button name
 	for (const g of [
 		...GRADES,
 		{ id: "Paper", hint: "leave white or lift out" },
@@ -221,10 +262,13 @@ test("test_pencil_legend_has_a_row_per_pencil_and_paper", async ({
 			`[data-testid=legend-swatch][data-grade="${g.id}"]`,
 		);
 		await expect(row).toContainText(g.id);
-		await expect(row).toContainText(g.hint);
-		await expect(row).toContainText(/\d+%|not used/);
+		await expect(row).toHaveAttribute("title", new RegExp(g.hint));
+		await expect(row).toHaveAttribute("title", /\d+%|not used/);
+		await expect(row.getByRole("button")).toHaveAccessibleName(
+			new RegExp(g.hint),
+		);
 	}
-	await expect(rows.getByRole("button")).toHaveCount(0);
+	await expect(page.getByTestId("legend-strip")).toBeVisible();
 	// the shares of the levels add up to about 100
 	const shares = await rows.evaluateAll((l) =>
 		l.map((e) => Number((e as HTMLElement).dataset.share)),
@@ -234,18 +278,15 @@ test("test_pencil_legend_has_a_row_per_pencil_and_paper", async ({
 	expect(total).toBeLessThanOrEqual(105);
 	// the legend swatches run from dark to light
 	const lum = (i: number) =>
-		rows
-			.nth(i)
-			.locator("span")
-			.first()
-			.evaluate((el) => {
-				const [r, g, b] = (
-					getComputedStyle(el).backgroundColor.match(/\d+/g) ?? []
-				).map(Number);
-				return r + g + b;
-			});
+		rows.nth(i).evaluate((el) => {
+			const [r, g, b] = (
+				getComputedStyle(el).backgroundColor.match(/\d+/g) ?? []
+			).map(Number);
+			return r + g + b;
+		});
 	expect(await lum(0)).toBeLessThan(await lum(8));
 	// seven pencils, eight rows: the 9B is gone from the legend
+	await openTab(studio, "pencils");
 	await studio.drawn(() => page.locator(grade("9B")).click());
 	await expect(rows).toHaveCount(8);
 	await expect(
@@ -261,6 +302,7 @@ test("test_the_last_pencil_cannot_be_switched_off", async ({ studio }) => {
 	const { page } = studio;
 	await studio.openSynthetic(480, 640, "pencil-last.png");
 	await studio.base("pencil");
+	await openTab(studio, "pencils");
 	// every pencil starts on and says so
 	for (const g of GRADES)
 		await expect(page.locator(grade(g.id))).toHaveAttribute(
@@ -361,15 +403,16 @@ test("test_pencil_settings_come_back_after_reload", async ({ studio }) => {
 	const { page } = studio;
 	await studio.openSynthetic(480, 640, "pencil-reload.png");
 	await studio.base("pencil");
-	await studio.knob("pencil-look", 2);
-	await studio.knob("pencil-detail", 80);
+	await setLook(studio, LOOK.hatch);
+	await set(studio, "pencil-detail", 80);
+	await openTab(studio, "pencils");
 	await studio.drawn(() => page.locator(grade("4H")).click());
 	const saved = await studio.saved();
 	expect(saved.base.kind).toBe("pencil");
 	expect(noAuto(saved.pencil)).toEqual(
 		noAuto({
 			...START,
-			look: 2,
+			look: LOOK.hatch,
 			mask: ALL & ~(1 << 7),
 			detail: 80,
 		}),
@@ -380,9 +423,13 @@ test("test_pencil_settings_come_back_after_reload", async ({ studio }) => {
 		timeout: 60_000,
 	});
 	await studio.tool("base");
-	// Zones is back: it shows the three knobs it uses and not the Tone or Texture groups
-	expect((await studio.saved()).pencil.look).toBe(LOOK.zones);
+	// Hatch is back, on the Look tab
+	expect((await studio.saved()).pencil.look).toBe(LOOK.hatch);
+	await expect(
+		page.getByTestId("pencil-look").getByRole("radio").nth(2),
+	).toBeChecked();
 	expect(await sliderValue(page, "pencil-detail")).toBe("80");
+	await openTab(studio, "pencils");
 	await expect(page.locator(grade("4H"))).toHaveAttribute(
 		"aria-pressed",
 		"false",
@@ -438,7 +485,8 @@ test("test_a_save_from_before_the_knobs_and_a_half_bad_save_keep_what_is_good", 
 		timeout: 60_000,
 	});
 	expect(noAuto((await studio.saved()).pencil)).toEqual(
-		noAuto({ ...START, look: 2, mask: 7, detail: 80 }),
+		// a saved Zones look (2) is gone and loads as Tone
+		noAuto({ ...START, look: LOOK.tone, mask: 7, detail: 80 }),
 	);
 	// a save with good and bad numbers: each bad one falls back alone
 	await store(page, KEYS.state, {
@@ -479,71 +527,133 @@ test("test_every_look_draws_and_edges_stays_off", async ({ studio }) => {
 	await studio.base("pencil");
 	const pictures = new Set<number>();
 	for (const [i, name] of LOOK_NAMES.entries()) {
-		if (i !== LOOK.tone) await studio.knob("pencil-look", i);
+		if (i !== 0) await setLook(studio, LOOK_IDS[i] as number);
 		await expect(page.getByTestId("layer-canvas-base"), name).toBeVisible();
 		await expect(page.getByTestId("error"), name).toHaveCount(0);
 		pictures.add(await pictureOf(studio));
-		expect((await studio.saved()).pencil.look, name).toBe(i);
+		expect((await studio.saved()).pencil.look, name).toBe(LOOK_IDS[i]);
 		// Edges stays off and disabled in every look; the legend keeps eight pencils and Paper
 		await expect(page.getByTestId("tool-edges"), name).toBeDisabled();
 		await expect(page.getByTestId("layer-canvas-edges"), name).toHaveCount(0);
 		await expect(page.getByTestId("legend-swatch"), name).toHaveCount(9);
 	}
-	// five looks, five different pictures
-	expect(pictures.size).toBe(5);
+	// four looks, four different pictures
+	expect(pictures.size).toBe(4);
 });
 
-/** The controls each look shows: every id of the card, with the looks that show it. */
-const SHOWN_IN: Record<string, number[]> = {
-	"pencil-tone-group": [0, 1, 2, 3, 4],
-	"pencil-detail": [0, 1, 2, 3, 4],
-	"pencil-highlights": [0, 1, 2, 3, 4],
-	"pencil-darks": [0, 1, 2, 3, 4],
-	"pencil-key": [0, 1, 3, 4],
-	"pencil-contrast": [0, 1, 3, 4],
-	"pencil-local": [0, 1, 3, 4],
-	"pencil-texture-group": [1, 3],
-	"pencil-grain": [1, 3],
-	"pencil-paper": [1, 3],
-	"pencil-hatch-angle": [1, 3],
-	"pencil-hatch-density": [3],
-	"pencil-step": [4],
-	"pencil-fine": [0, 1, 2, 3, 4],
-	"pencil-effects": [0, 1, 3],
-	"pencil-effect-smudge": [0, 1, 3],
-	"pencil-effect-lift": [0, 1, 3],
-	"pencil-effect-cross": [1, 3],
-	"pencil-smudge": [0, 1, 3],
-	"pencil-lift": [0, 1, 3],
-	"pencil-cross": [1, 3],
-	"pencil-auto": [0, 1, 3, 4],
-	"pencil-suggest-count": [0, 1, 2, 3, 4],
-	"pencil-suggest": [0, 1, 2, 3, 4],
-	"pencil-reset": [0, 1, 2, 3, 4],
-	"pencil-grades": [0, 1, 2, 3, 4],
+/** The controls each look shows: every id of the card, its tab, and the looks that show it. */
+const SHOWN_IN: Record<string, [TabName, number[]]> = {
+	"pencil-look": ["look", [0, 1, 3, 4]],
+	"pencil-detail": ["look", [0, 1, 3, 4]],
+	"pencil-highlights": ["look", [0, 1, 3, 4]],
+	"pencil-key": ["look", [0, 1, 3, 4]],
+	"pencil-contrast": ["look", [0, 1, 3, 4]],
+	"pencil-step": ["look", [4]],
+	"pencil-auto": ["look", [0, 1, 3, 4]],
+	"pencil-reset": ["look", [0, 1, 3, 4]],
+	"pencil-darks": ["effects", [0, 1, 3, 4]],
+	"pencil-local": ["effects", [0, 1, 3, 4]],
+	"pencil-smudge": ["effects", [0, 1, 3]],
+	"pencil-lift": ["effects", [0, 1, 3]],
+	"pencil-cross": ["effects", [1, 3]],
+	"pencil-texture-group": ["effects", [1, 3]],
+	"pencil-grain": ["effects", [1, 3]],
+	"pencil-paper": ["effects", [1, 3]],
+	"pencil-hatch-angle": ["effects", [1, 3]],
+	"pencil-hatch-density": ["effects", [3]],
+	"pencil-suggest-count": ["pencils", [0, 1, 3, 4]],
+	"pencil-suggest": ["pencils", [0, 1, 3, 4]],
+	"pencil-grades": ["pencils", [0, 1, 3, 4]],
 };
+
+test("three_tabs: Look, Effects and Pencils, the Look tab first", async ({
+	studio,
+}) => {
+	const { page } = studio;
+	await studio.openSynthetic(480, 640, "pencil-tabs.png");
+	await studio.base("pencil");
+	await studio.tool("base");
+	await expect(page.getByTestId("tool-popup").getByRole("tab")).toHaveText([
+		"Look",
+		"Effects",
+		"Pencils",
+	]);
+	await expect(page.getByTestId("pencil-tab-look")).toHaveAttribute(
+		"aria-selected",
+		"true",
+	);
+	// Look: the look row (four looks, no Zones), the four sliders, Auto and Reset
+	for (const id of [
+		"pencil-look",
+		"pencil-key",
+		"pencil-contrast",
+		"pencil-detail",
+		"pencil-highlights",
+		"pencil-auto",
+		"pencil-reset",
+	])
+		await expect(page.getByTestId(id), id).toHaveCount(1);
+	await expect(page.getByTestId("pencil-look").getByRole("radio")).toHaveCount(
+		4,
+	);
+	await expect(page.getByTestId("pencil-darks")).toHaveCount(0);
+	// Effects: Smudge, Lifted lights, Deep darks and Local contrast in Tone; Pencils: the grade row
+	await openTab(studio, "effects");
+	for (const id of [
+		"pencil-smudge",
+		"pencil-lift",
+		"pencil-darks",
+		"pencil-local",
+	])
+		await expect(page.getByTestId(id), id).toHaveCount(1);
+	await expect(page.getByTestId("pencil-key")).toHaveCount(0);
+	await openTab(studio, "pencils");
+	await expect(page.getByTestId("pencil-grades")).toHaveCount(1);
+	await expect(page.getByTestId("pencil-suggest")).toHaveCount(1);
+	await expect(page.getByTestId("pencil-smudge")).toHaveCount(0);
+	// the tab stays while the page lives: back on Look the card starts there again
+	await openTab(studio, "look");
+});
+
+test("no_zones: the Look row has four options and a saved Zones look loads as Tone", async ({
+	studio,
+}) => {
+	const { page } = studio;
+	await studio.saved();
+	await store(page, KEYS.state, {
+		base: { kind: "pencil", opacity: 100 },
+		pencil: { look: 2 },
+	});
+	await page.reload();
+	await studio.openSynthetic(480, 640, "pencil-no-zones.png");
+	await expect(page.getByTestId("layer-canvas-base")).toBeVisible({
+		timeout: 60_000,
+	});
+	await studio.tool("base");
+	await expect(page.getByTestId("pencil-look").getByRole("radio")).toHaveText(
+		LOOK_NAMES,
+	);
+	await expect(
+		page.getByTestId("pencil-look").getByRole("radio").nth(0),
+	).toBeChecked();
+	expect((await studio.saved()).pencil.look).toBe(LOOK.tone);
+});
 
 test("test_each_look_shows_only_the_controls_it_uses", async ({ studio }) => {
 	const { page } = studio;
 	await studio.openSynthetic(480, 640, "pencil-shown.png");
 	await studio.base("pencil");
 	for (const [i, name] of LOOK_NAMES.entries()) {
-		if (i !== LOOK.tone) await studio.knob("pencil-look", i);
-		for (const [id, looks] of Object.entries(SHOWN_IN))
-			await expect(page.getByTestId(id), `${name}: ${id}`).toHaveCount(
-				looks.includes(i) ? 1 : 0,
-			);
-	}
-	// Zones: the three knobs it has change its picture
-	await studio.knob("pencil-look", LOOK.zones);
-	for (const [id, value] of [
-		["pencil-detail", 90],
-		["pencil-highlights", 10],
-		["pencil-darks", 0],
-	] as const) {
-		const before = await pictureOf(studio);
-		await studio.knob(id, value);
-		expect(await pictureOf(studio), id).not.toBe(before);
+		if (i !== 0) await setLook(studio, LOOK_IDS[i] as number);
+		for (const tab of ["look", "effects", "pencils"] as const) {
+			await openTab(studio, tab);
+			for (const [id, [home, looks]] of Object.entries(SHOWN_IN)) {
+				if (home !== tab) continue;
+				await expect(page.getByTestId(id), `${name}: ${id}`).toHaveCount(
+					looks.includes(LOOK_IDS[i] as number) ? 1 : 0,
+				);
+			}
+		}
 	}
 });
 
@@ -554,11 +664,11 @@ test("test_each_knob_changes_the_picture_and_is_saved", async ({ studio }) => {
 	let look = LOOK.tone;
 	for (const k of KNOBS) {
 		if (k.look !== look) {
-			await studio.knob("pencil-look", k.look);
+			await setLook(studio, k.look);
 			look = k.look;
 		}
 		const before = await pictureOf(studio);
-		await studio.knob(k.id, k.value);
+		await set(studio, k.id, k.value);
 		expect(await pictureOf(studio), k.id).not.toBe(before);
 		expect((await studio.saved()).pencil[k.key], k.id).toBe(k.value);
 		await expect(page.getByTestId("error")).toHaveCount(0);
@@ -572,10 +682,10 @@ test("test_the_knobs_come_back_after_a_reload", async ({ studio }) => {
 	let look = LOOK.tone;
 	for (const k of KNOBS) {
 		if (k.look !== look) {
-			await studio.knob("pencil-look", k.look);
+			await setLook(studio, k.look);
 			look = k.look;
 		}
-		await studio.knob(k.id, k.value);
+		await set(studio, k.id, k.value);
 	}
 	const want = { ...START, look: LOOK.byPencil };
 	for (const k of KNOBS) want[k.key] = k.value;
@@ -589,12 +699,10 @@ test("test_the_knobs_come_back_after_a_reload", async ({ studio }) => {
 	// By pencil is back, with its step
 	expect(await sliderValue(page, "pencil-step")).toBe("4");
 	// the other knobs show in Hatch, which has them all
-	await studio.knob("pencil-look", LOOK.hatch);
-	await page.getByTestId("pencil-fine").evaluate((d: HTMLDetailsElement) => {
-		d.open = true;
-	});
+	await setLook(studio, LOOK.hatch);
 	for (const k of KNOBS) {
 		if (k.id === "pencil-step") continue;
+		await openTab(studio, TAB_OF[k.id] ?? "look");
 		if (k.id === "pencil-paper") {
 			await expect(
 				page.getByTestId(k.id).getByRole("radio").nth(k.value),
@@ -612,16 +720,19 @@ test("test_reset_puts_every_knob_back_but_keeps_the_look_and_the_pencils", async
 	const { page } = studio;
 	await studio.openSynthetic(480, 640, "pencil-reset.png");
 	await studio.base("pencil");
-	await studio.knob("pencil-look", LOOK.drawing);
+	await setLook(studio, LOOK.drawing);
+	await openTab(studio, "pencils");
 	await studio.drawn(() => page.locator(grade("4H")).click());
 	// Auto set the first three knobs; Reset first, so the start is the neutral picture
+	await openTab(studio, "look");
 	await studio.drawn(() => page.getByTestId("pencil-reset").click());
 	const start = await pictureOf(studio);
-	await studio.knob("pencil-key", 70);
-	await studio.knob("pencil-contrast", 70);
-	await studio.knob("pencil-grain", 90);
-	await studio.knob("pencil-paper", 2);
+	await set(studio, "pencil-key", 70);
+	await set(studio, "pencil-contrast", 70);
+	await set(studio, "pencil-grain", 90);
+	await set(studio, "pencil-paper", 2);
 	expect(await pictureOf(studio)).not.toBe(start);
+	await openTab(studio, "look");
 	await studio.drawn(() => page.getByTestId("pencil-reset").click());
 	// the same picture as before the knobs, and the saved start values
 	expect(await pictureOf(studio)).toBe(start);
@@ -631,10 +742,12 @@ test("test_reset_puts_every_knob_back_but_keeps_the_look_and_the_pencils", async
 		mask: ALL & ~(1 << 7),
 	});
 	expect(await sliderValue(page, "pencil-key")).toBe("50");
+	await openTab(studio, "effects");
 	expect(await sliderValue(page, "pencil-grain")).toBe("50");
 	await expect(
 		page.getByTestId("pencil-paper").getByRole("radio").nth(1),
 	).toBeChecked();
+	await openTab(studio, "pencils");
 	await expect(page.locator(grade("4H"))).toHaveAttribute(
 		"aria-pressed",
 		"false",
@@ -676,7 +789,7 @@ test("test_auto_sets_key_contrast_and_highlights_and_says_what_it_did", async ({
 	// moving one of the three by hand clears the note
 	const gone = async () =>
 		(await note.count()) === 0 ? "" : ((await note.textContent()) ?? "").trim();
-	await studio.knob("pencil-key", p.key === 80 ? 20 : 80);
+	await set(studio, "pencil-key", p.key === 80 ? 20 : 80);
 	await expect.poll(gone).toBe("");
 	// Auto again brings it back, and another photo clears it
 	await page.getByTestId("pencil-auto").click();
@@ -699,6 +812,7 @@ test("test_suggest_pencils_gives_three_to_six_and_apply_shows_only_those", async
 	const { page } = studio;
 	await studio.openSynthetic(480, 640, "pencil-suggest.png");
 	await studio.base("pencil");
+	await openTab(studio, "pencils");
 	const count = page.getByTestId("pencil-suggest-count").getByRole("radio");
 	await expect(count).toHaveText(["3", "4", "5", "6"]);
 	await expect(page.getByTestId("pencil-suggested")).toHaveCount(0);
@@ -739,25 +853,28 @@ test("test_by_pencil_marks_the_step_in_the_legend_and_the_picker_names_it", asyn
 	const marked = page.locator("[data-testid=legend-swatch][data-step=true]");
 	// the other looks mark nothing
 	await expect(marked).toHaveCount(0);
-	await studio.knob("pencil-look", LOOK.byPencil);
+	await setLook(studio, LOOK.byPencil);
 	// step 1 is the lightest pencil, the 4H
 	await expect(marked).toHaveCount(1);
 	await expect(marked).toHaveAttribute("aria-current", "step");
 	await expect(marked).toHaveAttribute("data-grade", "4H");
 	// step 4 of 8 is the HB
-	await studio.knob("pencil-step", 4);
+	await set(studio, "pencil-step", 4);
 	await expect(marked).toHaveCount(1);
 	await expect(marked).toHaveAttribute("data-grade", "HB");
 	await expect(page.getByTestId("pencil-step-line")).toHaveText(
-		"Step 4 of 8: HB",
+		"4 of 8 pencils down: HB",
 	);
 	// without the 9B the set has seven pencils: the step slider stops at 7, the HB stays the step
+	await openTab(studio, "pencils");
 	await studio.drawn(() => page.locator(grade("9B")).click());
+	await openTab(studio, "look");
 	await expect(page.getByTestId("legend-swatch")).toHaveCount(8);
 	await expect(
 		page.locator("[data-testid=pencil-step] input[type=range]"),
 	).toHaveAttribute("max", "7");
 	await expect(marked).toHaveAttribute("data-grade", "HB");
+	await openTab(studio, "pencils");
 	await studio.drawn(() => page.locator(grade("9B")).click());
 
 	// the picker: a spot at or darker than the step is the step pencil, a lighter spot is not
@@ -784,7 +901,9 @@ test("test_by_pencil_marks_the_step_in_the_legend_and_the_picker_names_it", asyn
 	await page.getByTestId("tool-picker").click();
 
 	// back to Tone: nothing is marked
-	await studio.knob("pencil-look", LOOK.tone);
+	// the picker button closes the card; wait until it is gone before opening it again
+	await expect(page.getByTestId("tool-popup")).toHaveCount(0);
+	await setLook(studio, LOOK.tone);
 	await expect(marked).toHaveCount(0);
 });
 
@@ -804,7 +923,7 @@ test("test_the_picker_names_a_grade_of_the_legend_in_every_look", async ({
 			if ((await popup.count()) > 0) await page.keyboard.press("Escape");
 			await expect(popup).toHaveCount(0);
 		}
-		if (i !== LOOK.tone) await studio.knob("pencil-look", i);
+		if (i !== 0) await setLook(studio, LOOK_IDS[i] as number);
 		const order = await legendGrades(page);
 		await picker.click();
 		const sky = await spot(page, 0.1, 0.05);
@@ -839,9 +958,6 @@ test.describe("phone sheet", () => {
 			const body = document.querySelector<HTMLElement>("[data-testid=tools]");
 			const el = document.querySelector<HTMLElement>(`[data-testid=${testid}]`);
 			if (!body || !el) return false;
-			// a control in the closed Fine tune fold is brought into view by opening the fold
-			const fold = el.closest("details");
-			if (fold) fold.open = true;
 			const b = body.getBoundingClientRect();
 			let r = el.getBoundingClientRect();
 			if (r.bottom > b.bottom) body.scrollTop += r.bottom - b.bottom + 4;
@@ -862,7 +978,7 @@ test.describe("phone sheet", () => {
 		await studio.openSynthetic(480, 640, "pencil-phone.png");
 		await studio.base("pencil");
 		for (const look of [LOOK.hatch, LOOK.byPencil]) {
-			await studio.knob("pencil-look", look);
+			await setLook(studio, look);
 			// the sheet fits the window
 			const sheet = await box(page, "tool-popup");
 			expect(sheet.y).toBeGreaterThanOrEqual(0);
@@ -872,20 +988,24 @@ test.describe("phone sheet", () => {
 			// the body scrolls inside the sheet, and the page does not scroll sideways
 			const body = await page.getByTestId("tools").evaluate((el) => ({
 				overflowY: getComputedStyle(el).overflowY,
-				scrolls: el.scrollHeight > el.clientHeight,
 			}));
 			expect(["auto", "scroll"]).toContain(body.overflowY);
-			if (look === LOOK.hatch) expect(body.scrolls).toBe(true);
 			expect(
 				await page.evaluate(
 					() => document.documentElement.scrollWidth > innerWidth,
 				),
 			).toBe(false);
 			// every control the look shows can be brought into view
-			const ids = Object.entries(SHOWN_IN)
-				.filter(([id, looks]) => looks.includes(look) && !id.endsWith("-group"))
-				.map(([id]) => id);
-			for (const id of ids) expect(await reach(page, id), id).toBe(true);
+			for (const tab of ["look", "effects", "pencils"] as const) {
+				await openTab(studio, tab);
+				const ids = Object.entries(SHOWN_IN)
+					.filter(
+						([id, [home, looks]]) =>
+							home === tab && looks.includes(look) && !id.endsWith("-group"),
+					)
+					.map(([id]) => id);
+				for (const id of ids) expect(await reach(page, id), id).toBe(true);
+			}
 		}
 	});
 });
@@ -906,48 +1026,48 @@ test("test_auto_runs_by_itself_once_for_a_photo_nobody_tuned", async ({
 			p.highlights !== START.highlights,
 	).toBe(true);
 	// a hand move wins: it stays after another base and back (Auto does not run again)
-	await studio.knob("pencil-key", 20);
+	await set(studio, "pencil-key", 20);
 	await studio.base("values");
 	await studio.base("pencil");
 	expect((await studio.saved()).pencil.key).toBe(20);
 });
 
-test("test_effect_chips_turn_an_effect_on_and_off_where_the_look_draws_it", async ({
+test("test_effect_sliders_at_zero_mean_off_and_show_only_where_the_look_draws_them", async ({
 	studio,
 }) => {
 	const { page } = studio;
-	await studio.openSynthetic(480, 640, "pencil-chips.png");
+	await studio.openSynthetic(480, 640, "pencil-effects.png");
 	await studio.base("pencil");
-	await studio.tool("base");
-	const chip = (name: string) => page.getByTestId(`pencil-effect-${name}`);
-	// Tone draws Smudge and Lifted lights, not Cross-hatch
-	await expect(chip("smudge")).toHaveAttribute("aria-pressed", "false");
-	await expect(chip("lift")).toHaveAttribute("aria-pressed", "false");
-	await expect(chip("cross")).toHaveCount(0);
+	await openTab(studio, "effects");
+	// Tone draws Smudge and Lifted lights, not Cross-hatch; all three start at 0 (off)
+	await expect(page.getByTestId("pencil-smudge")).toBeVisible();
+	await expect(page.getByTestId("pencil-lift")).toBeVisible();
+	await expect(page.getByTestId("pencil-cross")).toHaveCount(0);
+	expect(await sliderValue(page, "pencil-smudge")).toBe("0");
 	const before = await pictureOf(studio);
-	await studio.drawn(() => chip("smudge").click());
-	await expect(chip("smudge")).toHaveAttribute("aria-pressed", "true");
-	expect((await studio.saved()).pencil.smudge).toBeGreaterThan(0);
+	await set(studio, "pencil-smudge", 60);
+	expect((await studio.saved()).pencil.smudge).toBe(60);
 	expect(await pictureOf(studio)).not.toBe(before);
-	// pressed again: off, and the picture is the one from before
-	await studio.drawn(() => chip("smudge").click());
-	await expect(chip("smudge")).toHaveAttribute("aria-pressed", "false");
+	// back to 0: off, and the picture is the one from before
+	await set(studio, "pencil-smudge", 0);
 	expect((await studio.saved()).pencil.smudge).toBe(0);
 	expect(await pictureOf(studio)).toBe(before);
-	// Drawing and Hatch add Cross-hatch; Zones and By pencil draw no effect
-	await studio.knob("pencil-look", LOOK.drawing);
-	await expect(chip("cross")).toBeVisible();
-	await studio.drawn(() => chip("cross").click());
-	expect((await studio.saved()).pencil.cross).toBeGreaterThan(0);
-	await studio.knob("pencil-look", LOOK.zones);
-	await expect(page.getByTestId("pencil-effects")).toHaveCount(0);
-	await studio.knob("pencil-look", LOOK.byPencil);
-	await expect(page.getByTestId("pencil-effects")).toHaveCount(0);
+	// Drawing adds Cross-hatch; By pencil draws no effect
+	await setLook(studio, LOOK.drawing);
+	await openTab(studio, "effects");
+	await expect(page.getByTestId("pencil-cross")).toBeVisible();
+	await set(studio, "pencil-cross", 60);
+	expect((await studio.saved()).pencil.cross).toBe(60);
+	await setLook(studio, LOOK.byPencil);
+	await openTab(studio, "effects");
+	for (const id of ["pencil-smudge", "pencil-lift", "pencil-cross"])
+		await expect(page.getByTestId(id), id).toHaveCount(0);
 	// Reset turns the effects off again
-	await studio.knob("pencil-look", LOOK.drawing);
+	await setLook(studio, LOOK.drawing);
 	await studio.drawn(() => page.getByTestId("pencil-reset").click());
 	expect((await studio.saved()).pencil.cross).toBe(0);
-	await expect(chip("cross")).toHaveAttribute("aria-pressed", "false");
+	await openTab(studio, "effects");
+	expect(await sliderValue(page, "pencil-cross")).toBe("0");
 });
 
 test("test_auto_runs_for_the_next_photo_too_while_the_painter_has_not_tuned", async ({

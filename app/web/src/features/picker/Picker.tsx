@@ -30,6 +30,7 @@ import {
 import type { StageId } from "@/features/tools/settings";
 import { Segment } from "@/ui/fields";
 import { IconButton } from "@/ui/icons";
+import { css, hex, ink } from "./color";
 import {
 	type Mix,
 	masstone,
@@ -70,13 +71,6 @@ const GAP = 18;
 /** A key step of the probe, in px; with Shift the big one. */
 const KEY_STEP = 6;
 const KEY_BIG = 30;
-
-const css = (c: Rgb) => `rgb(${c[0]}, ${c[1]}, ${c[2]})`;
-const hex = (c: Rgb) =>
-	`#${c.map((v) => v.toString(16).padStart(2, "0")).join("")}`;
-/** Black or white, whichever reads on this color. */
-const ink = (c: Rgb) =>
-	0.299 * c[0] + 0.587 * c[1] + 0.114 * c[2] > 140 ? "#000" : "#fff";
 
 type Spot = { x: number; y: number };
 /** A held spot: the photo pixel and the radius in photo pixels, so the ring grows with the zoom. */

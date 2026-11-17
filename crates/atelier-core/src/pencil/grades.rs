@@ -86,6 +86,7 @@ pub(super) fn shares(count: &[usize], total: usize) -> Vec<u8> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::test_support::next_lcg;
 
     #[test]
     fn test_levels_are_the_set_then_paper() {
@@ -137,10 +138,7 @@ mod tests {
         let mut seed = 7u32;
         for _ in 0..200 {
             let count: Vec<usize> = (0..9)
-                .map(|_| {
-                    seed = seed.wrapping_mul(1_664_525).wrapping_add(1_013_904_223);
-                    (seed >> 20) as usize % 500
-                })
+                .map(|_| (next_lcg(&mut seed) >> 20) as usize % 500)
                 .collect();
             let total: usize = count.iter().sum::<usize>().max(1);
             let s = shares(&count, total);

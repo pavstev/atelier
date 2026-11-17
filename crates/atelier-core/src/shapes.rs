@@ -149,17 +149,6 @@ pub struct Shapes {
 }
 
 impl Shapes {
-    /// Flat fills: every shape in its mean color.
-    pub fn fill_rgb(&self, level: usize) -> Rgb {
-        let lv = &self.levels[level];
-        let data = lv
-            .labels
-            .iter()
-            .flat_map(|&l| lv.shapes[l as usize].rgb)
-            .collect();
-        Rgb::from_vec(self.width, self.height, 3, data)
-    }
-
     /// Dark ink lines on every shape boundary, on white paper, except between two shapes of
     /// nearly the same color (see [`same_paint`]): a smooth gradient is not cut into bands. A border
     /// that a coarser level draws is drawn here too. The line is `scale` px wide at a long side of
@@ -230,16 +219,6 @@ impl Shapes {
     }
 }
 
-/// How [`view`] paints the shapes.
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum Fill {
-    /// Every shape in its mean color.
-    Color,
-    /// Dark ink boundaries on white paper: 1 px at 1024 px, scaled with the long side. The
-    /// Masses mode of Edges paints it.
-    Outline,
-}
-
 /// The settings of the Shapes view.
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct ShapesView {
@@ -247,15 +226,12 @@ pub struct ShapesView {
     pub level: u8,
     /// 0 to 1. The shape count of the level is multiplied by `0.5 + detail`.
     pub detail: f32,
-    /// How the shapes are painted.
-    pub fill: Fill,
     /// 0 to 3: how far the mode filter rounds the boundaries, 12 px of radius per step at
     /// 1024 px. 0 keeps the raw superpixel borders.
     pub smooth: u8,
     /// 0 to 1: the weight of the color guide against the lightness guide.
     pub guide: f32,
-    /// How wide the Outline fill draws a border, times its start width (1 px at a long side of
-    /// 1024). The other fills do not use it.
+    /// How wide [`view`] draws a border, times its start width (1 px at a long side of 1024).
     pub outline: f32,
 }
 
@@ -314,7 +290,7 @@ fn widen(mask: &[bool], w: usize, h: usize, thick: usize) -> Vec<bool> {
 
 /// Cuts `work` and returns the shapes and the index of the level that `v.level` names.
 fn cut(work: &Rgb, v: &ShapesView) -> Result<(Shapes, usize)> {
-    check_view(work, v)?;
+    check_view(v)?;
     let mut opts = ShapesOpts {
         smooth: usize::from(v.smooth),
         guide: v.guide,
@@ -334,9 +310,8 @@ fn cut(work: &Rgb, v: &ShapesView) -> Result<(Shapes, usize)> {
     Ok((shapes, level))
 }
 
-/// The range checks of a Shapes view.
-fn check_view(work: &Rgb, v: &ShapesView) -> Result<()> {
-    work.require_rgb("shapes needs a non empty 3 channel image")?;
+/// The range checks of a Shapes view. The picture is checked once, by `render`.
+fn check_view(v: &ShapesView) -> Result<()> {
     if v.level > 3 {
         return Err(Error::bad("shapes level must be 0, 1, 2 or 3"));
     }
@@ -348,15 +323,14 @@ fn check_view(work: &Rgb, v: &ShapesView) -> Result<()> {
     unit(v.guide, msg)
 }
 
-/// The Shapes view: the photo cut into shapes of one level and painted by `v.fill`. The result
+/// The Shapes view: the photo cut into shapes of one level and drawn as dark boundaries on white paper. The result
 /// has the size of `work`.
 ///
 /// # Errors
-/// [`BadInput`](crate::error::Error::BadInput) when `work` is not a non empty 3 channel image,
-/// `level` is above 3, `smooth` is above 3, or `detail` or `guide` is outside 0 to 1.
+/// [`BadInput`](crate::error::Error::BadInput) when `level` is above 3, `smooth` is above 3, or `detail` or `guide` is outside 0 to 1.
 pub fn view(work: &Rgb, v: &ShapesView) -> Result<Rgb> {
     let (shapes, level) = cut(work, v)?;
-    Ok(paint(&shapes, level, v))
+    Ok(shapes.outline_rgb(level, v.outline))
 }
 
 /// The last paint order step of [`steps_view`].
@@ -408,31 +382,33 @@ const CANVAS: [u8; 3] = [255, 255, 255];
 /// piles mixed in `step`, darkest first, as sRGB bytes.
 ///
 /// # Errors
-/// The errors of [`view`], and [`BadInput`](crate::error::Error::BadInput) for a `step` over
-/// [`STEP_MAX`].
-pub fn steps_view(work: &Rgb, step: u8, v: &ShapesView) -> Result<(Rgb, Vec<[u8; 3]>)> {
+/// [`BadInput`](crate::error::Error::BadInput) for a `step` over [`STEP_MAX`], or a `detail` or
+/// `guide` (the weight of the color guide) outside 0 to 1. `work` is a checked RGB picture.
+pub fn steps_view(work: &Rgb, step: u8, detail: f32, guide: f32) -> Result<(Rgb, Vec<[u8; 3]>)> {
     if step > STEP_MAX {
         return Err(Error::bad("shapes step must be 0 to 3"));
     }
-    check_view(work, v)?;
+    let msg = "shapes detail and guide must be 0 to 1";
+    unit(detail, msg)?;
+    unit(guide, msg)?;
     let families = crate::values::families(work);
     // the Detail knob scales the counts from a quarter to four times
-    let scale = libm::powf(4.0, 2.0 * v.detail - 1.0);
-    let shapes = cut_steps(work, v, scale);
+    let scale = libm::powf(4.0, 2.0 * detail - 1.0);
+    let shapes = cut_steps(work, guide, scale);
     let plan = plan_steps(&shapes, &families);
     let cells = step_cells(&shapes, &plan, step);
     Ok(finish_steps(&cells, &plan.piles, step, work))
 }
 
 /// The cut of the paint steps (see `STEPS_SEEDS`), with the shape counts times `scale`.
-fn cut_steps(work: &Rgb, v: &ShapesView, scale: f32) -> Shapes {
+fn cut_steps(work: &Rgb, guide: f32, scale: f32) -> Shapes {
     let opts = ShapesOpts {
         seeds: STEPS_SEEDS,
         counts: STEPS_COUNTS.map(|c| ((c as f32 * scale).round() as usize).max(1)),
         floors_pct: STEPS_FLOORS_PCT,
         smooth: 1,
         smooth_px: STEPS_SMOOTH_PX,
-        guide: v.guide,
+        guide,
         ..ShapesOpts::default()
     };
     decompose(work, &opts)
@@ -662,14 +638,6 @@ fn piles(colors: &[Ok3], areas: &[u32]) -> (Vec<usize>, Vec<Ok3>) {
         all.extend(fp);
     }
     (of, all)
-}
-
-/// One level of the shapes painted by the fill of `v`.
-fn paint(shapes: &Shapes, level: usize, v: &ShapesView) -> Rgb {
-    match v.fill {
-        Fill::Color => shapes.fill_rgb(level),
-        Fill::Outline => shapes.outline_rgb(level, v.outline),
-    }
 }
 
 /// Cuts an RGB image into the three nested levels.

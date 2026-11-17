@@ -8,39 +8,9 @@
 use std::cmp::Reverse;
 use std::collections::BinaryHeap;
 
+use crate::edges::trace::EdgeOpts;
 use crate::filters::sobel;
 use crate::img::{Rgb, neighbors8};
-
-/// The knobs of the pipeline. The defaults are the shipped picks.
-#[derive(Clone, Debug, PartialEq)]
-pub struct LinesOpts {
-    /// Bridge gaps up to this many px.
-    pub bridge_gap: f32,
-    /// Only if the chain ends point within this angle (degrees) at the gap.
-    pub bridge_deg: f32,
-    /// A chain is a duplicate when `dup_share` of it lies within this many px of a longer chain.
-    pub dup_dist: f32,
-    /// See `dup_dist`.
-    pub dup_share: f32,
-    /// Transfer keeps at most this many chains.
-    pub transfer_chains: usize,
-    /// Transfer always keeps the silhouette: the longest hard chain and the closed or near closed
-    /// chains with a point within this many px of it.
-    pub silhouette_reach: f32,
-}
-
-impl Default for LinesOpts {
-    fn default() -> Self {
-        Self {
-            bridge_gap: 8.0,
-            bridge_deg: 40.0,
-            dup_dist: 4.0,
-            dup_share: 0.6,
-            transfer_chains: 40,
-            silhouette_reach: 8.0,
-        }
-    }
-}
 
 /// How an edge reads to a painter.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -379,7 +349,7 @@ fn chain_end(c: &RawChain, at_end: bool) -> ([f32; 2], [f32; 2]) {
 }
 
 /// Joins chain ends that are close and point at each other. Up to 4 rounds.
-pub(crate) fn bridge(mut chains: Vec<RawChain>, o: &LinesOpts) -> Vec<RawChain> {
+pub(crate) fn bridge(mut chains: Vec<RawChain>, o: &EdgeOpts) -> Vec<RawChain> {
     if o.bridge_gap <= 0.0 {
         return chains;
     }
@@ -491,7 +461,7 @@ fn nearest_partner(
 }
 
 /// Pairs each unused chain end with its closest partner. A chain joins once per round.
-fn find_joins(chains: &[RawChain], grid: &EndGrid, o: &LinesOpts, cos_lim: f32) -> Vec<Join> {
+fn find_joins(chains: &[RawChain], grid: &EndGrid, o: &EdgeOpts, cos_lim: f32) -> Vec<Join> {
     let mut used = vec![false; chains.len()];
     let mut joins: Vec<Join> = Vec::new();
     for &(c, at_end) in &grid.ends {
@@ -540,7 +510,7 @@ pub(crate) fn drop_duplicates(
     chains: Vec<RawChain>,
     w: usize,
     h: usize,
-    o: &LinesOpts,
+    o: &EdgeOpts,
 ) -> Vec<RawChain> {
     drop_duplicates_after(chains, 0, w, h, o)
 }
@@ -552,7 +522,7 @@ fn drop_duplicates_after(
     seeds: usize,
     w: usize,
     h: usize,
-    o: &LinesOpts,
+    o: &EdgeOpts,
 ) -> Vec<RawChain> {
     if o.dup_dist <= 0.0 {
         return chains.into_iter().skip(seeds).collect();
@@ -726,7 +696,7 @@ fn silhouette(chains: &[Chain], reach: f32) -> Vec<usize> {
 /// Transfer: marks the silhouette, then the chains by `contrast * length^0.5` while they fit in
 /// `budget` px, at most `transfer_chains` in all. A long straight edge does not win just by being
 /// long, and texture with weak contrast stays out.
-pub(crate) fn rank_transfer(chains: &mut [Chain], budget: f32, o: &LinesOpts) {
+pub(crate) fn rank_transfer(chains: &mut [Chain], budget: f32, o: &EdgeOpts) {
     for c in chains.iter_mut() {
         c.kept = false;
     }
@@ -872,7 +842,7 @@ mod tests {
             pts: (13..25).map(|i| [i as f32, 5.0]).collect(),
             closed: false,
         };
-        let out = bridge(vec![a, b], &LinesOpts::default());
+        let out = bridge(vec![a, b], &EdgeOpts::default());
         assert_eq!(out.len(), 1);
         assert_eq!(out[0].pts.len(), 22);
     }

@@ -98,8 +98,24 @@ fn test_edgelines_refuses_a_wrong_size_map() {
             "{w}x{h}x{c}"
         );
     }
-    let grey = Image::<u8>::filled(64, 64, &[9]);
-    assert!(view(&grey, 1, 0.5, &ring(64, 20.0)).is_err());
+}
+
+#[test]
+fn lines_take_edge_opts() {
+    // The old `LinesOpts::default()` numbers, as `EdgeOpts`: the same chains come out.
+    let old = EdgeOpts {
+        bridge_gap: 10.0,
+        bridge_deg: 40.0,
+        dup_dist: 4.0,
+        dup_share: 0.6,
+        transfer_chains: 40,
+        silhouette_reach: 8.0,
+        ..EdgeOpts::default()
+    };
+    assert_eq!(old, EdgeOpts::default());
+    let map = ring(128, 40.0);
+    assert_eq!(trace(&map, &old), trace(&map, &EdgeOpts::default()));
+    assert_eq!(EdgeOpts::default().silhouette_reach, 8.0);
 }
 
 #[test]

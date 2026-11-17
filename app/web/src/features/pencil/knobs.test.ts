@@ -1,9 +1,12 @@
 // Unit tests of the Pencil settings: the start values, the cleaning of old and bad saves, Reset.
 // Run with `pnpm --dir app/web exec node --test "src/**/*.test.ts"`.
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import { test } from "node:test";
 import {
+	AUTO_KEYS,
 	cleanPencil,
+	PENCIL_LOOKS,
 	PENCIL_RANGE,
 	PENCIL_START,
 	type PencilLook,
@@ -105,9 +108,38 @@ test("a save that is not an object gives the start values", () => {
 });
 
 test("unknown keys are dropped", () => {
-	const out = cleanPencil({ look: 2, extra: 1 });
+	const out = cleanPencil({ look: 3, extra: 1 });
 	assert.equal(Object.hasOwn(out, "extra"), false);
-	assert.equal(out.look, 2);
+	assert.equal(out.look, 3);
+});
+
+test("saved_zones_cleans_to_tone: a saved look 2 loads as 0", () => {
+	assert.equal(cleanPencil({ look: 2 }).look, 0);
+});
+
+test("the looks are Tone, Drawing, Hatch, By pencil with ids 0, 1, 3, 4", () => {
+	assert.deepEqual(
+		PENCIL_LOOKS.map((l) => l.id),
+		[0, 1, 3, 4],
+	);
+	assert.equal(PENCIL_LOOKS[2]?.label, "Hatch");
+	for (const l of PENCIL_LOOKS) assert.ok(l.hint.length > 0);
+});
+
+test("Auto sets key, contrast and highlights", () => {
+	assert.deepEqual([...AUTO_KEYS], ["key", "contrast", "highlights"]);
+});
+
+test("labels_paint_step: the Shapes steps have plain names", () => {
+	// settings.ts imports the app (the "@/" paths), so a node test reads its text
+	const text = readFileSync(
+		new URL("../tools/settings.ts", import.meta.url),
+		"utf8",
+	);
+	assert.match(
+		text,
+		/shapesStep: \["Shadows", "Halftones", "Lights", "Accents"\]/,
+	);
 });
 
 test("Reset puts every knob back and keeps the look and the pencils", () => {

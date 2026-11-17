@@ -1,10 +1,10 @@
 // The Size card, in a bar pop-up: the paper in its shape (a small picture), a row of paper and canvas
 // chips, the orientation, the width and height in cm, Whole photo or Fit to paper, one line of fact,
-// and "Show at real size". The choice is kept per photo (`useSize.ts`); the cut itself is made in
+// and a "Real size" switch (with the screen width it needs). The choice is kept per photo (`useSize.ts`); the cut itself is made in
 // `useSize` before the layers see the photo. The width and height boxes always show the paper in cm;
 // typing in one turns the choice into Custom.
-import { Button, ToggleButton, ToggleButtonGroup } from "@heroui/react";
-import { NumberBox, Segment } from "@/ui/fields";
+import { Switch, ToggleButton, ToggleButtonGroup } from "@heroui/react";
+import { NumberBox, Row, Segment } from "@/ui/fields";
 import {
 	type Choice,
 	CM_MAX,
@@ -35,8 +35,15 @@ export default function SizeCard(p: {
 	photoH: number;
 	/** The cells across the long side of the Grid, or null when no Grid with cells is on. */
 	cells: number | null;
-	/** Locks the zoom to this photo width in cm (the real size) and closes the card. */
-	onReal: (cm: number) => void;
+	/** The real size is on (the zoom is locked to the paper width). */
+	real: boolean;
+	/** The width of the lit screen in cm; 0 when not known yet. */
+	screenCm: number;
+	/** The name of the screen found for `screenCm`, or null. */
+	found: string | null;
+	/** Turns the real size on or off; `cm` is the photo width on paper. */
+	onReal: (on: boolean, cm: number) => void;
+	onScreen: (cm: number) => void;
 }) {
 	const { choice: c, photoW, photoH } = p;
 	const cm = paperCm(c, photoW, photoH);
@@ -58,7 +65,7 @@ export default function SizeCard(p: {
 	return (
 		<>
 			<h2 className="flex min-h-(--icon-btn-bar) items-center text-sm font-medium">
-				Size
+				Paper
 			</h2>
 			<div data-testid="tools" className="atelier-tools flex flex-col gap-2">
 				<SizePreview choice={c} photoW={photoW} photoH={photoH} />
@@ -127,6 +134,44 @@ export default function SizeCard(p: {
 					value={c.fit ? 1 : 0}
 					onChange={(i) => p.onChange((cur) => ({ ...cur, fit: i === 1 }))}
 				/>
+				<Row label="Real size">
+					<Switch
+						data-testid="paper-real"
+						aria-label="Real size"
+						isSelected={p.real}
+						onChange={(on) => {
+							p.onReal(on, shownWidthCm(c, photoW, photoH));
+						}}
+					>
+						<Switch.Content>
+							<Switch.Control>
+								<Switch.Thumb />
+							</Switch.Control>
+						</Switch.Content>
+					</Switch>
+				</Row>
+				{p.real && (
+					<>
+						<NumberBox
+							testid="screen-width"
+							label="Screen width, cm"
+							placeholder="ruler"
+							value={p.screenCm}
+							onChange={p.onScreen}
+						/>
+						{p.found && (
+							<p data-testid="screen-found" className="text-xs text-muted">
+								Found: {p.found}.
+							</p>
+						)}
+						{p.screenCm <= 0 && (
+							<p className="text-xs text-muted">
+								For the real size, measure the lit part of the screen, left to
+								right, once.
+							</p>
+						)}
+					</>
+				)}
 				<p
 					data-testid="size-fact"
 					aria-live="polite"
@@ -134,15 +179,6 @@ export default function SizeCard(p: {
 				>
 					{factText(c, photoW, photoH, p.cells)}
 				</p>
-				<Button
-					size="sm"
-					variant="secondary"
-					fullWidth
-					data-testid="size-real"
-					onPress={() => p.onReal(shownWidthCm(c, photoW, photoH))}
-				>
-					Show at real size
-				</Button>
 			</div>
 		</>
 	);

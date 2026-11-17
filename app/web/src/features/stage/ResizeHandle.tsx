@@ -1,7 +1,8 @@
 // The thin drag handle on the right edge of the glass side panel. While you drag, the width goes straight
-// to a CSS variable on the window root, once per frame, so React does not render for each move;
+// to a CSS variable on the window root, once per frame (see `useFrameDrag`), so React does not render for each move;
 // when you let go the width is saved. A double click sets the start width again.
 import { useRef } from "react";
+import { useFrameDrag } from "@/ui/useFrameDrag";
 
 export default function ResizeHandle(p: {
 	/** The window root that holds the width variables. */
@@ -14,8 +15,7 @@ export default function ResizeHandle(p: {
 	onCommit: (width: number) => void;
 	onReset: () => void;
 }) {
-	const drag = useRef<{ x: number; w: number; now: number } | null>(null);
-	const frame = useRef(0);
+	const drag = useRef<{ w: number; now: number } | null>(null);
 	// The panel is also capped at half of the window (see `PanelShell`), so the limit follows it.
 	const clamp = (w: number) =>
 		Math.round(
@@ -38,11 +38,26 @@ export default function ResizeHandle(p: {
 		if (next !== p.width) p.onCommit(next);
 	};
 
-	const paint = () => {
-		frame.current = 0;
-		const d = drag.current;
-		if (d) p.root.current?.style.setProperty(p.variable, `${d.now}px`);
-	};
+	const grip = useFrameDrag({
+		onMove: (dx) => {
+			const d = drag.current;
+			if (!d) return;
+			d.now = clamp(d.w + dx);
+			p.root.current?.style.setProperty(p.variable, `${d.now}px`);
+		},
+		onEnd: (dx) => {
+			const d = drag.current;
+			if (!d) return;
+			drag.current = null;
+			const now = clamp(d.w + dx);
+			p.root.current?.style.setProperty(p.variable, `${now}px`);
+			if (now !== p.width) p.onCommit(now);
+		},
+		onCancel: () => {
+			drag.current = null;
+			p.root.current?.style.setProperty(p.variable, `${p.width}px`);
+		},
+	});
 
 	return (
 		// biome-ignore lint/a11y/useSemanticElements: a draggable separator, not a rule between blocks
@@ -59,33 +74,8 @@ export default function ResizeHandle(p: {
 			className="atelier-focus group/resize absolute inset-y-(--panel-gap) left-[calc(var(--panel-gap)+min(var(--left-w),50vw))] z-(--z-popup) w-2 -translate-x-1/2 cursor-col-resize touch-none select-none max-md:hidden"
 			onPointerDown={(e) => {
 				if (e.button !== 0) return;
-				e.currentTarget.setPointerCapture(e.pointerId);
-				drag.current = { x: e.clientX, w: p.width, now: p.width };
-				document.body.style.cursor = "col-resize";
-				e.preventDefault();
-			}}
-			onPointerMove={(e) => {
-				const d = drag.current;
-				if (!d) return;
-				const dx = e.clientX - d.x;
-				d.now = clamp(d.w + dx);
-				if (!frame.current) frame.current = requestAnimationFrame(paint);
-			}}
-			onPointerUp={(e) => {
-				const d = drag.current;
-				if (!d) return;
-				drag.current = null;
-				document.body.style.cursor = "";
-				e.currentTarget.releasePointerCapture(e.pointerId);
-				if (frame.current) cancelAnimationFrame(frame.current);
-				frame.current = 0;
-				p.root.current?.style.setProperty(p.variable, `${d.now}px`);
-				if (d.now !== p.width) p.onCommit(d.now);
-			}}
-			onPointerCancel={() => {
-				drag.current = null;
-				document.body.style.cursor = "";
-				p.root.current?.style.setProperty(p.variable, `${p.width}px`);
+				drag.current = { w: p.width, now: p.width };
+				grip.onPointerDown(e);
 			}}
 			onDoubleClick={p.onReset}
 		>

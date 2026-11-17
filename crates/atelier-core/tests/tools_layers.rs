@@ -1,6 +1,7 @@
 //! The see-through layers: edges, values, shapes and the grid, as RGBA with alpha.
 
 mod common;
+use atelier_core::error::Error;
 use atelier_core::render::{
     GRID_CONTRAST, edges_layer, edges_view, grid_layer, pencil_auto, pencil_layer, pencil_suggest,
     prepare_work, shapes_layer, shapes_view, values_layer,
@@ -330,4 +331,74 @@ fn test_masses_amount_picks_level() {
     let big = ink(&edges_layer(&w, 2, 0.0, 3, 0.0).unwrap());
     let small = ink(&edges_layer(&w, 2, 100.0, 3, 0.0).unwrap());
     assert!(big < small, "{big} {small}");
+}
+
+#[test]
+fn grid_group_three_bad_input() {
+    let w = work();
+    assert!(matches!(
+        grid_layer(&w, 1, 6, 2, 3, GRID_CONTRAST, 0),
+        Err(Error::BadInput(_))
+    ));
+}
+
+#[test]
+fn grid_cells_seven_bad_input() {
+    let w = work();
+    assert!(matches!(
+        grid_layer(&w, 1, 7, 2, 2, GRID_CONTRAST, 0),
+        Err(Error::BadInput(_))
+    ));
+}
+
+#[test]
+fn empty_image_bad_input() {
+    let w = atelier_core::img::Rgb::new(0, 0, 3);
+    assert!(matches!(
+        grid_layer(&w, 1, 6, 2, 2, GRID_CONTRAST, 0),
+        Err(Error::BadInput(_))
+    ));
+    assert!(matches!(
+        edges_view(&w, 0, 50.0, 3, 0.0),
+        Err(Error::BadInput(_))
+    ));
+    assert!(matches!(shapes_view(&w, 0, 50.0), Err(Error::BadInput(_))));
+    assert!(matches!(pencil_auto(&w), Err(Error::BadInput(_))));
+    assert!(matches!(
+        pencil_layer(&w, 0, 255, &PENCIL_START),
+        Err(Error::BadInput(_))
+    ));
+    assert!(matches!(pencil_suggest(&w, 4), Err(Error::BadInput(_))));
+}
+
+#[test]
+fn malformed_image_bad_input_everywhere() {
+    use atelier_core::render::{grid_layer as grid, values_view};
+    let mut short = atelier_core::img::Rgb::filled(8, 8, &[10, 20, 30]);
+    short.data.truncate(10);
+    let gray = atelier_core::img::Rgb::new(8, 8, 1);
+    let empty = atelier_core::img::Rgb::new(0, 0, 3);
+    for w in [&short, &gray, &empty] {
+        assert!(matches!(
+            values_view(w, 0, 50.0, 0),
+            Err(Error::BadInput(_))
+        ));
+        assert!(matches!(
+            values_layer(w, 0, 50.0, 0),
+            Err(Error::BadInput(_))
+        ));
+        assert!(matches!(shapes_layer(w, 0, 50.0), Err(Error::BadInput(_))));
+        for mode in 0..3 {
+            assert!(matches!(
+                edges_layer(w, mode, 50.0, 3, 0.0),
+                Err(Error::BadInput(_))
+            ));
+        }
+        assert!(matches!(
+            grid(w, 1, 6, 2, 2, GRID_CONTRAST, 0),
+            Err(Error::BadInput(_))
+        ));
+        assert!(matches!(pencil_auto(w), Err(Error::BadInput(_))));
+        assert!(matches!(pencil_suggest(w, 4), Err(Error::BadInput(_))));
+    }
 }

@@ -152,7 +152,7 @@ export default function App() {
 				onLook={setLook}
 				legend={
 					levels ? (
-						<PencilLegend levels={levels} mark={mark} />
+						<PencilLegend levels={levels} mark={mark} onPick={setPicked} />
 					) : toned && tones ? (
 						<Legend
 							tones={tones}
@@ -171,7 +171,7 @@ export default function App() {
 				}}
 				errors={ph.errors}
 				onDismissError={() => ph.dismissErrors()}
-				picked={look.base.kind === "pencil" ? null : picked}
+				picked={picked}
 				onPicked={setPicked}
 				onOpen={openPicker}
 				onFiles={add}
