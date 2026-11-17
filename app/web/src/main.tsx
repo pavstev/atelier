@@ -3,6 +3,7 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import App from "./App";
+import { registerSw } from "./pwa/register";
 import "@/styles/index.css";
 
 /** The Cache Storage name prefix the face models used before 2026-11-07. */
@@ -20,6 +21,8 @@ if ("caches" in window) {
 		)
 		.catch(() => {});
 }
+
+registerSw();
 
 const root = document.getElementById("root");
 if (!root) throw new Error("missing #root");

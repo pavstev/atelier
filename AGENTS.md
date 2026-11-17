@@ -31,8 +31,8 @@ compares it with `crates/atelier-core/tests/reference` (size, range, a mean diff
 
 ## Rules
 
-- The Rust core stays the home of pixel work. The page decodes a photo and hands RGBA pixels to
-  the layers worker. Edges draws from the core's own edge map (`edges/map.rs`, a blurred Sobel).
+- The Rust core stays the home of pixel work. The photo worker decodes a photo and the page hands
+  its RGBA pixels to the layers worker. Edges draws from the core's own edge map (`edges/map.rs`, a blurred Sobel).
 - One simple test per part in `crates/atelier-core/tests/tools_*.rs`.
 - Browser tests run headless Chromium with Playwright. No Firefox, no WebKit, no visible window.
 - One base, then Edges, then Grid, in a fixed order, bottom first. Edges and Grid are see-through.
@@ -83,9 +83,11 @@ Do not bring these back.
   shortcuts dialog, turn and mirror, upscale and the compare divider; keyboard shortcuts (but see 2026-11-06); any
   cloud store (R2) for models.
 - 2026-11-03: the depth model (Near, mid, far) and the Shapes Value fill.
-- 2026-11-06: the progressive web app (manifest, home screen icons, theme color). The site keeps its
-  favicons and share images. Three small keyboard shortcuts came back, and no others: hold Space to
+- 2026-11-06: three small keyboard shortcuts came back, and no others: hold Space to
   see the photo, the arrow keys move the photo, `[` hides the side panel.
+- The progressive web app was dropped on 2026-11-06 and came back on 2026-11-17, by the owner's
+  request: an offline service worker, install, Open with and Share (`app/web/src/sw/`,
+  `app/web/src/pwa/`). It is not a push or sync app. The worker never touches a photo or a model.
 - 2026-11-07: People, face finding and all five face models (YuNet, SegFormer, MODNet, SCHP, MediaPipe landmarks), the maps worker, the face contours in Edges and the face filter.
 - 2026-11-07: the folding tool cards and the tools dock in the left panel, and the Lock button. The
   bottom bar pop-ups (Base, Edges, Grid) and the zoom menu replace them. The left panel is the photo

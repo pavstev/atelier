@@ -3,7 +3,8 @@
 // brand/logo-small.svg (the favicon tile, a bigger and heavier letter), and into public/: favicon.svg,
 // favicon.ico, the small PNG favicons, logo.svg, og.png (1200 x 630) and og-square.png (1200 x 1200).
 // The in-app logo (src/ui/Logo.tsx) reads the same two path files, so the tile and the lockup are one
-// mark. There is no web app manifest. Run: mise run web:brand. Notes: docs/design/brand.md.
+// mark. The PWA icons (icon-192/512, maskable, monochrome, apple-touch-icon) come from the same marks;
+// public/manifest.webmanifest is written by hand, and its colors are checked by a test. Run: mise run web:brand. Notes: docs/design/brand.md.
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -100,8 +101,7 @@ writeFileSync(brand("logo-small.svg"), tile(30.694, 0.24));
 
 mkdirSync(join(root, "public"), { recursive: true });
 
-// Icons: favicon.ico and the small PNG sizes. The app is not installable (no manifest, no Android
-// or Apple home screen icons).
+// Icons: favicon.ico and the small PNG sizes.
 const small = brand("logo-small.svg");
 const icons = await favicons(small, {
 	path: "/",
@@ -121,6 +121,33 @@ for (const f of [...icons.images, ...icons.files]) {
 }
 writeFileSync(out("favicon.svg"), readFileSync(small));
 writeFileSync(out("logo.svg"), readFileSync(brand("logo.svg")));
+
+// Install icons. "any" icons use the rounded tile. The maskable and Apple icons are full-bleed
+// squares (the OS cuts the shape); the mark sits well inside the 80% circle (radius 205 of 512).
+// The monochrome icon is a white mark on clear, for themed icons.
+function flat(letter, background) {
+	const scale = 25;
+	const tx = (256 - (GX + GW / 2) * scale).toFixed(2);
+	const ty = (256 - (GY + GH / 2) * scale).toFixed(2);
+	const bg = background
+		? `<rect width="512" height="512" fill="url(#a)"/>`
+		: "";
+	return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><defs>${gradient("a", 0, 0, 0.4, 1, TILE_TOP, TILE_BOTTOM)}${gradient("letter", 0.25, 0.067, 0.75, 0.933, FROM, TO)}</defs>${bg}<path transform="translate(${tx} ${ty}) scale(${scale})" fill="${letter}" stroke="${letter}" stroke-width="0.12" stroke-linejoin="round" d="${MARK}"/></svg>`;
+}
+const png = (svg, size) =>
+	new Resvg(svg, { fitTo: { mode: "width", value: size } }).render().asPng();
+const logoSvg = readFileSync(brand("logo.svg"), "utf8");
+const flatSvg = flat("url(#letter)", true);
+const installIcons = {
+	"icon-192.png": png(logoSvg, 192),
+	"icon-512.png": png(logoSvg, 512),
+	"icon-maskable-512.png": png(flatSvg, 512),
+	"icon-monochrome-512.png": png(flat("#ffffff", false), 512),
+	"apple-touch-icon.png": png(flatSvg, 180),
+};
+for (const [name, data] of Object.entries(installIcons)) {
+	writeFileSync(out(name), data);
+}
 
 // Share images: the lockup and the tagline on a graphite card. No domain in the picture.
 const lockupUri = `data:image/svg+xml;base64,${Buffer.from(lockup).toString("base64")}`;
@@ -183,5 +210,5 @@ for (const [name, w, h] of [
 	);
 }
 console.log(
-	`brand: logo.svg, logo-small.svg, ${[...icons.images, ...icons.files].map((f) => f.name).join(", ")}, favicon.svg, og.png, og-square.png (letter ${FROM} to ${TO})`,
+	`brand: logo.svg, logo-small.svg, ${[...icons.images, ...icons.files].map((f) => f.name).join(", ")}, favicon.svg, ${Object.keys(installIcons).join(", ")}, og.png, og-square.png (letter ${FROM} to ${TO})`,
 );

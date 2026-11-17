@@ -25,7 +25,7 @@ Both are made from the same two path files. Nothing is drawn twice.
 | `app/web/brand/word.path` | The outline of "telier": Jost (SIL OFL), weight 500, 20 px, set beside a 21 px mark. Fixed art, no font file needed. |
 | `app/web/scripts/brand.mjs` | Makes everything below from those two files and the colors in `src/styles/atelier-theme.css`. |
 | `app/web/brand/logo.svg`, `logo-small.svg` | The tile, big and favicon form. Made by the script. |
-| `app/web/public/` | Made by the script: `favicon.svg`, `favicon.ico`, `favicon-16x16.png`, `favicon-32x32.png`, `logo.svg`, `og.png` (1200 x 630), `og-square.png` (1200 x 1200). |
+| `app/web/public/` | Made by the script: `favicon.svg`, `favicon.ico`, `favicon-16x16.png`, `favicon-32x32.png`, `logo.svg`, `og.png` (1200 x 630), `og-square.png` (1200 x 1200), and the app icons `apple-touch-icon.png`, `icon-192.png`, `icon-512.png`, `icon-maskable-512.png`, `icon-monochrome-512.png`. The manifest `manifest.webmanifest` is written by hand; its colors are the stage color, checked by a test. |
 | `app/web/src/ui/Logo.tsx` | The in-app lockup. It imports the two path files, so it follows them. |
 
 ## Change the brand

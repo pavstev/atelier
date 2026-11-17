@@ -13,7 +13,7 @@ Atelier is a photo study tool for painters: a Rust core (wasm) behind a React we
 | `crates/atelier-wasm/` | the wasm edge: `Photo` (kept between draws, one call per layer) | changing what the page can call |
 | `app/web/` | the web app: React 19, Hero UI v3, Tailwind v4, Vite; the layers worker holds the photo and draws | changing the page |
 | `app/web/src/` | `main.tsx` and `App.tsx` (the window) and five folders: | changing the page |
-| `app/web/src/features/photos/` | the photo list and its on-device store: `usePhotos.ts` (the photo on screen), `useDocsList.ts`, `addPhotos.ts`, `loadStored.ts`, `restoreSession.ts`, `missing.ts`, `search.ts`, `thumb.ts`, `Files.tsx`, `PhotoRow.tsx`, `PhotoCard.tsx` and `store/` (the IndexedDB store: `schema.ts`, `reducer.ts`, `idb.ts`) | changing the photo list |
+| `app/web/src/features/photos/` | the photo list and its on-device store: `usePhotos.ts` (the photo on screen), `useDocsList.ts`, `addPhotos.ts`, `loadStored.ts`, `restoreSession.ts`, `missing.ts`, `search.ts`, `thumb.ts`, `fit.ts`, `decodeWorker.ts`, `decodeClient.ts`, `Files.tsx`, `PhotoRow.tsx`, `PhotoCard.tsx` and `store/` (the IndexedDB store: `schema.ts`, `reducer.ts`, `idb.ts`) | changing the photo list |
 | `app/web/src/features/stage/` | the middle: `StageArea.tsx`, `Stage.tsx`, `StageBar.tsx`, `useViewport.ts`, `useShortcuts.ts`, `lockZoom.ts`, `Swatches.tsx` | changing the stage or zoom |
 | `app/web/src/features/picker/` | the color picker: `spectral.ts` (Kubelka-Munk, the eye, CIEDE2000), `paints.ts` (the six paints; edit them for your tubes), `mix.ts` (the recipe search), `sample.ts`, `Picker.tsx` | changing the picker |
 | `app/web/src/features/tools/` | the pop-up cards of the bottom bar and `settings.ts` (the start values and ranges of every part) | changing a tool |
@@ -22,7 +22,9 @@ Atelier is a photo study tool for painters: a Rust core (wasm) behind a React we
 | `app/web/src/lib/` | `keys.ts` (every saved key), `storage.ts` (load and save them) and small helpers | changing what is saved |
 | `app/web/src/styles/` | `index.css` and `atelier-theme.css` (colors and the design sizes: radius, icon buttons, z-index, tooltip delay) | changing the look |
 | `app/web/e2e/` | the Playwright suite (headless Chromium only) and the golden pictures | changing browser tests |
-| `app/web/public/` | favicons and share images | changing icons |
+| `app/web/src/sw/` | the service worker: `sw.ts`, `routes.ts`, `precache.ts`; built to `/sw.js` by `app/web/scripts/swPlugin.ts` | changing offline or caching |
+| `app/web/src/pwa/` | the page side: `register.ts`, `state.ts`, `usePwa.ts`, `labels.ts`, `UpdateToast.tsx`, `InstallButton.tsx`, `intake.ts`, `persist.ts` | changing install, update, Open with or Share |
+| `app/web/public/` | favicons, app icons, share images, `manifest.webmanifest`, `_headers` | changing icons or the manifest |
 | `app/web/brand/` | the logo source for favicons and share images | changing the brand |
 | `app/web/scripts/` | the wasm build and brand scripts; the glue it writes is `app/web/wasm/` (committed at release) | changing the web build |
 | `xtask/` | `cargo xtask refs [--bless]` | changing the reference check |

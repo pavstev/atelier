@@ -155,3 +155,20 @@ body {
 		animation-duration: 0.01ms;
 	}
 }
+
+/* Installed on a phone, the page runs edge to edge: keep the panel, the logo and the bar clear of the
+ * notch and the home bar. Unlayered, so these win over the utility classes they sit beside. */
+aside.glass {
+	padding-top: max(var(--panel-pad), env(safe-area-inset-top));
+	padding-bottom: max(var(--panel-pad), env(safe-area-inset-bottom));
+	padding-left: max(var(--panel-pad), env(safe-area-inset-left));
+}
+@media (max-width: 767px) {
+	[data-testid="logo"] {
+		top: max(0.75rem, env(safe-area-inset-top));
+		left: max(0.75rem, env(safe-area-inset-left));
+	}
+}
+[data-testid="stage-bar-frame"] {
+	bottom: max(1.25rem, calc(env(safe-area-inset-bottom) + 0.5rem));
+}

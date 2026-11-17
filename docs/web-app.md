@@ -232,6 +232,21 @@ has five folders. Paths below are under `src/`.
   The worker holds only the photo on screen, and a photo it dropped is sent again when a draw asks
   for it. `draw/coreClient.ts` talks to it. `draw/calls.ts` has one typed call per part.
 
+### Install and offline
+
+- The app is a progressive web app, in production only (`vite` in dev never registers a worker).
+  `/sw.js` precaches the whole build (about 1.6 MB). After the first visit the app starts with no
+  network. A new build waits as a second worker, and a toast offers Reload. The Install button
+  shows when the browser can install the app.
+- `public/manifest.webmanifest` names the app (name, id, scope `/`, standalone, stage color), has
+  four icons, and registers the app as an image handler (Open with on desktop) and a share target
+  (Share on Android: `POST /share`). The worker keeps shared files in the `atelier-share` cache
+  until the page reads them, then empties it.
+- `src/sw/` is the worker (`sw.ts`, `routes.ts`, `precache.ts`). `src/pwa/` is the page side:
+  `register.ts`, `state.ts`, `usePwa.ts`, `UpdateToast.tsx`, `InstallButton.tsx`, `intake.ts`
+  (launched and shared photos) and `persist.ts` (asks the browser to keep the photo store).
+- A photo is decoded and tiled off the main thread by `features/photos/decodeWorker.ts`.
+
 ### Photos on this device
 
 - `features/photos/store/` and `features/photos/useDocsList.ts` keep the photo list: the file bytes in IndexedDB, one

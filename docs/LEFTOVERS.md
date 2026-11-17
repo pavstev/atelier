@@ -38,6 +38,7 @@ own, with the bench in [development/bench.md](development/bench.md).
 | 66 | The console shows a Content Security Policy error on every load: the Cloudflare Web Analytics beacon (`static.cloudflareinsights.com/beacon.min.js`) is blocked by `script-src 'self' 'wasm-unsafe-eval'`. It is harmless and nothing leaves the device. Fix: turn Web Analytics off for the Worker in the dashboard (the rule is that nothing leaves the device), or leave the CSP as it is. | `app/web/public/_headers` |
 | 67 | Pencil Smudge adds about 120 ms natively (about 40 percent) to a 1024 x 768 draw and drags along the one Hatch angle, not the form flow, so in Hatch the drag crosses the lines where they bend. In the browser it is slower. Idea: use the structure direction Hatch already reads, and time it in wasm. | `crates/atelier-core/src/pencil/smudge.rs` |
 | 68 | The effect pictures (Smudge, Lifted lights, Cross-hatch) and the Auto-first card were checked in the tests and on one screenshot only, not rated on real photos with the bench sheets. Run the tool bench and the rater before the next Pencil round. | `docs/development/bench.md` |
+| 69 | The main JS bundle is about 657 KB. Split it (lazy load the tool cards and the picker) so the first paint and the precache are lighter. | `app/web/vite.config.ts`, `app/web/src/App.tsx` |
 
 ## Where leftovers come from
 

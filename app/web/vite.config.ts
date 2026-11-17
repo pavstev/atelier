@@ -6,6 +6,7 @@ import { fileURLToPath } from "node:url";
 import tailwindcss from "@tailwindcss/vite";
 import react from "@vitejs/plugin-react";
 import { defineConfig } from "vite";
+import { swPlugin } from "./scripts/swPlugin.ts";
 
 /** The headers of the `/*` block of public/_headers. */
 function siteHeaders(): Record<string, string> {
@@ -25,7 +26,7 @@ function siteHeaders(): Record<string, string> {
 }
 
 export default defineConfig({
-	plugins: [react(), tailwindcss()],
+	plugins: [react(), tailwindcss(), swPlugin()],
 	resolve: { alias: { "@": fileURLToPath(new URL("./src", import.meta.url)) } },
 	worker: { format: "es" },
 	preview: { headers: siteHeaders() },

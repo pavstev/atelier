@@ -61,7 +61,7 @@ paths:
   change is meant, `mise run web:golden:bless` (it wipes `e2e/golden` first), then say why in the
   commit. The synthetic photo for the goldens is drawn in the spec, so no photo is in git.
 - Icons and share images: `mise run web:brand` makes every file in `public/` (favicons,
-  `og.png`, `og-square.png`) from `app/web/brand/logo.svg` and `logo-small.svg`. Change the logo
+  app icons, `og.png`, `og-square.png`) from `app/web/brand/logo.svg` and `logo-small.svg`. Change the logo
   there, run it, commit the files. The logo sources and notes are in `docs/design/brand.md`.
 - Real photos stay in `.agents/web-photos/` (ignored).
 - Release is `mise run release`: check, e2e, a smoke test on the built app with the Cloudflare
@@ -82,3 +82,12 @@ paths:
   tells which commit is live.
 - Work lands on main in one commit (the owner's rule). Say which commit is live before you call
   a push deployed.
+
+## PWA
+
+- The worker is `src/sw/sw.ts`, built by `scripts/swPlugin.ts` after the app. Production only: dev never
+  registers it. Cache `atelier-shell-<version>` (the plugin hashes the build); share cache `atelier-share`.
+- An update waits for `{type:"SKIP_WAITING"}` from the page. Never skip silently.
+- The worker answers only same-origin GET and `POST /share`. A new file in `public/` is precached
+  by the plugin, so check its size.
+- Slow test: `PREVIEW=1 pnpm --dir app/web exec playwright test pwa-offline.spec.ts pwa-manifest.spec.ts pwa-share.spec.ts pwa-update.spec.ts`.

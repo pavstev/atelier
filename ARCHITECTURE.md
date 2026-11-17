@@ -9,8 +9,9 @@ on the user's device. There is no server code. The folder map is in [MAP.md](MAP
 file -> browser decoder -> RGBA pixels -> layers worker (wasm Photo) -> layer pictures -> canvases
 ```
 
-1. The page decodes the photo with the browser (the EXIF turn is applied) and hands RGBA pixels
-   to the layers worker.
+1. The photo worker (`features/photos/decodeWorker.ts`) decodes the photo with the browser (the
+   EXIF turn is applied), so the page never freezes. The page hands the RGBA pixels to the layers
+   worker.
 2. The worker holds the wasm module. It keeps the last photos as a wasm `Photo`: the RGB copy and
    the work picture (long side 1024 px) stay between draws, so a knob redraws from them.
 3. For each layer the worker makes one typed call on the `Photo`. The answer is an 8 byte header
@@ -71,3 +72,12 @@ committed and how a deploy skips Rust: [docs/development/release.md](docs/develo
 - Web: Playwright in headless Chromium, with golden pictures drawn from a synthetic photo.
 
 See [docs/development/testing.md](docs/development/testing.md).
+
+## The offline shell
+
+A hand-written service worker, `/sw.js` (`app/web/src/sw/`), precaches the whole build, so the app
+starts with no network. A small Vite plugin (`app/web/scripts/swPlugin.ts`) lists the built files
+and builds the worker after the app. The cache is named `atelier-shell-<version>`, where the
+version is the first 12 hex digits of a SHA-256 over the file list and bytes. A new worker waits
+until the page asks it to take over (a prompt, never silent). The worker answers only same-origin
+GET and `POST /share`. Photos and models are never in its cache. Details: [docs/web-app.md](docs/web-app.md).

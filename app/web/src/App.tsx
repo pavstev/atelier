@@ -2,7 +2,7 @@
 // bar at the bottom of it.
 // A base (Photo, Values, Shapes, Paper or Pencil) with Edges and Grid over it; Pencil turns Edges off. The photos live in
 // `usePhotos`, the layers in `useLayers`, the middle in `StageArea`.
-import { useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { Call } from "@/draw/calls";
 import { useLayers } from "@/draw/useLayers";
 import { levelsOf } from "@/features/pencil/grades";
@@ -20,6 +20,10 @@ import {
 	useLayout,
 	useLook,
 } from "@/features/tools/settings";
+import { InstallButton } from "@/pwa/InstallButton";
+import { startIntake } from "@/pwa/intake";
+import { askPersist } from "@/pwa/persist";
+import { UpdateToast } from "@/pwa/UpdateToast";
 import Logo from "@/ui/Logo";
 
 /** The call of each stacked layer; null when it is off (a Photo or Paper base draws nothing). */
@@ -37,6 +41,21 @@ export default function App() {
 	const [look, setLook] = useLook();
 	const [layout, setLayout] = useLayout();
 	const ph = usePhotos();
+	// every way in (picker, drop, launch queue, share) goes through here; after an add the browser is
+	// asked to keep the photo store
+	const { open } = ph;
+	const add = useCallback(
+		(files: File[]) => {
+			void open(files);
+			if (files.length > 0) void askPersist(navigator);
+		},
+		[open],
+	);
+	const addRef = useRef(add);
+	addRef.current = add;
+	useEffect(() => {
+		startIntake(window, (files) => addRef.current(files));
+	}, []);
 	const input = useRef<HTMLInputElement>(null);
 	const root = useRef<HTMLDivElement>(null);
 	// the legend color held in the paint mix card, or none
@@ -89,6 +108,10 @@ export default function App() {
 				<Logo className="h-[21px] w-auto" outline={layout.panels.left} />
 				<span className="sr-only">Atelier</span>
 			</div>
+			<UpdateToast />
+			<div className="fixed top-3 right-3 z-(--z-banner)">
+				<InstallButton />
+			</div>
 			<input
 				ref={input}
 				type="file"
@@ -97,7 +120,7 @@ export default function App() {
 				hidden
 				data-testid="file"
 				onChange={(e) => {
-					void ph.open(Array.from(e.target.files ?? []));
+					add(Array.from(e.target.files ?? []));
 					e.target.value = "";
 				}}
 			/>
@@ -113,7 +136,7 @@ export default function App() {
 					if (window.matchMedia(NARROW).matches) closePanel();
 				}}
 				onAdd={openPicker}
-				onFiles={(f) => void ph.open(f)}
+				onFiles={add}
 				onRename={ph.rename}
 				onRemove={ph.remove}
 			/>
@@ -148,7 +171,7 @@ export default function App() {
 				picked={look.base.kind === "pencil" ? null : picked}
 				onPicked={setPicked}
 				onOpen={openPicker}
-				onFiles={(f) => void ph.open(f)}
+				onFiles={add}
 			/>
 		</div>
 	);

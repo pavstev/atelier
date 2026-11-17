@@ -1,4 +1,6 @@
-// Decodes a photo file in the browser to RGBA pixels. Nothing leaves the page.
+// Decodes a photo file in the browser to RGBA pixels. The photo worker does it when it can, else
+// the page does. Nothing leaves the page.
+import { decodeOff } from "./decodeClient.ts";
 
 /** A 2d canvas: an OffscreenCanvas where there is one, else a hidden canvas element. */
 function canvasOf(w: number, h: number) {
@@ -11,6 +13,15 @@ function canvasOf(w: number, h: number) {
 
 /** The pixels of `file`, upright (the browser applies the EXIF turn). */
 export async function loadPhoto(file: Blob): Promise<ImageData> {
+	try {
+		return await decodeOff(file);
+	} catch {
+		return loadOnPage(file);
+	}
+}
+
+/** The same, on the main thread (no worker, or the worker failed). */
+async function loadOnPage(file: Blob): Promise<ImageData> {
 	const bitmap = await createImageBitmap(file, {
 		imageOrientation: "from-image",
 	});

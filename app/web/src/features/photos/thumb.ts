@@ -1,18 +1,13 @@
 // A tiny preview of a photo for the file list: the whole photo, long side 128 px, as a JPEG data
 // URL. The list shows it in a square tile, so a wide and a tall photo are both seen whole.
 // It is a display copy for the page only. The pixel work of the layers stays in the core.
+import { tileOff } from "./decodeClient.ts";
+import { fitLongSide } from "./fit.ts";
 
 /** The long side of the tiny preview, in px (for sharp tiles on any screen). */
 const SMALL = 128;
 
-/** The size of a `width` by `height` image scaled to the long side `long` (never up, at least 1 px). */
-function fitTo(width: number, height: number, long: number) {
-	const k = Math.min(1, long / Math.max(width, height));
-	return {
-		w: Math.max(1, Math.round(width * k)),
-		h: Math.max(1, Math.round(height * k)),
-	};
-}
+const fitTo = fitLongSide;
 
 /** A canvas element of `w` by `h` px with the bitmap drawn on it, stretched to fill it. */
 function paint(bitmap: ImageBitmap, w: number, h: number) {
@@ -47,6 +42,12 @@ export async function thumbnail(
 
 /** The tiny preview of a stored image (the bigger preview), or "". */
 export async function thumbnailOfBlob(blob: Blob): Promise<string> {
+	try {
+		const url = await tileOff(blob);
+		if (url) return url;
+	} catch {
+		// no worker: fall through to the page
+	}
 	try {
 		const bitmap = await createImageBitmap(blob);
 		try {
