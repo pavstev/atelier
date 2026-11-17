@@ -439,3 +439,36 @@ test("test_strip_shows_without_a_card_and_add_photo_shows_when_the_panel_is_hidd
 	await page.getByTestId("add-photo-bar").click();
 	await chooser;
 });
+
+test("test_segment_labels_fit_in_the_base_card", async ({ studio }) => {
+	const { page } = studio;
+	await studio.openSynthetic(480, 640, "seg.png");
+	const shot = async (name: string) => {
+		const dir = process.env.SHOT_FIXED;
+		if (dir) await page.screenshot({ path: `${dir}/fixed-${name}.png` });
+	};
+	for (const base of ["pencil", "shapes"] as const) {
+		await studio.base(base);
+		const radios = page.getByRole("radio");
+		const n = await radios.count();
+		expect(n).toBeGreaterThan(3);
+		const info = await page.evaluate(() =>
+			[...document.querySelectorAll("[role=radio]")].map((el) => {
+				const r = el.getBoundingClientRect();
+				return {
+					fit: el.scrollWidth <= el.clientWidth,
+					l: r.left,
+					r: r.right,
+					t: r.top,
+				};
+			}),
+		);
+		for (const [i, a] of info.entries()) {
+			expect(a.fit, `radio ${i} of ${base} is cut`).toBe(true);
+			const b = info[i + 1];
+			if (b && Math.abs(b.t - a.t) < 2)
+				expect(a.r).toBeLessThanOrEqual(b.l + 0.5);
+		}
+		await shot(base);
+	}
+});

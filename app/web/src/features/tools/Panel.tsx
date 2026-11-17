@@ -154,6 +154,7 @@ export function ToolBody(p: Props & { id: StageId; extras: PencilExtras }) {
 					{s.base.kind === "shapes" && (
 						<>
 							<Segment
+								stacked
 								testid="shapes-step"
 								label="Paint step"
 								options={LABELS.shapesStep}

@@ -44,7 +44,8 @@ export function Segment({
 	testid,
 	bare,
 	after,
-}: ChoiceProps & { bare?: boolean; after?: ReactNode }) {
+	stacked,
+}: ChoiceProps & { bare?: boolean; after?: ReactNode; stacked?: boolean }) {
 	const group = (
 		<ToggleButtonGroup
 			aria-label={label}
@@ -68,6 +69,13 @@ export function Segment({
 		</ToggleButtonGroup>
 	);
 	if (bare) return <div data-testid={testid}>{group}</div>;
+	if (stacked)
+		return (
+			<div data-testid={testid} className="flex flex-col gap-1">
+				<span className="atelier-label">{label}</span>
+				{group}
+			</div>
+		);
 	return (
 		<div data-testid={testid} className="atelier-row">
 			<span className="atelier-label">{label}</span>

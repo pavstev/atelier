@@ -106,6 +106,7 @@ export default function PencilCard({ pencil: s, onChange, extras }: Props) {
 			</Tabs.ListContainer>
 			<Tabs.Panel id="look" className="flex flex-col gap-1.5 pt-1.5">
 				<Segment
+					stacked
 					testid="pencil-look"
 					label="Look"
 					options={PENCIL_LOOKS.map((l) => l.label)}
