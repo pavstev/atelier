@@ -12,6 +12,7 @@ paths:
 |---|---|
 | The pitch, privacy, quick start | `README.md` |
 | What the app does, control by control; how the web app is built | `docs/web-app.md` |
+| How the UI looks and behaves: layout, surfaces, widgets, test ids | `DESIGN.md` |
 | How each part draws | `docs/how-it-works/` |
 | How the parts fit | `ARCHITECTURE.md` |
 | Setup, checks, contribution rules | `CONTRIBUTING.md` |
@@ -23,7 +24,7 @@ paths:
 | Which docs are current and which are history | `docs/README.md` |
 | The Claude setup (rules, skills, agents) | `.claude/HARNESS.md` |
 | Rust module map | `.claude/rules/rust.md` |
-| Browser test hooks, release and Cloudflare rules | `.claude/rules/web.md` |
+| Cloudflare and release rules for AI tools | `.claude/rules/web.md` |
 | What changed | `git log` (there is no changelog file) |
 
 - After you move or delete a doc, run `bash scripts/docs-check.sh`: it lists broken relative links.

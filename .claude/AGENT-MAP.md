@@ -18,16 +18,13 @@
 | `tool-rater` | scores bench sheets like a painter, lists problems | Read, Glob, Grep, Write | sonnet | the report file the caller names |
 | `model-bench` | runs a named bench pass on the photo sets, writes the numbers | Bash, Read, Write | sonnet | the numbers file the caller names |
 
-## Skills, rules and hooks
-- Skills: `view-change`, `tool-bench`, `ship` (in `.claude/skills/`).
-- Rules (load by `paths:`): `rust.md` (crates, xtask), `web.md` (app/web, scripts, deploy files), `docs.md` (any `.md`).
-- Hooks: lefthook runs pre-commit (staged files) and pre-push (`mise run check`). See `lefthook.yml`.
+Skills, rules and hooks: [HARNESS.md](HARNESS.md).
 
 ## Rules
 - Inside a superlite build, dispatch only `superlite:*` agents. Its coordinator hook denies the others.
 - Send reading work (logs, big docs, research) to a helper. This repo hit the most compactions.
 - One bench job at a time, 20 GB at most (owner rule). `model-bench` checks it first.
-- Bless only for a meant change: `cargo xtask refs --bless`, `mise run web:golden:bless`. No helper blesses.
-- No helper runs `wrangler`. `live-checker` proves a deploy with `scripts/live-check.sh`.
-- Browser checks are headless Chromium (`mise run web:e2e`). Never a visible window.
-- Never read `target/`, `bench-out/`, `in/` or `out/`. They hold private photos.
+- No helper blesses pictures and no helper runs `wrangler`. `live-checker` proves a deploy with
+  `scripts/live-check.sh`.
+- Every helper brief repeats the `AGENTS.md` rules it needs: headless browsers only, and never
+  read `target/`, `bench-out/`, `in/` or `out/`.

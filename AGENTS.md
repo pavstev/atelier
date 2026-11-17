@@ -6,10 +6,10 @@ Worker; a push to main deploys it). The native Swift Mac app left main on 2026-1
 `swift-app-last` keeps it. The first web app (Astro, Tauri, Python sidecar) is in the tag
 `web-site-last`.
 
-What the app does: [README.md](README.md) and [docs/web-app.md](docs/web-app.md). How the parts
-fit: [ARCHITECTURE.md](ARCHITECTURE.md). How to contribute: [CONTRIBUTING.md](CONTRIBUTING.md).
-Open work: [docs/LEFTOVERS.md](docs/LEFTOVERS.md). Which docs are current:
-[docs/README.md](docs/README.md).
+What the app does: [README.md](README.md) and [docs/web-app.md](docs/web-app.md). How it looks and
+behaves: [DESIGN.md](DESIGN.md). How the parts fit: [ARCHITECTURE.md](ARCHITECTURE.md). How to
+contribute: [CONTRIBUTING.md](CONTRIBUTING.md). Open work: [docs/LEFTOVERS.md](docs/LEFTOVERS.md).
+Which docs are current: [docs/README.md](docs/README.md).
 
 Where things live: [MAP.md](MAP.md). Every source file starts with a comment that says its job.
 Never read `target/`, `bench-out/`, `in/` or `out/` (the last three hold private photos).
@@ -49,51 +49,43 @@ compares it with `crates/atelier-core/tests/reference` (size, range, a mean diff
 
 ## Dropped for good
 
-Pencil came back on 2026-11-14, by the owner's request, as a Base choice that draws the photo as a gray
-picture in the tones of the graphite grades 4H to 9B (`crates/atelier-core/src/pencil/`). It is not the old Line drawing or
-Pencil model tool. Those stay dropped.
+Do not bring these back. Some names came back in a new form: the first table says what is new
+and what stays out.
 
-2026-11-14, Pencil v2 (five looks, Tone and Texture knobs, Auto, Suggest pencils): Hatch is a texture
-of the tone, and By pencil is a view of the tone by pencil. Neither is the dropped Stroke order or a
-line drawing. A Sketch look stays out, because Edges is the line tool (`docs/LEFTOVERS.md` row 64).
+### Came back, in a new form
 
-Do not bring these back.
+| Date | What came back | What stays out |
+|---|---|---|
+| 2026-11-06 | Three shortcuts: hold Space to see the photo, the arrow keys move the photo, `[` hides the side panel. | Every other shortcut. |
+| 2026-11-13 | A color picker in the bottom bar. It reads the shown picture and gives a mix of white, yellow, red, lake blue, phthalo blue and black (`app/web/src/features/picker/`). | Mixbox, a color list, a color picker panel. |
+| 2026-11-14 | Pencil, as a Base choice: the photo as a gray picture in the tones of the graphite grades 4H to 9B (`crates/atelier-core/src/pencil/`). Its looks: Tone, Drawing, Hatch, By pencil. Hatch is a texture of the tone; By pencil is a view of the tone by pencil. | The old Line drawing and Pencil model tools, the Stroke order, a Sketch look (Edges is the line tool, `docs/LEFTOVERS.md` row 64). |
+| 2026-11-17 | The PWA (dropped 2026-11-06): an offline service worker, install, Open with and Share (`app/web/src/sw/`, `app/web/src/pwa/`). The worker never touches a photo or a model. | Push and sync. |
+| 2026-11-17 | The paper frame: the Paper tool (once called Size) in the bottom bar (`app/web/src/features/size/`). It picks a paper or canvas and can cut the photo to its shape. | The old canvas sizes, the materials, the 18 x 24 cm idea as a workspace. |
 
-- Back on 2026-11-13, by the owner's request: a color picker, in the bottom bar. It is not the old
-  one. It reads the shown picture and gives a mix of white, yellow, red, lake blue, phthalo blue and black
-  (`app/web/src/features/picker/`). Mixbox, a color list and a color picker panel stay dropped.
+### Dropped
 
-- 2026-11-17: the Pencil Zones look (flat tones, one per pencil) is dropped. The looks are Tone, Drawing,
-  Hatch and By pencil; look id 2 is `BadInput`.
-- 2026-11-17: the paper frame came back, by the owner's request: the Paper tool (once called Size) in the bottom bar
-  (`app/web/src/features/size/`) picks a paper or canvas and can cut the photo to its shape. It is not the
-  old canvas sizes, materials or the 18 x 24 cm idea as a workspace.
-- 2026-11-16: light mode and the theme hook. The app is dark only. The side panel, the bottom bar and
-  every pop-up are glass over the stage (`.glass` in `styles/index.css`); the panel no longer moves
-  the photo.
-- 2026-11-13: the Color zoom (a legend swatch shown big on a gray mat, then full screen). A legend
-  swatch now holds its color in the color picker card.
-- 2026-10-30: the PDF, the CLI, the color picker, ZIP export, the recent shelf, the worker count
-  setting, watercolor and charcoal.
-- 2026-10-31: the old stage tables (the Stages tool is their new form), Squint, Coach tips, the
-  Stroke order, the Line drawing and Pencil model tools, Mixbox, HED and TEED, the Python helper
-  (`helper/`), the MLX and swift-transformers packages, SAM masks, the Real-ESRGAN upscaler (the
-  Upscale card uses Lanczos), the Knife tool, the Plan group and the Stage plan view, Style
-  preview, the Stipple map, the Light tools (Light and form, Color and light), Objects, the Neural
-  badge, the dock, More and Shift-click on tabs, Apple Vision and BiSeNet for faces.
-- 2026-10-31: the native Swift Mac app and its Rust edge crate. The tag `swift-app-last` keeps both.
-- 2026-11-02: the three workspaces Oil, Acrylic and Drawing; Colors; Stages; the construction
-  guides (envelope, plumb, gesture, perspective, ellipses, head); the 15 technique views; the
-  cards; the materials; the canvas sizes and the 18 x 24 cm idea; the menu bar, status bar,
-  shortcuts dialog, turn and mirror, upscale and the compare divider; keyboard shortcuts (but see 2026-11-06); any
-  cloud store (R2) for models.
-- 2026-11-03: the depth model (Near, mid, far) and the Shapes Value fill.
-- 2026-11-06: three small keyboard shortcuts came back, and no others: hold Space to
-  see the photo, the arrow keys move the photo, `[` hides the side panel.
-- The progressive web app was dropped on 2026-11-06 and came back on 2026-11-17, by the owner's
-  request: an offline service worker, install, Open with and Share (`app/web/src/sw/`,
-  `app/web/src/pwa/`). It is not a push or sync app. The worker never touches a photo or a model.
-- 2026-11-07: People, face finding and all five face models (YuNet, SegFormer, MODNet, SCHP, MediaPipe landmarks), the maps worker, the face contours in Edges and the face filter.
-- 2026-11-07: the folding tool cards and the tools dock in the left panel, and the Lock button. The
-  bottom bar pop-ups (Base, Edges, Grid) and the zoom menu replace them. The left panel is the photo
-  list only.
+- **2026-10-30:** the PDF, the CLI, the old color picker, ZIP export, the recent shelf, the worker
+  count setting, watercolor, charcoal.
+- **2026-10-31:** the native Swift Mac app and its Rust edge crate; the old stage tables; Squint;
+  Coach tips; the Stroke order; the Line drawing and Pencil model tools; Mixbox; HED and TEED; the
+  Python helper (`helper/`); the MLX and swift-transformers packages; SAM masks; the Real-ESRGAN
+  upscaler; the Knife tool; the Plan group and the Stage plan view; Style preview; the Stipple map;
+  the Light tools (Light and form, Color and light); Objects; the Neural badge; the dock; More and
+  Shift-click on tabs; Apple Vision and BiSeNet for faces.
+- **2026-11-02:** the Oil, Acrylic and Drawing workspaces; Colors; Stages; the construction guides
+  (envelope, plumb, gesture, perspective, ellipses, head); the 15 technique views; the cards; the
+  materials; the canvas sizes and the 18 x 24 cm idea; the menu bar, status bar and shortcuts
+  dialog; turn and mirror; upscale; the compare divider; keyboard shortcuts; any cloud store (R2)
+  for models.
+- **2026-11-03:** the depth model (Near, mid, far); the Shapes Value fill.
+- **2026-11-06:** the PWA (back on 2026-11-17, see above).
+- **2026-11-07:** People, face finding and all five face models (YuNet, SegFormer, MODNet, SCHP,
+  MediaPipe landmarks); the maps worker; the face contours in Edges; the face filter.
+- **2026-11-07:** the folding tool cards, the tools dock in the left panel and the Lock button. The
+  bottom bar pop-ups and the zoom menu replace them. The left panel is the photo list only.
+- **2026-11-13:** the Color zoom (a legend swatch shown big on a gray mat, then full screen). A
+  legend swatch now holds its color in the color picker card.
+- **2026-11-16:** light mode and the theme hook. The app is dark only.
+- **2026-11-17:** the Pencil Zones look (flat tones, one per pencil). Look id 2 is `BadInput`.
+- **2026-11-17:** the zoom lock card. Real size is a switch in the Paper card and an item of the
+  zoom menu.

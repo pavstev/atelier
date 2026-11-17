@@ -129,7 +129,7 @@ body {
 		outline-offset: 1px;
 	}
 
-	/* Glass: the surface of everything that floats over the stage (the side panel, the bar, the Lock
+	/* Glass: the surface of everything that floats over the stage (the side panel, the bar, the legend
 	 * card, every pop-up, menu and tip, the bottom sheet). Tokens are in atelier-theme.css. */
 	.glass,
 	.floating-card,

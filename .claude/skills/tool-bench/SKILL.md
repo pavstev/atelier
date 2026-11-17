@@ -9,6 +9,7 @@ The reference tests (`cargo xtask refs`) use one synthetic picture. A real photo
 bench (`crates/atelier-core/examples/bench.rs`) calls the same typed layer calls as the web app
 (`values_layer`, `shapes_layer`, `edges_layer`, `grid_layer`), with the start values of `LOOK`
 in `app/web/src/features/tools/settings.ts`, on a 1024 px work picture. It needs no browser.
+Pencil is not in the bench: score a Pencil change with `bench/pencil-eval/` (its README).
 
 ## Rules
 

@@ -1,7 +1,7 @@
 <!-- ps:map -->
 # Map
 
-Atelier is a photo study tool for painters: a Rust core (wasm) behind a React web app. See [README.md](README.md), [ARCHITECTURE.md](ARCHITECTURE.md) and [CONTRIBUTING.md](CONTRIBUTING.md). AI tools also read [AGENTS.md](AGENTS.md).
+Atelier is a photo study tool for painters: a Rust core (wasm) behind a React web app. See [README.md](README.md), [ARCHITECTURE.md](ARCHITECTURE.md), [CONTRIBUTING.md](CONTRIBUTING.md) and, for how the UI looks and behaves, [DESIGN.md](DESIGN.md). AI tools also read [AGENTS.md](AGENTS.md).
 
 ## Folders
 | Path | Holds | Open it to |
@@ -12,12 +12,13 @@ Atelier is a photo study tool for painters: a Rust core (wasm) behind a React we
 | `crates/atelier-core/examples/` | the bench (`bench.rs`: real photos, before and after sheets) and `edge_score.rs` (the Edges F-score) | running the bench |
 | `crates/atelier-wasm/` | the wasm edge: `Photo` (kept between draws, one call per layer) | changing what the page can call |
 | `app/web/` | the web app: React 19, Hero UI v3, Tailwind v4, Vite; the layers worker holds the photo and draws | changing the page |
-| `app/web/src/` | `main.tsx` and `App.tsx` (the window) and six folders: | changing the page |
+| `app/web/src/` | `main.tsx` and `App.tsx` (the window), and the folders below | changing the page |
 | `app/web/src/features/photos/` | the photo list and its on-device store: `usePhotos.ts` (the photo on screen), `useDocsList.ts`, `addPhotos.ts`, `loadStored.ts`, `restoreSession.ts`, `missing.ts`, `search.ts`, `thumb.ts`, `fit.ts`, `decodeWorker.ts`, `decodeClient.ts`, `Files.tsx`, `PhotoRow.tsx`, `PhotoCard.tsx` and `store/` (the IndexedDB store: `schema.ts`, `reducer.ts`, `idb.ts`) | changing the photo list |
+| `app/web/src/features/pencil/` | the Pencil base card: `PencilCard.tsx` (the Look, Effects and Pencils tabs), `GradeRow.tsx`, `knobs.ts` (the settings, start values and ranges), `grades.ts`, `explain.ts` (the Auto note), `usePencilAuto.ts`, `usePencilExtras.ts` | changing the Pencil card |
 | `app/web/src/features/stage/` | the middle: `StageArea.tsx`, `Stage.tsx`, `StageBar.tsx`, `useViewport.ts`, `useShortcuts.ts`, `lockZoom.ts`, `Swatches.tsx`, `LegendStrip.tsx` (the legend at the top center of the stage) | changing the stage or zoom |
 | `app/web/src/features/picker/` | the color picker: `spectral.ts` (Kubelka-Munk, the eye, CIEDE2000), `paints.ts` (the six paints; edit them for your tubes), `mix.ts` (the recipe search), `color.ts` (the shared color helpers: css, hex, ink, Munsell value), `sample.ts`, `Picker.tsx` | changing the picker |
 | `app/web/src/features/size/` | the Paper tool (was Size): `paper.ts` (paper table, crop rectangle, fact line, clean save), `crop.ts`, `useSize.ts` (the choice per photo and the cut photo), `SizeCard.tsx`, `SizePreview.tsx` | changing the paper or canvas frame |
-| `app/web/src/features/tools/` | the pop-up cards of the bottom bar and `settings.ts` (the start values and ranges of every part) | changing a tool |
+| `app/web/src/features/tools/` | `Panel.tsx` (the Base, Edges and Grid card bodies) and `settings.ts` (the start values and ranges of every part) | changing a tool |
 | `app/web/src/draw/` | the draw pipeline: `worker.ts` (the layers worker), `coreClient.ts`, `calls.ts`, `useLayers.ts`, `facts.ts` | changing how a layer is drawn |
 | `app/web/src/ui/` | parts that know nothing about photos: `fields.tsx`, `icons.tsx` (`Icon`, `IconButton`, `Tip`), `PanelShell.tsx`, `Logo.tsx`, `useFrameDrag.ts` (the drag of the bar grip and the panel edge) | changing a shared control |
 | `app/web/src/lib/` | `keys.ts` (every saved key), `storage.ts` (load and save them) and small helpers | changing what is saved |
@@ -54,6 +55,7 @@ Atelier is a photo study tool for painters: a Rust core (wasm) behind a React we
 - The Cloudflare config: `wrangler.jsonc`
 - The git hooks: `lefthook.yml`
 - Open work: [docs/LEFTOVERS.md](docs/LEFTOVERS.md)
+- The look, the layout and the widget rule: [DESIGN.md](DESIGN.md)
 
 ## Commands
 The real list is the tasks in `mise.toml`. The root `Makefile` wraps `check`, `check-fast` and `fix`.

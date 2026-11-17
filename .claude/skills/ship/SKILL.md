@@ -6,8 +6,8 @@ description: Push Atelier to main and prove the Cloudflare Workers Build deploye
 # Ship
 
 A push to main starts a Workers Build (`scripts/ci-build.sh`, then `wrangler deploy`). The build
-runs no checks, so the pre-push hook runs them first. The settings and the cache trick are in
-`.claude/rules/web.md`.
+runs no checks, so the pre-push hook runs them first. The dashboard settings are in
+`.claude/rules/web.md`; the Rust skip is in `docs/development/release.md`.
 
 ## Steps
 

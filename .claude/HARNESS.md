@@ -15,7 +15,7 @@ special to Atelier, in git under `.claude/`, plus a `Makefile` and `lefthook.yml
 | `MAP.md` | when a session reads it (`CLAUDE.md` says to) | The folder map. |
 | `.claude/AGENT-MAP.md` | when the main thread reads it (`CLAUDE.md` says to), before it spawns a helper | Which helper does which job, in what order, and the agents of this repo. Never imported. |
 | `.claude/rules/rust.md` | on a file in `crates/`, `xtask/`, `Cargo.toml` | The Rust module map and work rules. |
-| `.claude/rules/web.md` | on a file in `app/web/`, `scripts/*.sh`, `wrangler.jsonc`, `.claude/skills/ship/` | Browser tests, golden pictures, release, Cloudflare. |
+| `.claude/rules/web.md` | on a file in `app/web/`, `scripts/*.sh`, `wrangler.jsonc`, `.claude/skills/ship/` | Which web doc to read, and the Cloudflare and release rules. |
 | `.claude/rules/docs.md` | on any `.md` file | English only, one home per fact. |
 
 A rule loads only because it has `paths` frontmatter; that is the only field rules read.
@@ -62,12 +62,10 @@ Use these as they are. They are not copied here.
 
 - `/ps:whatsleft` (reads `.agents/leftovers.jsonl`), `/ps:mic-drop`, `/ps:autopilot` (a
   `PROGRESS.md` ledger), `/ps:handoff` (briefs go to `.agents/`), superlite for multi-task work.
-- Agents: `worker`, `code-reviewer` for the final review, `researcher`, `ui-verifier`.
+- The shared agents and their order: [AGENT-MAP.md](AGENT-MAP.md).
 - Hooks format each edited file and guard helper counts and commands.
 
 ## Local only
 
-`.gitignore` lists what stays out of git. In short: `.agents/` holds the reports, hand-offs, the
-leftovers list, the test photos and the bench sheets (Claude may read them by exact path).
-`bench-out/`, `in/` and `out/` are under a Read deny. Run `scripts/docs-check.sh` after a doc
-moves.
+`.gitignore` lists what stays out of git (`.agents/`, `PROGRESS.md`, the bench and photo folders).
+Run `scripts/docs-check.sh` after a doc moves.

@@ -243,7 +243,7 @@ The app is dark only. The colors and sizes are in
 ## How it is built
 
 React 19, Hero UI v3 and Tailwind CSS v4 over the Rust core in wasm. The source in `app/web/src/`
-has six folders. Paths below are under `src/`.
+has these folders. Paths below are under `src/`.
 
 - `features/photos/`: the photo list on this device and the photo on screen.
 - `features/stage/`: the stage, the bottom bar, zoom and pan, shortcuts, the real size lock, the
