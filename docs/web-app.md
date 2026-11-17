@@ -242,6 +242,9 @@ has five folders. Paths below are under `src/`.
   four icons, and registers the app as an image handler (Open with on desktop) and a share target
   (Share on Android: `POST /share`). The worker keeps shared files in the `atelier-share` cache
   until the page reads them, then empties it.
+- Installed in Chrome or Edge, the app uses Window Controls Overlay: there is no title bar, the
+  page draws up to the top edge and only the window buttons float on top. Safari always keeps its
+  native title bar, and Ctrl+Cmd+F hides it.
 - `src/sw/` is the worker (`sw.ts`, `routes.ts`, `precache.ts`). `src/pwa/` is the page side:
   `register.ts`, `state.ts`, `usePwa.ts`, `UpdateToast.tsx`, `InstallButton.tsx`, `intake.ts`
   (launched and shared photos) and `persist.ts` (asks the browser to keep the photo store).

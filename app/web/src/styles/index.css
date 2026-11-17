@@ -172,3 +172,77 @@ aside.glass {
 [data-testid="stage-bar-frame"] {
 	bottom: max(1.25rem, calc(env(safe-area-inset-bottom) + 0.5rem));
 }
+
+/* Installed in Chrome or Edge with Window Controls Overlay: there is no title bar. The page draws up
+ * into it and only the window buttons float on top. Safari, a normal tab and the other display modes
+ * never match this query, so nothing here changes them. The env() values describe the free part of
+ * the title bar: x is where it starts (the buttons are left of it on a Mac), width is how wide it is
+ * (the buttons are right of it on Windows). */
+@media (display-mode: window-controls-overlay) {
+	/* An invisible strip along the top edge. Dragging it moves the window. It sits behind the page
+	 * (z-index -1), so it never catches a click. */
+	body::before {
+		content: "";
+		position: fixed;
+		top: 0;
+		left: 0;
+		right: 0;
+		height: env(titlebar-area-height, 0px);
+		z-index: -1;
+		-webkit-app-region: drag;
+		app-region: drag;
+	}
+	/* Everything you can press or type in stays a normal control, not a drag handle. */
+	button,
+	input,
+	select,
+	textarea,
+	a,
+	summary,
+	label,
+	[role="button"],
+	[role="slider"],
+	[role="radio"],
+	[role="switch"],
+	[role="menuitem"],
+	[role="option"],
+	[data-testid="bar-handle"] {
+		-webkit-app-region: no-drag;
+		app-region: no-drag;
+	}
+	/* The logo starts right of the window buttons, and sits in the middle of the title bar height
+	 * when the side panel is hidden. With the panel open it stays level with the panel's top row. */
+	[data-testid="logo"] {
+		left: max(0.75rem, calc(env(titlebar-area-x, 0px) + 0.5rem));
+	}
+	:root:has([data-testid="files"][data-collapsed="true"]) [data-testid="logo"] {
+		top: max(
+			0px,
+			calc((env(titlebar-area-height, 2.5rem) - var(--logo-h)) / 2)
+		);
+	}
+	@media (min-width: 768px) {
+		:root:has([data-testid="files"][data-collapsed="false"])
+			[data-testid="logo"] {
+			left: max(
+				calc(var(--panel-gap) + var(--panel-pad) + 1px),
+				calc(env(titlebar-area-x, 0px) + 0.5rem)
+			);
+		}
+	}
+	/* The top-right corner (the Install button) ends at the window buttons on Windows, where they sit
+	 * on the right, and is centred in the title bar height. */
+	div:has(> [data-testid="install-button"]),
+	div:has(> [data-testid="ios-tip"]) {
+		top: 0;
+		right: calc(
+			100vw -
+			env(titlebar-area-x, 0px) -
+			env(titlebar-area-width, 100vw) +
+			0.75rem
+		);
+		display: flex;
+		align-items: center;
+		height: env(titlebar-area-height, auto);
+	}
+}

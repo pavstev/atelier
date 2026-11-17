@@ -40,6 +40,13 @@ test("test_manifest_fields", () => {
 	assert.equal(manifest.display, "standalone");
 });
 
+test("test_display_override", () => {
+	const d = manifest.display_override;
+	assert.ok(Array.isArray(d));
+	assert.equal(d[0], "window-controls-overlay");
+	assert.equal(d.at(-1), "standalone");
+});
+
 test("colors are the stage color", () => {
 	const m = [
 		...read("src/styles/atelier-theme.css").matchAll(
