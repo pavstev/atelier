@@ -1,10 +1,10 @@
-// An installed app with Window Controls Overlay draws its own translucent title bar: the logo and the
+// An installed app with Window Controls Overlay draws its own title bar: the logo and the
 // photo list buttons sit in it, the side panel starts under it, and the buttons go back into the panel
 // when the native title bar is shown again. Headless Chromium has no installed app and no way to set
 // the display mode, so the test stands in for it: `window.__wco(true|false)` makes the page's
 // `matchMedia` report the mode, fires the change event and switches the `display-mode` media rules of
 // the style sheets on or off. The env() title bar values are then missing, so the CSS falls back to
-// a 2.5 rem bar.
+// a 3 rem bar.
 import type { Page } from "@playwright/test";
 import { box, expect, test } from "./studio";
 

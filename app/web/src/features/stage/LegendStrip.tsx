@@ -10,7 +10,7 @@ export default function LegendStrip(p: { children: ReactNode }) {
 			data-testid="legend-strip"
 			// centered on the free stage (right of the open panel), clear of the Add photo button
 			style={{
-				top: "calc(env(titlebar-area-height, 0px) + 3.5rem)",
+				top: "calc(var(--title-h, 0px) + 3.5rem)",
 				left: "calc(var(--free-left, 0px) + (100% - var(--free-left, 0px)) / 2)",
 				maxWidth:
 					"calc(100% - var(--free-left, 0px) - 2 * var(--legend-gap, 0.5rem))",

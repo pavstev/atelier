@@ -183,8 +183,8 @@ aside.glass {
 }
 
 /* Installed in Chrome or Edge with Window Controls Overlay: there is no native title bar. The page
- * draws its own: a translucent strip along the top edge, in the color of the page, with the photo
- * blurred behind it. The logo sits in it, the Install button at its right end and, on a wide window,
+ * draws its own: a strip along the top edge in the color of the page (the same as the manifest theme_color, so the
+ * window buttons sit on it without a seam). The logo sits in it, the Install button at its right end and, on a wide window,
  * the photo list buttons (add, search, sort, layout), which `Files` moves into the slot
  * `[data-testid="titlebar-tools"]`. The side panel starts under the strip. Safari, a normal tab and
  * the other display modes never match this query, so nothing here changes them. The env() values
@@ -194,6 +194,11 @@ aside.glass {
 	display: none;
 }
 @media (display-mode: window-controls-overlay) {
+	/* The strip is a little taller than the native window buttons (3 rem at least), so it has room to
+	 * breathe. */
+	:root {
+		--title-h: max(env(titlebar-area-height, 2.5rem), 3rem);
+	}
 	/* The strip. Dragging it moves the window. It sits over the stage (z-index 3) and under the panel,
 	 * the bar, the pop-ups and the logo. */
 	body::before {
@@ -202,12 +207,12 @@ aside.glass {
 		top: 0;
 		left: 0;
 		right: 0;
-		height: env(titlebar-area-height, 2.5rem);
+		height: var(--title-h);
 		z-index: 3;
-		background: color-mix(in oklab, var(--background) 72%, transparent);
+		/* the page color, solid: it must match the color the browser paints behind the window buttons
+		 * (the manifest `theme_color`), or the two show as two boxes */
+		background: var(--background);
 		border-bottom: 1px solid var(--glass-edge);
-		-webkit-backdrop-filter: var(--glass-blur);
-		backdrop-filter: var(--glass-blur);
 		-webkit-app-region: drag;
 		app-region: drag;
 	}
@@ -238,28 +243,22 @@ aside.glass {
 	@media (max-width: 767px) {
 		:root:has([data-testid="files"][data-collapsed="true"])
 			[data-testid="logo"] {
-			top: max(
-				0px,
-				calc((env(titlebar-area-height, 2.5rem) - var(--logo-h)) / 2)
-			);
+			top: max(0px, calc((var(--title-h) - var(--logo-h)) / 2));
 		}
 	}
 	@media (min-width: 768px) {
 		:root {
-			--panel-top: calc(env(titlebar-area-height, 2.5rem) + 0.25rem);
+			--panel-top: calc(var(--title-h) + 0.25rem);
 		}
 		:root [data-testid="logo"] {
-			top: max(
-				0px,
-				calc((env(titlebar-area-height, 2.5rem) - var(--logo-h)) / 2)
-			);
+			top: max(0px, calc((var(--title-h) - var(--logo-h)) / 2));
 			left: max(0.75rem, calc(env(titlebar-area-x, 0px) + 0.5rem));
 		}
 		/* The photo list buttons: right of the logo, ending at the right edge of the panel below. */
 		.titlebar-tools {
 			position: fixed;
 			top: 0;
-			height: env(titlebar-area-height, 2.5rem);
+			height: var(--title-h);
 			left: calc(max(0.75rem, env(titlebar-area-x, 0px) + 0.5rem) + 5.5rem);
 			right: calc(100vw - var(--panel-gap) - min(var(--left-w), 50vw));
 			z-index: 4;
@@ -281,6 +280,6 @@ aside.glass {
 		);
 		display: flex;
 		align-items: center;
-		height: env(titlebar-area-height, auto);
+		height: var(--title-h);
 	}
 }

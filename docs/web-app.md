@@ -297,7 +297,7 @@ has these folders. Paths below are under `src/`.
   until the page reads them, then empties it. A share that no service worker takes (the app never
   opened on this device) gets a redirect to the app from the Cloudflare Worker, not an error.
 - Installed in Chrome or Edge, the app uses Window Controls Overlay: there is no native title bar.
-  The page draws its own, a translucent strip in the page color along the top edge (drag it to move
+  The page draws its own, a strip in the page color along the top edge (drag it to move
   the window). The logo and the Install button sit in it. On a wide window the photo list buttons
   (add, search, sort, layout) sit in it too, right of the logo, and the side panel starts under it.
   Show the native title bar again (the button at the top right of the window) and the buttons go

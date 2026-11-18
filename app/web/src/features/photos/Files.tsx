@@ -1,7 +1,7 @@
 // The left panel: the photo list, full height. The first row holds the logo (fixed to the window
 // corner in `App.tsx`) and, on its right, the icon buttons: add photos, search, sort and the list or
 // tiles switch. In an installed app with a title bar overlay (a wide window) those buttons sit in the
-// translucent title bar instead, level with the logo, and the panel starts under the bar. Under it one list of the photos on this device, which scrolls inside itself (a row
+// title bar instead, level with the logo, and the panel starts under the bar. Under it one list of the photos on this device, which scrolls inside itself (a row
 // is `PhotoRow`). The panel hides fully; the handle on its edge (`EdgeHandle`) brings it back.
 // Photos can be dropped on the panel. Everything stays on the device.
 import { Dropdown, Label, ScrollShadow, SearchField } from "@heroui/react";
