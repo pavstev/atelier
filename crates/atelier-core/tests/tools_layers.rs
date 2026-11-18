@@ -2,9 +2,10 @@
 
 mod common;
 use atelier_core::error::Error;
+use atelier_core::img::Rgb;
 use atelier_core::render::{
-    GRID_CONTRAST, edges_layer, edges_view, grid_layer, pencil_auto, pencil_layer, pencil_suggest,
-    prepare_work, shapes_layer, shapes_view, values_layer,
+    GRID_CONTRAST, edges_layer, edges_view, grid_layer, grid_layer_milli, pencil_auto,
+    pencil_layer, pencil_suggest, prepare_work, shapes_layer, shapes_view, values_layer,
 };
 use common::support::PENCIL_START;
 use common::{FIXTURE, decode_png, over, work};
@@ -33,6 +34,40 @@ fn test_grid_layer_alpha_only_on_lines() {
         assert_eq!(o[3] == 0, p == q);
     }
     assert!(l.rgba.chunks(4).any(|o| o[3] > 0));
+}
+
+#[test]
+fn test_grid_fine_count_draws_squares_that_do_not_divide_the_side() {
+    // 300 x 225 px, a paper 30 cm wide in a 4 cm grid: 7.5 squares across, 40 px each
+    let w = Rgb::filled(300, 225, &[120, 120, 120]);
+    let fine = grid_layer_milli(&w, 1, 7500, 2, 2, 0x00FF_FFFF, 0).unwrap();
+    let lit = |x: usize, y: usize| fine.rgba[(y * fine.width + x) * 4 + 3] > 0;
+    let across: Vec<usize> = (0..300).filter(|&x| lit(x, 3)).collect();
+    let down: Vec<usize> = (0..225).filter(|&y| lit(3, y)).collect();
+    // 7 lines across (the 8th square is half), 5 down (225 / 40 is 5.6), 40 px apart, none at an edge
+    assert_eq!(across, [40, 80, 120, 160, 200, 240, 280]);
+    assert_eq!(down, [40, 80, 120, 160, 200]);
+    // a whole count in thousandths draws the same bytes as the cells call
+    for cells in [3, 8, 18, 50] {
+        for center in [0, 1] {
+            let a = grid_layer(&w, 2, cells, 2, 2, GRID_CONTRAST, center).unwrap();
+            let b = grid_layer_milli(&w, 2, cells * 1000, 2, 2, GRID_CONTRAST, center).unwrap();
+            assert_eq!(a.rgba, b.rgba, "{cells} cells, center {center}");
+        }
+    }
+    // a count out of range is BadInput, never a panic
+    for milli in [0, 1, 99, 500_001, u32::MAX] {
+        assert!(
+            matches!(
+                grid_layer_milli(&w, 1, milli, 2, 2, GRID_CONTRAST, 0),
+                Err(Error::BadInput(_))
+            ),
+            "{milli}"
+        );
+    }
+    for milli in [100, 500_000] {
+        assert!(grid_layer_milli(&w, 1, milli, 2, 2, GRID_CONTRAST, 1).is_ok());
+    }
 }
 
 #[test]

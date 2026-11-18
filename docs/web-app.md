@@ -121,16 +121,19 @@ itself is never cut in storage.
   shape, in the middle. The Stage, Edges and Grid then work on the cut photo, so the Grid lines up
   with the paper. The cut is made in the page before the pixels reach the layers worker; the Rust
   core knows nothing about paper. The Paper button looks pressed while Fit to paper is on.
-- **The fact line.** For example "30 x 40 cm. Grid cell: 5 cm": the long side of the paper over the
-  Grid cells. With Whole photo it says "about", because the photo and the paper may differ in
-  shape. It names a cell only while a Grid with cells is on (not Thirds).
+- **The fact line.** For example "30 x 40 cm. Grid cell: 5 cm". With a Grid in cells it is the width
+  of the picture on the paper over the Grid cells. With a Grid in cm it is the step you picked. With Whole
+  photo it says "about", because the photo and the paper may differ in shape. It names a cell only
+  while a Grid with squares is on (not Thirds).
 - **Real size** is a switch. On, it locks the zoom (the same lock as Real size in the zoom menu) to the
   width the picture has on the paper, and it follows the paper when you change it. Under it are the
   **Screen width, cm** box (type the width of the lit part of the screen once; a built-in MacBook
   screen is found by itself and named) and a short hint while the width is not known. Off, the zoom
   is free.
 
-The Grid still counts cells, not whole cm (`docs/LEFTOVERS.md`).
+The Grid can count in whole cm on the paper: see Count by under Grid in the controls list below.
+The page works out how many squares fit the picture from the paper (the Rust core knows only
+squares).
 
 ### The layers
 
@@ -188,8 +191,12 @@ Grid.
       be reached.
 - **Edges:** Lines, Transfer or Masses. Amount 0 to 100 (starts at 67). Width 1 to 10 (starts at 5).
   Even 0 to 100 (starts at 50; Lines only).
-- **Grid:** Thirds, Grid or Both. Cells is a select: 3, 4, 6, 8, 9, 10, 12, 18, 20, 24, 30, 40 or 50. Center.
-  Group of 2 x 2 or 4 x 4 cells. Width 1 to 16. Contrast lines, or one color you pick.
+- **Grid:** Thirds, Grid or Both. **Count by** is Cells or cm (it shows while a photo is open, so a
+  paper is set; it starts on Cells). Cells is a select: 3, 4, 6, 8, 9, 10, 12, 18, 20, 24, 30, 40 or 50.
+  With cm, Step is a slider over 1, 2, 3, 4, 5, 6, 8 and 10 cm (starts at 5), and each square is that
+  many cm on the paper of the Paper tool. The step needs not divide the paper: on 30 cm a 4 cm step
+  gives 7 whole squares and a part square at the right and the bottom. Center. Group of 2 x 2 or
+  4 x 4 squares. Width 1 to 16. Contrast lines, or one color you pick.
 
 ### Keys
 
@@ -287,7 +294,8 @@ has these folders. Paths below are under `src/`.
 - `public/manifest.webmanifest` names the app (name, id, scope `/`, standalone, stage color), has
   four icons, and registers the app as an image handler (Open with on desktop) and a share target
   (Share on Android: `POST /share`). The worker keeps shared files in the `atelier-share` cache
-  until the page reads them, then empties it.
+  until the page reads them, then empties it. A share that no service worker takes (the app never
+  opened on this device) gets a redirect to the app from the Cloudflare Worker, not an error.
 - Installed in Chrome or Edge, the app uses Window Controls Overlay: there is no title bar, the
   page draws up to the top edge and only the window buttons float on top. Safari always keeps its
   native title bar, and Ctrl+Cmd+F hides it.

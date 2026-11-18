@@ -68,6 +68,8 @@ test("test_stored_files_without_an_owner_are_swept_after_a_while", async ({
 test("test_a_full_storage_is_reported_not_silent", async ({ studio }) => {
 	const { page } = studio;
 	await blockSetItem(page, KEYS.docs);
+	// the block must survive a reload (Vite can reload the page under a test)
+	await page.reload();
 	await studio.openSynthetic(480, 640, "one.png");
 	await expect(page.getByTestId("error")).toContainText(
 		"photo list could not be kept",

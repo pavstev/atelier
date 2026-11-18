@@ -55,9 +55,11 @@ test("test_opacity_first", async ({ studio }) => {
 	// Base: no Opacity for the photo; a toned base has it right after the Show row
 	await studio.tool("base");
 	await expect(page.getByTestId("opacity-base")).toHaveCount(0);
-	await studio.knob("base", 1);
-	await expect(page.locator("[data-testid=tools] > *").nth(1)).toHaveAttribute(
-		"data-testid",
-		"opacity-base",
-	);
+	for (const kind of ["values", "shapes", "pencil"] as const) {
+		await studio.base(kind);
+		await expect(
+			page.locator("[data-testid=tools] > *").nth(1),
+			kind,
+		).toHaveAttribute("data-testid", "opacity-base");
+	}
 });

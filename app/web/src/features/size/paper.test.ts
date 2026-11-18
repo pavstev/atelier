@@ -13,11 +13,16 @@ import {
 	cropFor,
 	cropRect,
 	factText,
+	GRID_CM,
+	GRID_MILLI_MAX,
+	GRID_MILLI_MIN,
+	gridMilli,
 	PAPERS,
 	paperCm,
 	previewRects,
 	SIZE_START,
 	shownWidthCm,
+	sideTyped,
 } from "./paper.ts";
 
 const at = (
@@ -73,6 +78,20 @@ test("Custom is as typed and a bad number is clamped", () => {
 	assert.equal(clampCm("7"), CM_MIN);
 	assert.equal(clampCm(0.2), CM_MIN);
 	assert.equal(clampCm(301), CM_MAX);
+});
+
+test("a typed 0 or negative side is kept to the minimum, an empty box to the start side", () => {
+	assert.equal(sideTyped(0), CM_MIN);
+	assert.equal(sideTyped(-5), CM_MIN);
+	assert.equal(sideTyped(0.5), CM_MIN);
+	assert.equal(sideTyped(12.345), 12.345);
+	assert.equal(sideTyped(301), CM_MAX);
+	// an empty box (NaN) is kept as 0, and `paperCm` shows it as the start side
+	assert.equal(sideTyped(Number.NaN), 0);
+	const a4 = { ...SIZE_START, paper: CUSTOM, w: sideTyped(0), h: 29.7 };
+	assert.equal(factText(a4, 100, 100, null), "1 × 29.7 cm.");
+	const empty = { ...a4, w: sideTyped(Number.NaN) };
+	assert.equal(factText(empty, 100, 100, null), "30 × 29.7 cm.");
 });
 
 test("a 3000 x 2000 photo cut to 30 x 40", () => {
@@ -145,14 +164,45 @@ test("the shown width is the paper width, or the photo scaled to the paper long 
 	);
 });
 
-test("the fact line names the paper and the grid cell", () => {
+test("a grid in cm counts the squares across the shown width, in thousandths", () => {
+	// 30 x 40 cut to the paper: 30 cm wide
+	const fit = at("30x40", "portrait");
+	assert.equal(gridMilli(shownWidthCm(fit, 3000, 2000), 5), 6000);
+	// 4 cm does not divide 30: 7.5 squares
+	assert.equal(gridMilli(shownWidthCm(fit, 3000, 2000), 4), 7500);
+	// Whole photo, 3:2 landscape on the 40 cm long side: the photo is 40 cm long, 26.7 cm wide
+	const whole = at("30x40", "landscape", false);
+	assert.equal(gridMilli(shownWidthCm(whole, 3000, 2000), 5), 8000);
+	assert.equal(gridMilli(shownWidthCm(whole, 2000, 3000), 5), 5333);
+	// always inside the range the core takes, for every step and any paper
+	for (const step of GRID_CM) {
+		for (const w of [CM_MIN, 14.8, 30, CM_MAX, 0, Number.NaN]) {
+			const m = gridMilli(w, step);
+			assert.ok(m >= GRID_MILLI_MIN && m <= GRID_MILLI_MAX, `${w} / ${step}`);
+		}
+	}
+	assert.ok(GRID_CM.every((s) => Number.isInteger(s) && s >= 1 && s <= 10));
+});
+
+test("the fact line names a grid step in cm", () => {
 	assert.equal(
-		factText(at("30x40", "portrait"), 3000, 2000, 8),
+		factText(at("30x40", "portrait"), 3000, 2000, null, 5),
 		"30 × 40 cm. Grid cell: 5 cm.",
 	);
 	assert.equal(
+		factText(at("30x40", "portrait", false), 3000, 2000, null, 5),
+		"30 × 40 cm. Grid cell: about 5 cm.",
+	);
+});
+
+test("the fact line names the paper and the grid cell", () => {
+	assert.equal(
+		factText(at("30x40", "portrait"), 3000, 2000, 8),
+		"30 × 40 cm. Grid cell: 3.8 cm.",
+	);
+	assert.equal(
 		factText(at("a4", "portrait"), 3000, 2000, 6),
-		"21 × 29.7 cm. Grid cell: 5 cm.",
+		"21 × 29.7 cm. Grid cell: 3.5 cm.",
 	);
 	assert.equal(
 		factText(at("a4", "portrait", false), 3000, 2000, 6),

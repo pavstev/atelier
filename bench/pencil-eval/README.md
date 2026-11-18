@@ -17,3 +17,6 @@ textured looks), the range use, false contours, gradient reversal, and the grain
 against Tone.
 
 Same inputs give the same numbers. No randomness.
+
+To make the pictures: `cargo run -q --release -p atelier-core --example pencil_render -- DIR PHOTOS`
+renders each Pencil look and effect of every photo in `PHOTOS` into `DIR` in the layout above.

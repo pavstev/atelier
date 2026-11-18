@@ -5,7 +5,9 @@
 //! square size down the height, a heavier line round each block of 2 x 2 or 4 x 4 cells and no
 //! labels. Without `center` the squares start at the top left corner. With `center` a heavy
 //! line runs through the middle of the photo each way and the squares grow out from there, so
-//! the part squares sit at all four edges, the same on both sides. Both draws the grid and the
+//! the part squares sit at all four edges, the same on both sides. The count across the width may
+//! be fine (`layer_milli`, in thousandths of a square): a grid of whole cm on a paper is a count
+//! like 7.5, so the last square at the right and the bottom is a part one. Both draws the grid and the
 //! thirds on top, as heavy lines. The line width is a knob.
 //!
 //! Every line is one color, with no halo: a color picked in the app, or [`CONTRAST`], where each
@@ -20,9 +22,16 @@ use crate::filters::box_mean;
 use crate::img::Rgb;
 use crate::oklab::{self, Ok3};
 
-/// The cell counts across the long side the grid takes, in slider order (`GRID_CELLS` in
+/// The cell counts across the width the grid takes, in slider order (`GRID_CELLS` in
 /// `app/web/src/features/tools/settings.ts`).
 pub const CELL_STEPS: [usize; 13] = [3, 4, 6, 8, 9, 10, 12, 18, 20, 24, 30, 40, 50];
+/// Thousandths in one cell: the fine count of a grid is `cells * MILLI`.
+pub const MILLI: usize = 1000;
+/// The fewest and the most squares across the width a fine count takes, in thousandths: 0.1 to
+/// 500 squares (`GRID_MILLI_MIN` and `GRID_MILLI_MAX` in `app/web/src/features/size/paper.ts`).
+/// A grid of cm on a paper needs a count that is not whole, e.g. 30 cm in steps of 4 cm is 7.5.
+pub const MILLI_MIN: usize = 100;
+pub const MILLI_MAX: usize = 500_000;
 /// The widest line, in px at a long side of 2048, so 1 is half a px on the 1024 px screen
 /// picture (`GRID_WIDTH_MAX` in `app/web/src/features/tools/settings.ts`).
 pub const MAX_WIDTH: usize = 16;
@@ -76,31 +85,32 @@ fn mark(mask: &mut [u8], i: usize, a: u8) {
     mask[i] = mask[i].max(a);
 }
 
-/// The line positions along a side of `len` px for squares of `w / cells` px. Each is a pair of
-/// the position and the line count from the line the heavy lines count from: the start of the
-/// side, or with `center` the line through its middle (counted both ways). The ends of the side
-/// are not lines. Integers only: line `j` is at `(len cells + 2 j w) / (2 cells)`, rounded down,
-/// with `center` (so the middle line is on pixel `len / 2`) and at `(2 j w + cells) / (2 cells)`
-/// without.
-fn line_spots(len: usize, w: usize, cells: usize, center: bool) -> Vec<(usize, usize)> {
-    let (len, w, cells) = (len as i64, w as i64, cells as i64);
-    let (mid, round) = if center { (len * cells, 0) } else { (0, cells) };
+/// The line positions along a side of `len` px for squares of `w / cells` px, where `milli` is
+/// `cells` in thousandths (a whole count is `1000 * cells`). Each is a pair of the position and
+/// the line count from the line the heavy lines count from: the start of the side, or with
+/// `center` the line through its middle (counted both ways). The ends of the side are not lines.
+/// Integers only: line `j` is at `(len m + 2000 j w) / (2 m)`, rounded down, with `center` (so
+/// the middle line is on pixel `len / 2`) and at `(2000 j w + m) / (2 m)` without, where `m` is
+/// `milli`. For a whole count this is the same position as `(len c + 2 j w) / (2 c)`.
+fn line_spots(len: usize, w: usize, milli: usize, center: bool) -> Vec<(usize, usize)> {
+    let (len, w, m) = (len as i64, w as i64, milli as i64);
+    let (mid, round) = if center { (len * m, 0) } else { (0, m) };
     // no more than `len` lines fit each way, so the range ends
     let reach = if center { len } else { 0 };
     (-reach..=len)
         .filter_map(|j| {
-            let num = mid + 2 * j * w + round;
-            let at = num.div_euclid(2 * cells);
+            let num = mid + 2 * MILLI as i64 * j * w + round;
+            let at = num.div_euclid(2 * m);
             (num >= 0 && at > 0 && at + 1 < len).then_some((at as usize, j.unsigned_abs() as usize))
         })
         .collect()
 }
 
-/// The alpha mask of the grid on a `size` picture: `cells` squares across the width, `thin`
-/// lines and on every `group`th line `heavy`. Every line spans the whole picture.
+/// The alpha mask of the grid on a `size` picture: `milli / 1000` squares across the width,
+/// `thin` lines and on every `group`th line `heavy`. Every line spans the whole picture.
 fn grid_mask(
     size: (usize, usize),
-    cells: usize,
+    milli: usize,
     thin: Line,
     heavy: Line,
     group: usize,
@@ -109,7 +119,7 @@ fn grid_mask(
     let (w, h) = size;
     let mut mask = vec![0u8; w * h];
     let line_at = |k: usize| if k.is_multiple_of(group) { heavy } else { thin };
-    for (at, k) in line_spots(w, w, cells, center) {
+    for (at, k) in line_spots(w, w, milli, center) {
         let l = line_at(k);
         let x0 = at.saturating_sub(l.px / 2);
         for y in 0..h {
@@ -118,7 +128,7 @@ fn grid_mask(
             }
         }
     }
-    for (at, k) in line_spots(h, w, cells, center) {
+    for (at, k) in line_spots(h, w, milli, center) {
         let l = line_at(k);
         let y0 = at.saturating_sub(l.px / 2);
         for y in y0..(y0 + l.px).min(h) {
@@ -221,6 +231,22 @@ pub fn cells_of(cells: u32) -> Result<usize> {
         .ok_or_else(|| Error::bad("cells must be 3, 4, 6, 8, 9, 10, 12, 18, 20, 24, 30, 40 or 50"))
 }
 
+/// `milli` as the fine count the grid takes: [`MILLI_MIN`] to [`MILLI_MAX`]. The one home of that
+/// range.
+///
+/// # Errors
+/// [`Error::BadInput`] for any other number.
+pub fn milli_of(milli: u32) -> Result<usize> {
+    let milli = milli as usize;
+    if (MILLI_MIN..=MILLI_MAX).contains(&milli) {
+        Ok(milli)
+    } else {
+        Err(Error::bad(
+            "grid squares across must be 100 to 500000 thousandths",
+        ))
+    }
+}
+
 /// `group` as the count the grid takes: one of [`GROUPS`]. The one home of that range.
 ///
 /// # Errors
@@ -274,13 +300,32 @@ pub fn layer(
     color: u32,
     center: bool,
 ) -> Result<Vec<u8>> {
+    layer_milli(work, mode, cells * MILLI, width, group, color, center)
+}
+
+/// [`layer`] with the squares across the width counted in thousandths: `milli` 7500 is 7.5
+/// squares, so a square size that does not divide the width (a grid of cm on a paper) is drawn
+/// with the part square at the right and bottom edge. A whole count `c` is `c * MILLI`, and draws
+/// the same bytes as [`layer`]. `milli` comes from [`milli_of`].
+///
+/// # Errors
+/// The same as [`layer`].
+pub fn layer_milli(
+    work: &Rgb,
+    mode: u8,
+    milli: usize,
+    width: usize,
+    group: usize,
+    color: u32,
+    center: bool,
+) -> Result<Vec<u8>> {
     let Setup { size, thin, heavy } = setup(work, mode, width, color)?;
     let mask = if mode == 0 {
         let mut m = vec![0u8; size.0 * size.1];
         thirds_into(&mut m, size, thin);
         m
     } else {
-        let mut m = grid_mask(size, cells, thin, heavy, group, center);
+        let mut m = grid_mask(size, milli, thin, heavy, group, center);
         if mode == 2 {
             thirds_into(&mut m, size, heavy);
         }
@@ -467,7 +512,7 @@ mod tests {
         // the line after every 2 or 4 cells is heavier, never the third
         let (thin, heavy) = (line_of(256), line_of(512));
         for (group, at_heavy) in [(2, 80), (4, 160)] {
-            let mask = grid_mask((480, 360), 12, thin, heavy, group, false);
+            let mask = grid_mask((480, 360), 12 * MILLI, thin, heavy, group, false);
             let width_at = |x: usize| {
                 (x.saturating_sub(4)..x + 4)
                     .filter(|&i| mask[7 * 480 + i] > 0)
@@ -574,7 +619,7 @@ mod tests {
         let work = flat(360, 480, 120);
         let out = view(&work, 1, 18).unwrap();
         assert_eq!(runs(&out, 120, 7, true), 17, "across");
-        let spots: Vec<usize> = line_spots(360, 360, 18, false)
+        let spots: Vec<usize> = line_spots(360, 360, 18 * MILLI, false)
             .iter()
             .map(|s| s.0)
             .collect();
@@ -590,7 +635,7 @@ mod tests {
         // 300 x 210, 9 cells of 33.3 px: with center a line with count 0 (a heavy one) runs
         // through the middle each way, and the lines sit the same on both sides of it
         for (len, cells) in [(300, 9), (210, 9), (300, 18), (211, 12)] {
-            let spots = line_spots(len, 300, cells, true);
+            let spots = line_spots(len, 300, cells * MILLI, true);
             let zero: Vec<usize> = spots.iter().filter(|s| s.1 == 0).map(|s| s.0).collect();
             assert_eq!(zero, vec![len / 2], "{len} px, {cells} cells");
             for &(at, k) in &spots {
@@ -603,11 +648,11 @@ mod tests {
             }
         }
         // without center the squares start at the top left: the first line is one square in
-        assert_eq!(line_spots(210, 300, 9, false)[0], (33, 1));
+        assert_eq!(line_spots(210, 300, 9 * MILLI, false)[0], (33, 1));
         // an even count still fills the width exactly with center on
         assert_eq!(
-            line_spots(300, 300, 18, true).len(),
-            line_spots(300, 300, 18, false).len()
+            line_spots(300, 300, 18 * MILLI, true).len(),
+            line_spots(300, 300, 18 * MILLI, false).len()
         );
     }
 }

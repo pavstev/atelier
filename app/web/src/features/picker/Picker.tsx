@@ -30,6 +30,7 @@ import {
 import type { StageId } from "@/features/tools/settings";
 import { Segment } from "@/ui/fields";
 import { IconButton } from "@/ui/icons";
+import { AREA_START } from "./area";
 import { css, hex, ink } from "./color";
 import {
 	type Mix,
@@ -57,7 +58,6 @@ export const AREAS = [
 	{ name: "Medium", px: 14 },
 	{ name: "Large", px: 30 },
 ] as const;
-export const AREA_START = 1;
 
 /** A press that moves more than this, in px, is a drag and not a click. */
 const TAP_SLOP = 8;
@@ -107,6 +107,8 @@ function heldWords(
 export default function Picker(p: {
 	/** The stage box: the mouse, the touches and the keys are read from it. */
 	box: RefObject<HTMLElement | null>;
+	/** Where the mouse was (client px) while the picker loaded, and whether it was a tap. */
+	startAt?: RefObject<{ x: number; y: number; tap: boolean } | null>;
 	photo: ImageData;
 	layers: Layers;
 	paper: boolean;
@@ -245,6 +247,21 @@ export default function Picker(p: {
 			window.removeEventListener("keydown", esc, true);
 		};
 	}, [box, helpId]);
+
+	// a mouse move or a tap on the stage while the picker loaded: show or hold the card there at once
+	const onStart = useEffectEvent((el: HTMLElement) => {
+		const s = p.startAt?.current;
+		if (!s) return;
+		const r = el.getBoundingClientRect();
+		if (s.x < r.left || s.x >= r.right || s.y < r.top || s.y >= r.bottom)
+			return;
+		const spot = { x: s.x - r.left, y: s.y - r.top };
+		if (s.tap) holdAt(spot);
+		else setMouse(spot);
+	});
+	useEffect(() => {
+		if (box.current) onStart(box.current);
+	}, [box]);
 
 	// a color from the legend takes the focus to the card, so a screen reader reads it
 	// (after the open card has given back its focus to its button)

@@ -1,5 +1,5 @@
-// The Size tool: a paper or canvas is picked in the bar, the photo can be cut to its shape, the choice
-// is kept per photo, and "Show at real size" turns the zoom lock on.
+// The Paper tool (`tool-size` in the bar): a paper or canvas is picked, the photo can be cut to its
+// shape, the choice is kept per photo, and the Real size switch turns the zoom lock on.
 import type { Page } from "@playwright/test";
 import { expect, test } from "./studio";
 
@@ -100,13 +100,13 @@ test("test_size_custom_and_grid_cell_fact", async ({ studio }) => {
 	await studio.openSynthetic(480, 640, "custom.png");
 	await studio.layer("grid", true);
 	await openSize(page);
-	// 40 cm long side over the 6 cells of the Grid
+	// 30 cm width over the 6 cells of the Grid (the core counts the cells across the width)
 	await expect(page.getByTestId("size-fact")).toHaveText(
-		"30 × 40 cm. Grid cell: about 6.7 cm.",
+		"30 × 40 cm. Grid cell: about 5 cm.",
 	);
 	await page.getByTestId("size-fit").getByRole("radio").nth(1).click();
 	await expect(page.getByTestId("size-fact")).toHaveText(
-		"30 × 40 cm. Grid cell: 6.7 cm.",
+		"30 × 40 cm. Grid cell: 5 cm.",
 	);
 	// typing a width makes the paper Custom; a number out of range is clamped, never a crash
 	const width = page.getByTestId("size-width").locator("input");
@@ -115,6 +115,15 @@ test("test_size_custom_and_grid_cell_fact", async ({ studio }) => {
 	await expect(page.getByTestId("size-fact")).toContainText("300 × 40 cm");
 	await width.fill("12");
 	await expect(page.getByTestId("size-fact")).toContainText("12 × 40 cm");
+	// a 0 or negative side is kept to the 1 cm minimum, and the box and the fact line agree
+	for (const bad of ["0", "-5"]) {
+		await width.fill(bad);
+		await width.blur();
+		await expect(width).toHaveValue("1");
+		await expect(page.getByTestId("size-fact")).toContainText("1 × 40 cm");
+		await width.fill("12");
+		await width.blur();
+	}
 	await expect(
 		page.getByTestId("size-orientation").getByRole("radio").first(),
 	).toBeDisabled();

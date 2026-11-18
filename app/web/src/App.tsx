@@ -10,6 +10,7 @@ import { levelsOf } from "@/features/pencil/grades";
 import Files from "@/features/photos/Files";
 import { usePhotos } from "@/features/photos/usePhotos";
 import type { Fixed } from "@/features/picker/Picker";
+import { shownWidthCm } from "@/features/size/paper";
 import { useSize } from "@/features/size/useSize";
 import StageArea from "@/features/stage/StageArea";
 import { Legend, PencilLegend } from "@/features/stage/Swatches";
@@ -27,15 +28,19 @@ import { startIntake } from "@/pwa/intake";
 import { askPersist } from "@/pwa/persist";
 import Logo from "@/ui/Logo";
 
-/** The call of each stacked layer; null when it is off (a Photo or Paper base draws nothing). */
-const callsOf = (s: Look): Record<StageId, Call | null> => ({
+/** The call of each stacked layer; null when it is off (a Photo or Paper base draws nothing).
+ * `widthCm` is the width of the picture on the paper, for a Grid in cm (null with no photo). */
+const callsOf = (
+	s: Look,
+	widthCm: number | null,
+): Record<StageId, Call | null> => ({
 	base:
 		s.base.kind === "photo" || s.base.kind === "paper"
 			? null
 			: callFor(s.base.kind, s),
 	// Edges is off in Pencil mode; its saved switch stays, so Photo brings it back
 	edges: s.edges.on && s.base.kind !== "pencil" ? callFor("edges", s) : null,
-	grid: s.grid.on ? callFor("grid", s) : null,
+	grid: s.grid.on ? callFor("grid", s, widthCm) : null,
 });
 
 export default function App() {
@@ -64,7 +69,11 @@ export default function App() {
 
 	// the paper or canvas of the photo; the layers and the stage get the cut photo (Fit to paper)
 	const { framed, ...size } = useSize(ph.activeId, ph.photo);
-	const calls = useMemo(() => callsOf(look), [look]);
+	// the picture on the paper is this wide in cm: a Grid in cm counts its squares from it
+	const widthCm = size.whole
+		? shownWidthCm(size.choice, size.whole.width, size.whole.height)
+		: null;
+	const calls = useMemo(() => callsOf(look, widthCm), [look, widthCm]);
 	const { pictures, tones, shares, mark } = useLayers(
 		framed,
 		calls,

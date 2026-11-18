@@ -4,6 +4,8 @@
 
 #![allow(dead_code, reason = "each user takes a part of these helpers")]
 
+mod orient;
+
 use atelier_core::img::{Image, Rgb};
 use atelier_core::render::Layer;
 use std::error::Error;
@@ -41,7 +43,8 @@ pub fn photos(dir: &Path, out: &Path, only: Option<&str>) -> Res<Vec<PathBuf>> {
         match ext.as_str() {
             "png" => paths.push(path),
             "jpg" | "jpeg" => {
-                let cache = out.join(".in");
+                // `.in-upright`, not the old `.in`: that cache holds pictures on their side
+                let cache = out.join(".in-upright");
                 std::fs::create_dir_all(&cache)?;
                 let png = cache.join(format!("{}.png", stem(&path)));
                 if !png.exists() {
@@ -54,6 +57,13 @@ pub fn photos(dir: &Path, out: &Path, only: Option<&str>) -> Res<Vec<PathBuf>> {
                         .status()?;
                     if !status.success() {
                         return Err(format!("sips failed on {}", path.display()).into());
+                    }
+                    // sips keeps the stored pixels: turn them by the EXIF Orientation of the JPEG
+                    let head = std::fs::read(&path)?;
+                    let o = orient::exif_orientation(&head[..head.len().min(256 * 1024)]);
+                    if o > 1 {
+                        let turned = orient::turn(&decode(&std::fs::read(&png)?)?, o);
+                        std::fs::write(&png, png_bytes(&turned)?)?;
                     }
                 }
                 paths.push(png);

@@ -1,6 +1,8 @@
 # Release
 
-The live site is static files in a Cloudflare Worker with static assets (`wrangler.jsonc`).
+The live site is static files in a Cloudflare Worker with static assets (`wrangler.jsonc`). A tiny
+Worker script (`app/web/src/edge/worker.ts`) runs only for `POST /share` that no service worker
+took, and redirects it to the app instead of a 405.
 This page is for maintainers. A fork can deploy the same files to any static host.
 
 ## Build

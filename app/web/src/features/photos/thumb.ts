@@ -3,6 +3,7 @@
 // It is a display copy for the page only. The pixel work of the layers stays in the core.
 import { tileOff } from "./decodeClient.ts";
 import { fitLongSide } from "./fit.ts";
+import { uprightBitmap } from "./orient.ts";
 import { TILE_QUALITY, TILE_SIDE } from "./photo.ts";
 
 /** A canvas element of `w` by `h` px with the bitmap drawn on it, stretched to fill it. */
@@ -45,7 +46,7 @@ export async function thumbnailOfBlob(blob: Blob): Promise<string> {
 		// no worker: fall through to the page
 	}
 	try {
-		const bitmap = await createImageBitmap(blob);
+		const bitmap = await uprightBitmap(blob);
 		try {
 			return await thumbnail(bitmap);
 		} finally {
@@ -73,7 +74,7 @@ export async function previewOfFile(
 	file: Blob,
 ): Promise<{ blob: Blob; width: number; height: number } | null> {
 	try {
-		const bitmap = await createImageBitmap(file);
+		const bitmap = await uprightBitmap(file);
 		const { width, height } = bitmap;
 		const blob = await shrink(bitmap);
 		return blob ? { blob, width, height } : null;

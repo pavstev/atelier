@@ -65,6 +65,7 @@ fn every_call(work: &Rgb, u: u32, k: f64, index: usize) -> Option<(&'static str,
         "shapes_view" => render::shapes_view(work, u, k),
         "edges_view" => render::edges_view(work, u, k, u, k),
         "grid_layer" => render::grid_layer(work, u, u, u, u, u, u),
+        "grid_layer_milli" => render::grid_layer_milli(work, u, u, u, u, u, u),
     }
 }
 

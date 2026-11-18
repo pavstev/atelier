@@ -3,9 +3,11 @@
 // its name and, for Edges and Grid, the on/off switch. A body is three groups split by thin lines:
 // Opacity first, the main choice at full width, then its settings one line each.
 import { Switch } from "@heroui/react";
-import PencilCard from "@/features/pencil/PencilCard";
+import { lazy, Suspense } from "react";
 import type { PencilExtras } from "@/features/pencil/usePencilExtras";
+import { GRID_CM } from "@/features/size/paper";
 import { Choice, ColorField, Knob, Row, Segment } from "@/ui/fields";
+import { BASE_NAMES, baseIndex } from "./baseName";
 import {
 	BASES,
 	EDGES_MODE,
@@ -13,6 +15,7 @@ import {
 	GRID_CELLS,
 	GRID_GROUPS,
 	GRID_MODE,
+	GRID_UNIT,
 	GRID_WIDTH_MAX,
 	LABELS,
 	type Look,
@@ -20,11 +23,8 @@ import {
 	type StageId,
 } from "./settings";
 
-const BASE_NAMES = BASES.map((b) => b.label);
-const baseIndex = (kind: string) => BASES.findIndex((b) => b.id === kind);
-
-/** The name of the base now on show (Photo, Values, Shapes, Paper or Pencil). */
-export const baseName = (look: Look) => BASE_NAMES[baseIndex(look.base.kind)];
+// The Pencil card is the biggest body, and only the Pencil base needs it: its own chunk.
+const PencilCard = lazy(() => import("@/features/pencil/PencilCard"));
 
 type Props = {
 	look: Look;
@@ -87,7 +87,9 @@ const Rule = () => <div className="my-0.5 h-px bg-separator" />;
 
 /** The controls of one tool: Opacity first, then the main choice at full width, then its settings.
  * `extras` is what the Pencil card holds for the photo (Auto note, suggestion). */
-export function ToolBody(p: Props & { id: StageId; extras: PencilExtras }) {
+export function ToolBody(
+	p: Props & { id: StageId; extras: PencilExtras; paper: boolean },
+) {
 	const s = p.look;
 	const set = setter(p);
 	/** The `value` and `onChange` of a field that holds one setting of one part. */
@@ -109,6 +111,8 @@ export function ToolBody(p: Props & { id: StageId; extras: PencilExtras }) {
 	);
 	const dim = p.id !== "base" && !s[p.id].on;
 	const thirds = s.grid.mode === GRID_MODE.thirds;
+	// Grid in cm needs a paper (a photo on it); without one the Grid counts cells
+	const byCm = p.paper && s.grid.unit === GRID_UNIT.cm;
 	const toned =
 		s.base.kind === "values" ||
 		s.base.kind === "shapes" ||
@@ -168,11 +172,13 @@ export function ToolBody(p: Props & { id: StageId; extras: PencilExtras }) {
 						</>
 					)}
 					{s.base.kind === "pencil" && (
-						<PencilCard
-							pencil={s.pencil}
-							onChange={(v) => set("pencil", v)}
-							extras={p.extras}
-						/>
+						<Suspense fallback={<div aria-hidden className="min-h-64" />}>
+							<PencilCard
+								pencil={s.pencil}
+								onChange={(v) => set("pencil", v)}
+								extras={p.extras}
+							/>
+						</Suspense>
 					)}
 				</>
 			)}
@@ -224,16 +230,36 @@ export function ToolBody(p: Props & { id: StageId; extras: PencilExtras }) {
 						{...bind("grid", "mode")}
 					/>
 					<Rule />
-					<Choice
-						testid="grid-cells"
-						label="Cells"
-						options={GRID_CELLS.map(String)}
-						value={Math.max(0, GRID_CELLS.indexOf(s.grid.cells))}
-						onChange={(i) =>
-							set("grid", { cells: GRID_CELLS[i] ?? s.grid.cells })
-						}
-						disabled={thirds}
-					/>
+					{p.paper && (
+						<Segment
+							testid="grid-unit"
+							label="Count by"
+							options={LABELS.gridUnit}
+							value={byCm ? GRID_UNIT.cm : GRID_UNIT.cells}
+							onChange={(unit) => set("grid", { unit })}
+							disabled={thirds}
+						/>
+					)}
+					{byCm ? (
+						<Knob
+							testid="grid-step"
+							label="Step, cm"
+							steps={GRID_CM}
+							{...bind("grid", "cm")}
+							disabled={thirds}
+						/>
+					) : (
+						<Choice
+							testid="grid-cells"
+							label="Cells"
+							options={GRID_CELLS.map(String)}
+							value={Math.max(0, GRID_CELLS.indexOf(s.grid.cells))}
+							onChange={(i) =>
+								set("grid", { cells: GRID_CELLS[i] ?? s.grid.cells })
+							}
+							disabled={thirds}
+						/>
+					)}
 					<Segment
 						testid="grid-group"
 						label="Heavy lines"

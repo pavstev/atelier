@@ -51,10 +51,12 @@ export class Photo {
      * The Grid layer: lines on a clear layer. `line` is the line width (1 to 16 px at a long
      * side of 2048), `group` the cells each way between two heavy lines (2 or 4) and `color`
      * one color as `0xRRGGBB`, or `1 << 24` for Contrast lines. `cells` squares fit the width
-     * exactly; `center` 1 puts the rows in the middle, 0 at the top.
+     * exactly; `center` 1 puts the rows in the middle, 0 at the top. A `milli` above 0 counts
+     * the squares across the width in thousandths instead (7500 is 7.5, for a grid of whole cm
+     * on a paper; 100 to 500000) and `cells` is then not used; 0 counts `cells`.
      *
      * # Errors
-     * A `long`, `mode`, `cells`, `line`, `group`, `color` or `center` out of range.
+     * A `long`, `mode`, `cells`, `line`, `group`, `color`, `center` or `milli` out of range.
      * @param {number} long
      * @param {number} mode
      * @param {number} cells
@@ -62,12 +64,13 @@ export class Photo {
      * @param {number} group
      * @param {number} color
      * @param {number} center
+     * @param {number} milli
      * @returns {Uint8Array}
      */
-    grid(long, mode, cells, line, group, color, center) {
+    grid(long, mode, cells, line, group, color, center, milli) {
         try {
             const retptr = wasm.__wbindgen_add_to_stack_pointer(-16) >>> 0;
-            wasm.photo_grid(retptr, this.__wbg_ptr, long, mode, cells, line, group, color, center);
+            wasm.photo_grid(retptr, this.__wbg_ptr, long, mode, cells, line, group, color, center, milli);
             var r0 = getDataViewMemory0().getInt32(retptr + 4 * 0, true);
             var r1 = getDataViewMemory0().getInt32(retptr + 4 * 1, true);
             var r2 = getDataViewMemory0().getInt32(retptr + 4 * 2, true);

@@ -67,6 +67,8 @@ async function withPhoto<T>(
 	run: (photo: number) => Promise<T>,
 	wanted: () => boolean = () => true,
 ): Promise<T> {
+	// A call for a photo that left the screen must not send it back and push the new one out.
+	if (!wanted()) throw new Error("the photo left the screen");
 	try {
 		return await run(await toLayers(img));
 	} catch (e) {
@@ -88,15 +90,13 @@ export async function draw(
 	img: ImageData,
 	call: Call,
 	long: number,
-	wanted: () => boolean = () => true,
+	wanted?: () => boolean,
 ): Promise<{
 	layer: ImageData;
 	tones?: Rgb[];
 	shares?: number[];
 	mark?: number;
 }> {
-	// A draw for a photo that left the screen must not send it back and push the new one out.
-	if (!wanted()) throw new Error("the photo left the screen");
 	const r = await withPhoto(
 		img,
 		(photo) => link({ kind: "draw", photo, long, call }),
@@ -114,9 +114,8 @@ export async function draw(
  * the numbers behind them. */
 export async function pencilAuto(
 	img: ImageData,
-	wanted: () => boolean = () => true,
+	wanted?: () => boolean,
 ): Promise<PencilAuto> {
-	if (!wanted()) throw new Error("the photo left the screen");
 	const r = await withPhoto(
 		img,
 		(photo) => link({ kind: "pencilAuto", photo, long: WORK_LONG_SIDE }),
@@ -129,9 +128,8 @@ export async function pencilAuto(
 export async function suggestPencils(
 	img: ImageData,
 	count: number,
-	wanted: () => boolean = () => true,
+	wanted?: () => boolean,
 ): Promise<number> {
-	if (!wanted()) throw new Error("the photo left the screen");
 	const r = await withPhoto(
 		img,
 		(photo) =>

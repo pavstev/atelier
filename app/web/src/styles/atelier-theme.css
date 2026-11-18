@@ -72,7 +72,8 @@
 		 *   popup   pop-up cards, the scrim behind a drawer, the panel resize handle
 		 *   drawer  the side panel on a phone, the stage edge handle
 		 *   banner  messages and the logo
-		 *   toast   short notes over everything */
+		 *   toast   short notes over everything
+		 *   legend  the legend strip on a phone, so a swatch press reaches it through a bottom sheet */
 		--z-stage: 0;
 		--z-panel: 5;
 		--z-bar: 10;
@@ -80,6 +81,7 @@
 		--z-drawer: 30;
 		--z-banner: 40;
 		--z-toast: 50;
+		--z-legend: 60;
 
 		/* Tooltips: how long the pointer rests before a tip shows. `Tip` in ui/icons.tsx reads it. */
 		--tooltip-delay: 400ms;

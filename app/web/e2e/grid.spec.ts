@@ -1,5 +1,6 @@
 // The Grid Cells select: the steps 3, 4, 6, 8, 9, 10, 12, 18, 20, 24, 30, 40 and 50, and no error on the way.
-// The Width slider, the heavy lines every 2 or 4 cells, and the line color: Contrast or one color.
+// The Count by choice (Cells or a step in whole cm on the paper), the Width slider, the heavy lines
+// every 2 or 4 cells, and the line color: Contrast or one color.
 import { expect, MAIN_PHOTO, readCanvas, test } from "./studio";
 
 const STEPS = [3, 4, 6, 8, 9, 10, 12, 18, 20, 24, 30, 40, 50];
@@ -18,6 +19,52 @@ test("test_cells_select", async ({ studio }) => {
 	// the last step, 50, draws without an error too
 	await studio.knob("grid-cells", STEPS.length - 1);
 	await expect(cells).toContainText("50");
+	await expect(page.getByTestId("error")).toHaveCount(0);
+});
+
+test("test_grid_in_whole_cm_on_the_paper", async ({ studio }) => {
+	const { page } = studio;
+	await studio.open(MAIN_PHOTO);
+	await studio.layer("grid", true);
+	// The lines across a row and down a column of the Grid canvas, with the canvas size.
+	const lines = () =>
+		readCanvas(page, "layer-canvas-grid", (d, c) => {
+			const lit = (x: number, y: number) =>
+				d.data[(y * c.width + x) * 4 + 3] > 0;
+			const count = (n: number, at: (i: number) => boolean) => {
+				let runs = 0;
+				for (let i = 0; i < n; i++) if (at(i) && !(i > 0 && at(i - 1))) runs++;
+				return runs;
+			};
+			return {
+				w: c.width,
+				h: c.height,
+				across: count(c.width, (x) => lit(x, 3)),
+				down: count(c.height, (y) => lit(3, y)),
+			};
+		});
+	// The paper is set from the start (30 x 40, Whole photo): the choice is there, on Cells.
+	await studio.knob("grid-mode", 1);
+	await expect(page.getByTestId("grid-unit")).toBeVisible();
+	await expect(page.getByTestId("grid-cells")).toBeVisible();
+	await expect(page.getByTestId("grid-step")).toHaveCount(0);
+	await studio.knob("grid-unit", 1);
+	await expect(page.getByTestId("grid-cells")).toHaveCount(0);
+	const step = page.getByTestId("grid-step");
+	await expect(step).toContainText("5");
+	// Whole photo on 30 x 40: the long side of the picture is 40 cm. A line every 5 cm, none at the edge.
+	const lineCount = (px: number, long: number, cm: number) =>
+		Math.ceil(((px / long) * 40) / cm - 1e-6) - 1;
+	let r = await lines();
+	const long = Math.max(r.w, r.h);
+	expect(r.across).toBe(lineCount(r.w, long, 5));
+	expect(r.down).toBe(lineCount(r.h, long, 5));
+	// 10 cm is the last step: fewer lines
+	await studio.knob("grid-step", 7);
+	await expect(step).toContainText("10");
+	r = await lines();
+	expect(r.across).toBe(lineCount(r.w, long, 10));
+	expect(r.down).toBe(lineCount(r.h, long, 10));
 	await expect(page.getByTestId("error")).toHaveCount(0);
 });
 

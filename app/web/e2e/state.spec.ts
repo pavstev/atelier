@@ -78,7 +78,7 @@ test("test_out_of_range_save_loads_with_start_values", async ({ studio }) => {
 		values: { preset: 7, detail: 50, tint: 2 },
 		shapes: { step: 9, detail: 500 },
 		edges: { on: true, opacity: 100, mode: 3, amount: 150 },
-		grid: { on: true, opacity: 0, mode: 5, cells: 6 },
+		grid: { on: true, opacity: 0, mode: 5, cells: 6, unit: 9, cm: 7 },
 	});
 	await page.reload();
 	await page.getByTestId("file").setInputFiles(MAIN_PHOTO);
@@ -93,7 +93,8 @@ test("test_out_of_range_save_loads_with_start_values", async ({ studio }) => {
 	expect(saved.values).toMatchObject({ preset: 1, tint: 0 });
 	expect(saved.shapes).toEqual({ step: 3, detail: 50 });
 	expect(saved.edges).toMatchObject({ mode: 0, amount: 67 });
-	expect(saved.grid).toMatchObject({ mode: 2, opacity: 100 });
+	// a save from before the Grid counted in cm has no unit; a bad one is the start value too
+	expect(saved.grid).toMatchObject({ mode: 2, opacity: 100, unit: 0, cm: 5 });
 	await expect(page.getByTestId("error")).toHaveCount(0);
 });
 

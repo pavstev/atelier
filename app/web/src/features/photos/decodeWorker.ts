@@ -1,6 +1,7 @@
 // The photo worker: decodes a photo file to RGBA pixels and makes the small list tile, off the main
 // thread. Pixels go back as a transfer. Nothing leaves the device.
 import { fitLongSide } from "./fit.ts";
+import { uprightBitmap } from "./orient.ts";
 import { decodePixels, TILE_QUALITY, TILE_SIDE } from "./photo.ts";
 
 type Req = { id: number; kind: "decode" | "tile"; file: Blob };
@@ -15,7 +16,7 @@ function dataUrlOf(blob: Blob): Promise<string> {
 }
 
 async function tile(file: Blob): Promise<string> {
-	const bitmap = await createImageBitmap(file);
+	const bitmap = await uprightBitmap(file);
 	try {
 		const { w, h } = fitLongSide(bitmap.width, bitmap.height, TILE_SIDE);
 		const canvas = new OffscreenCanvas(w, h);

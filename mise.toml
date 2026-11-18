@@ -63,7 +63,7 @@ run = "pnpm --dir app/web exec playwright test"
 [tasks."web:golden:bless"]
 description = "Rewrite the golden pictures of e2e/golden (only for a meant change; say why in the commit)"
 depends = ["web:wasm", "web:install"]
-run = "rm -rf app/web/e2e/golden && GOLDEN_BLESS=1 pnpm --dir app/web exec playwright test golden.spec.ts"
+run = "GOLDEN_BLESS=1 pnpm --dir app/web exec playwright test golden.spec.ts"
 
 # Deploy: Cloudflare Worker `atelier` at atelier.stevanpavlovic.com. A push to main deploys it;
 # `mise run deploy` is the manual deploy. The account is pinned in wrangler.jsonc, and

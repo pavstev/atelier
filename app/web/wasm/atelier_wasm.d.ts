@@ -21,12 +21,14 @@ export class Photo {
      * The Grid layer: lines on a clear layer. `line` is the line width (1 to 16 px at a long
      * side of 2048), `group` the cells each way between two heavy lines (2 or 4) and `color`
      * one color as `0xRRGGBB`, or `1 << 24` for Contrast lines. `cells` squares fit the width
-     * exactly; `center` 1 puts the rows in the middle, 0 at the top.
+     * exactly; `center` 1 puts the rows in the middle, 0 at the top. A `milli` above 0 counts
+     * the squares across the width in thousandths instead (7500 is 7.5, for a grid of whole cm
+     * on a paper; 100 to 500000) and `cells` is then not used; 0 counts `cells`.
      *
      * # Errors
-     * A `long`, `mode`, `cells`, `line`, `group`, `color` or `center` out of range.
+     * A `long`, `mode`, `cells`, `line`, `group`, `color`, `center` or `milli` out of range.
      */
-    grid(long: number, mode: number, cells: number, line: number, group: number, color: number, center: number): Uint8Array;
+    grid(long: number, mode: number, cells: number, line: number, group: number, color: number, center: number, milli: number): Uint8Array;
     /**
      * Keeps the photo of these RGBA bytes.
      *
@@ -91,7 +93,7 @@ export interface InitOutput {
     readonly memory: WebAssembly.Memory;
     readonly __wbg_photo_free: (a: number, b: number) => void;
     readonly photo_edges: (a: number, b: number, c: number, d: number, e: number, f: number, g: number) => void;
-    readonly photo_grid: (a: number, b: number, c: number, d: number, e: number, f: number, g: number, h: number, i: number) => void;
+    readonly photo_grid: (a: number, b: number, c: number, d: number, e: number, f: number, g: number, h: number, i: number, j: number) => void;
     readonly photo_new: (a: number, b: number, c: number, d: number, e: number) => void;
     readonly photo_pencil: (a: number, b: number, c: number, d: number, e: number, f: number, g: number) => void;
     readonly photo_pencil_auto: (a: number, b: number, c: number) => void;

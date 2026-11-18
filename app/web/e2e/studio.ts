@@ -56,17 +56,21 @@ export async function docNames(page: Page): Promise<string[]> {
 }
 
 /**
- * Makes saving one localStorage key throw, like a full disk. It patches the current document, so
- * call it after the page has loaded and before the action that saves.
+ * Makes saving one localStorage key throw, like a full disk. It patches the current document and
+ * every document the page loads after it, so a reload (Vite reloads the page when it finds a new
+ * dependency, or on a full HMR reload) does not drop the patch. Call it after the page has loaded
+ * and before the action that saves.
  */
-export function blockSetItem(page: Page, key: string) {
-	return page.evaluate((blocked) => {
+export async function blockSetItem(page: Page, key: string) {
+	const patch = (blocked: string) => {
 		const real = Storage.prototype.setItem;
 		Storage.prototype.setItem = function (k: string, value: string) {
 			if (k === blocked) throw new Error("QuotaExceededError");
 			return real.call(this, k, value);
 		};
-	}, key);
+	};
+	await page.addInitScript(patch, key);
+	await page.evaluate(patch, key);
 }
 
 /**
@@ -157,6 +161,35 @@ function toolOf(testid: string): LayerId {
 	return "base";
 }
 
+/** The three tabs of the Pencil card. */
+export type PencilTab = "look" | "effects" | "pencils";
+
+/** The tab each control of the Pencil card lives in; the ones not listed are in Look. */
+export const TAB_OF: Record<string, PencilTab> = {
+	"pencil-smudge": "effects",
+	"pencil-lift": "effects",
+	"pencil-cross": "effects",
+	"pencil-darks": "effects",
+	"pencil-local": "effects",
+	"pencil-grain": "effects",
+	"pencil-paper": "effects",
+	"pencil-hatch-angle": "effects",
+	"pencil-hatch-density": "effects",
+	"pencil-suggest-count": "pencils",
+	"pencil-suggest": "pencils",
+	"pencil-grades": "pencils",
+};
+
+/** Opens the Base card and one of its Pencil tabs. */
+export async function openTab(studio: Studio, name: PencilTab) {
+	await studio.tool("base");
+	await studio.page.getByTestId(`pencil-tab-${name}`).click();
+	await expect(studio.page.getByTestId(`pencil-tab-${name}`)).toHaveAttribute(
+		"aria-selected",
+		"true",
+	);
+}
+
 export class Studio {
 	constructor(readonly page: Page) {}
 
@@ -224,6 +257,12 @@ export class Studio {
 			await other.waitFor({ state: "detached" });
 		}
 		const card = this.page.locator(`[data-testid=tool-popup][data-tool=${id}]`);
+		// A card that was just closed (a press outside it, Esc) stays in the page while its exit
+		// animation runs, with `data-exiting` on its popover. Wait for it to go: counting it as open
+		// would skip the click on the bar button, and the card would vanish under the next click.
+		await this.page
+			.locator(`[data-exiting] [data-testid=tool-popup][data-tool=${id}]`)
+			.waitFor({ state: "detached" });
 		if ((await card.count()) === 0)
 			await this.page.locator(`[data-testid=tool-${id}]`).click();
 		await card.waitFor();
@@ -268,6 +307,11 @@ export class Studio {
 		}
 	}
 
+	/** Presses the main part of the Edges or Grid bar button (not its chevron). It opens no card. */
+	toggle(id: "edges" | "grid") {
+		return this.page.locator(`[data-testid=toggle-${id}]`).click();
+	}
+
 	/** Picks the base: Photo and Paper draw nothing, Values and Shapes wait for their picture. */
 	async base(kind: BaseKind) {
 		await this.tool("base");
@@ -289,17 +333,13 @@ export class Studio {
 
 	/**
 	 * Sets a knob. A slider gets the value itself. A row of buttons or a list gets the index of
-	 * its option.
+	 * its option. A `pencil-*` knob first gets its tab of the Pencil card (`TAB_OF`).
 	 * Waits for the layer to draw again.
 	 */
 	async knob(id: string, value: string | number) {
-		await this.tool(toolOf(id));
+		if (id.startsWith("pencil-")) await openTab(this, TAB_OF[id] ?? "look");
+		else await this.tool(toolOf(id));
 		const root = this.page.locator(`[data-testid=${id}]`);
-		// a knob in the closed "Fine tune" fold of the Pencil card: open the fold first
-		await root.evaluate((el) => {
-			const fold = el.closest("details");
-			if (fold) fold.open = true;
-		});
 		const range = root.locator("input[type=range]");
 		if ((await range.count()) > 0) {
 			await this.drawn(() => setRange(range, value));

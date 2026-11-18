@@ -1,5 +1,5 @@
-// The small keyboard set (Space, arrows, [), the lock card that closes on an outside press,
-// Fit and 100% that stay off while the lock is on, the single top row of icon buttons with tips, the
+// The small keyboard set (Space, arrows, [), the Real size item of the zoom menu that locks the
+// zoom, Fit and 100% that stay off while the lock is on, the single top row of icon buttons with tips, the
 // logo outline, the hover card, the saved zoom and the list that fills the panel.
 import type { Page } from "@playwright/test";
 import { box, expect, KEYS, stored, test } from "./studio";

@@ -1,20 +1,23 @@
 // The grip at the right end of the bottom bar. Drag it left or right to move the whole bar along
-// the stage; it stays inside the stage. While you drag, the place goes straight to a CSS variable on
+// the stage; it stays inside the free stage (right of the open side panel). While you drag, the place goes straight to a CSS variable on
 // the bar's frame, once per frame (see `useFrameDrag`), so React does not render for each move; when you let go the place
 // is saved (`barPlace.ts`). A double click, or Home, puts the bar back in the middle. The arrow keys
 // move it 2 percent. On a phone the bar stays in the middle and the grip is hidden.
 import { type RefObject, useRef } from "react";
 import { Icon, Tip } from "@/ui/icons";
 import { useFrameDrag } from "@/ui/useFrameDrag";
-import { BAR_START, clampCenter } from "./barPlace";
+import { BAR_START, clampCenter, shareOf } from "./barPlace";
 
 /** The room kept between the bar and the stage edge, in px. */
 export const BAR_EDGE = 8;
 const KEY_STEP = 0.02;
 
-/** The CSS `left` of the bar's center for a share of the stage, kept inside the stage. */
+/**
+ * The CSS `left` of the bar's center for a share of the free stage (the stage right of the open side
+ * panel, `--free-left` from `StageArea`), kept inside the window and, when it fits, off the panel.
+ */
 export const barLeft = (x: number) =>
-	`clamp(calc(var(--bar-w, 0px) / 2 + ${BAR_EDGE}px), ${x * 100}%, calc(100% - var(--bar-w, 0px) / 2 - ${BAR_EDGE}px))`;
+	`min(calc(100% - var(--bar-w, 0px) / 2 - ${BAR_EDGE}px), max(calc(var(--free-left, 0px) + var(--bar-w, 0px) / 2 + ${BAR_EDGE}px), calc(var(--free-left, 0px) + (100% - var(--free-left, 0px)) * ${x})))`;
 
 export default function BarHandle(p: {
 	/** The frame of the bar; it holds the variable `--bar-left`. */
@@ -31,16 +34,21 @@ export default function BarHandle(p: {
 		moved: boolean;
 	} | null>(null);
 
-	/** The stage width, the bar width and the bar center (px from the stage's left edge). */
+	/** The stage width, where its free part starts (right of the open panel), the bar width and the
+	 * bar center (px from the stage's left edge). */
 	const measure = () => {
 		const el = p.frame.current;
 		const stage = el?.parentElement;
 		if (!el || !stage) return null;
 		const b = el.getBoundingClientRect();
 		const s = stage.getBoundingClientRect();
+		const free = Number.parseFloat(
+			getComputedStyle(stage).getPropertyValue("--free-left"),
+		);
 		return {
 			bar: b.width,
 			stage: s.width,
+			free: Number.isFinite(free) ? free : 0,
 			center: b.left + b.width / 2 - s.left,
 		};
 	};
@@ -60,17 +68,17 @@ export default function BarHandle(p: {
 				p.onStart();
 			}
 			if (!d.moved) return;
-			d.now = clampCenter(d.center + dx, m.bar, m.stage, BAR_EDGE);
+			d.now = clampCenter(d.center + dx, m.bar, m.stage, BAR_EDGE, m.free);
 			p.frame.current?.style.setProperty(
 				"--bar-left",
-				barLeft(d.now / m.stage),
+				barLeft(shareOf(d.now, m.stage, m.free)),
 			);
 		},
 		onEnd: () => {
 			const d = drag.current;
 			const m = measure();
 			drag.current = null;
-			if (d && m && d.moved) commit(d.now / m.stage);
+			if (d && m && d.moved) commit(shareOf(d.now, m.stage, m.free));
 		},
 		onCancel: () => {
 			drag.current = null;

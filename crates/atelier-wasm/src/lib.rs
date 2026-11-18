@@ -41,8 +41,18 @@ fn run<T>(f: impl FnOnce() -> Result<T>) -> std::result::Result<T, JsError> {
 }
 
 /// Edges on a work picture. See [`Photo::edges`].
-fn edges_of(work: &Rgb, mode: u32, amount: f64, line: u32, even: f64) -> Result<Vec<u8>> {
-    Ok(pack(&render::edges_layer(work, mode, amount, line, even)?))
+/// `kept` is the edge map of `work`, made on the first Lines or Transfer draw and read after.
+fn edges_of(
+    work: &Rgb,
+    kept: &mut Option<Rgb>,
+    mode: u32,
+    amount: f64,
+    line: u32,
+    even: f64,
+) -> Result<Vec<u8>> {
+    Ok(pack(&render::edges_layer_kept(
+        work, kept, mode, amount, line, even,
+    )?))
 }
 
 /// The packed layer, then the count of swatches (one byte) and their RGB bytes.
@@ -79,7 +89,12 @@ fn pencil_of(work: &Rgb, look: u32, mask: u32, numbers: &[f64]) -> Result<Vec<u8
     Ok(out)
 }
 
-/// The Grid on a work picture. See [`Photo::grid`].
+/// The Grid on a work picture. See [`Photo::grid`]. A `milli` of 0 counts `cells` squares; any
+/// other number is the fine count in thousandths and `cells` is not used.
+#[allow(
+    clippy::too_many_arguments,
+    reason = "the numbers are those of the wasm method, which takes plain numbers"
+)]
 fn grid_of(
     work: &Rgb,
     mode: u32,
@@ -88,16 +103,22 @@ fn grid_of(
     group: u32,
     color: u32,
     center: u32,
+    milli: u32,
 ) -> Result<Vec<u8>> {
-    Ok(pack(&render::grid_layer(
-        work, mode, cells, line, group, color, center,
-    )?))
+    let layer = if milli == 0 {
+        render::grid_layer(work, mode, cells, line, group, color, center)?
+    } else {
+        render::grid_layer_milli(work, mode, milli, line, group, color, center)?
+    };
+    Ok(pack(&layer))
 }
 
 /// One work picture of a photo.
 struct Prepared {
     long: u32,
     work: Rgb,
+    /// The edge map of `work`, made by the first Edges draw. It goes with the work picture.
+    edge_map: Option<Rgb>,
 }
 
 /// One photo kept between draws: the RGB copy and the last work picture (the resize to `long`).
@@ -122,11 +143,24 @@ impl Photo {
     fn prepare(&mut self, long: u32) -> Result<&Rgb> {
         if self.prepared.as_ref().is_none_or(|p| p.long != long) {
             let work = render::prepare_work(&self.rgb, long)?;
-            self.prepared = Some(Prepared { long, work });
+            self.prepared = Some(Prepared {
+                long,
+                work,
+                edge_map: None,
+            });
         }
         self.prepared
             .as_ref()
             .map(|p| &p.work)
+            .ok_or_else(|| Error::BadInput("no work picture".into()))
+    }
+
+    /// The work picture at `long` and the place of its kept edge map.
+    fn prepare_edges(&mut self, long: u32) -> Result<(&Rgb, &mut Option<Rgb>)> {
+        self.prepare(long)?;
+        self.prepared
+            .as_mut()
+            .map(|p| (&p.work, &mut p.edge_map))
             .ok_or_else(|| Error::BadInput("no work picture".into()))
     }
 }
@@ -156,7 +190,10 @@ impl Photo {
         line: u32,
         even: f64,
     ) -> std::result::Result<Vec<u8>, JsError> {
-        run(|| edges_of(self.prepare(long)?, mode, amount, line, even))
+        run(|| {
+            let (work, kept) = self.prepare_edges(long)?;
+            edges_of(work, kept, mode, amount, line, even)
+        })
     }
 
     /// The Values layer: the photo in a few tones, opaque. `tint` 0 gray, 1 umber. After the layer
@@ -233,10 +270,12 @@ impl Photo {
     /// The Grid layer: lines on a clear layer. `line` is the line width (1 to 16 px at a long
     /// side of 2048), `group` the cells each way between two heavy lines (2 or 4) and `color`
     /// one color as `0xRRGGBB`, or `1 << 24` for Contrast lines. `cells` squares fit the width
-    /// exactly; `center` 1 puts the rows in the middle, 0 at the top.
+    /// exactly; `center` 1 puts the rows in the middle, 0 at the top. A `milli` above 0 counts
+    /// the squares across the width in thousandths instead (7500 is 7.5, for a grid of whole cm
+    /// on a paper; 100 to 500000) and `cells` is then not used; 0 counts `cells`.
     ///
     /// # Errors
-    /// A `long`, `mode`, `cells`, `line`, `group`, `color` or `center` out of range.
+    /// A `long`, `mode`, `cells`, `line`, `group`, `color`, `center` or `milli` out of range.
     #[allow(
         clippy::too_many_arguments,
         reason = "wasm-bindgen takes plain numbers; a struct would need its own JS class"
@@ -250,8 +289,20 @@ impl Photo {
         group: u32,
         color: u32,
         center: u32,
+        milli: u32,
     ) -> std::result::Result<Vec<u8>, JsError> {
-        run(|| grid_of(self.prepare(long)?, mode, cells, line, group, color, center))
+        run(|| {
+            grid_of(
+                self.prepare(long)?,
+                mode,
+                cells,
+                line,
+                group,
+                color,
+                center,
+                milli,
+            )
+        })
     }
 }
 
@@ -346,8 +397,11 @@ mod tests {
     fn test_every_layer_draws() {
         let (g, w, h) = gradient();
         let work = work_of(&g, w, h, 64).unwrap();
-        let grid = grid_of(&work, 2, 6, 2, 2, render::GRID_CONTRAST, 0).unwrap();
-        for out in [&grid, &edges_of(&work, 1, 50.0, 5, 50.0).unwrap()] {
+        let grid = grid_of(&work, 2, 6, 2, 2, render::GRID_CONTRAST, 0, 0).unwrap();
+        for out in [
+            &grid,
+            &edges_of(&work, &mut None, 1, 50.0, 5, 50.0).unwrap(),
+        ] {
             assert_eq!(&out[..8], &[64, 0, 0, 0, 48, 0, 0, 0]);
             assert_eq!(out.len(), 8 + 64 * 48 * 4);
         }
@@ -365,7 +419,9 @@ mod tests {
         let (g, w, h) = gradient();
         let work = work_of(&g, w, h, 64).unwrap();
         assert!(values_of(&work, 6, 50.0, 0).is_err());
-        assert!(grid_of(&work, 1, 5, 2, 2, 0, 0).is_err());
+        assert!(grid_of(&work, 1, 5, 2, 2, 0, 0, 0).is_err());
+        assert!(grid_of(&work, 1, 6, 2, 2, 0, 0, 99).is_err());
+        assert!(grid_of(&work, 1, 5, 2, 2, 0, 0, 7500).is_ok());
         assert!(Photo::from_rgba(&g, w + 1, h).is_err());
     }
 
@@ -375,6 +431,62 @@ mod tests {
         let mut photo = Photo::from_rgba(&g, w, h).unwrap();
         let work = photo.prepare(64).unwrap().clone();
         assert_eq!(work, work_of(&g, w, h, 64).unwrap());
+    }
+
+    /// A 96 x 64 picture of soft blocks, with many edges.
+    fn blocks() -> (Vec<u8>, u32, u32) {
+        let mut v = Vec::new();
+        for y in 0..64u32 {
+            for x in 0..96u32 {
+                let t = ((x / 12 + y / 8) * 37 % 11 * 22) as u8;
+                v.extend_from_slice(&[t, t.wrapping_add(20), 255 - t, 255]);
+            }
+        }
+        (v, 96, 64)
+    }
+
+    #[test]
+    fn test_edges_with_a_kept_map_equal_a_fresh_draw() {
+        let (g, w, h) = blocks();
+        let mut photo = Photo::from_rgba(&g, w, h).unwrap();
+        let work = work_of(&g, w, h, 96).unwrap();
+        for (mode, amount, line, even) in
+            [(0, 67.0, 3, 0.0), (0, 100.0, 5, 60.0), (1, 50.0, 3, 0.0)]
+        {
+            let fresh = edges_of(&work, &mut None, mode, amount, line, even).unwrap();
+            let (kept_work, kept) = photo.prepare_edges(96).unwrap();
+            let first = edges_of(kept_work, kept, mode, amount, line, even).unwrap();
+            let again = {
+                let (kept_work, kept) = photo.prepare_edges(96).unwrap();
+                assert!(kept.is_some());
+                edges_of(kept_work, kept, mode, amount, line, even).unwrap()
+            };
+            assert_eq!(first, fresh);
+            assert_eq!(again, fresh);
+        }
+        // Masses leaves the map alone and still matches.
+        let fresh = edges_of(&work, &mut None, 2, 67.0, 3, 0.0).unwrap();
+        let (kept_work, kept) = photo.prepare_edges(96).unwrap();
+        assert_eq!(edges_of(kept_work, kept, 2, 67.0, 3, 0.0).unwrap(), fresh);
+    }
+
+    #[test]
+    fn test_the_kept_map_goes_with_the_work_picture() {
+        let (g, w, h) = blocks();
+        let mut photo = Photo::from_rgba(&g, w, h).unwrap();
+        let (work, kept) = photo.prepare_edges(96).unwrap();
+        edges_of(work, kept, 0, 50.0, 3, 0.0).unwrap();
+        assert!(photo.prepared.as_ref().unwrap().edge_map.is_some());
+        photo.prepare(48).unwrap();
+        assert!(photo.prepared.as_ref().unwrap().edge_map.is_none());
+        // A map of the wrong size is refused, not a panic.
+        let (work, kept) = photo.prepare_edges(48).unwrap();
+        *kept = Some(Rgb::filled(5, 5, &[0]));
+        assert!(edges_of(work, kept, 0, 50.0, 3, 0.0).is_err());
+        // Bad input stays BadInput and makes no map.
+        let (work, kept) = photo.prepare_edges(64).unwrap();
+        assert!(edges_of(work, kept, 0, 101.0, 3, 0.0).is_err());
+        assert!(kept.is_none());
     }
 
     #[test]

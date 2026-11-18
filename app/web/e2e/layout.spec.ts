@@ -258,7 +258,10 @@ test("test_the_bar_sits_on_the_stage_with_the_zoom_menu", async ({
 	await studio.openSynthetic(480, 640, "one.png");
 	const bar = await box(page, "stage-bar");
 	const stage = await box(page, "stage");
-	expect(bar.x + bar.width / 2).toBeCloseTo(stage.x + stage.width / 2, 0);
+	// the bar centers on the free stage: right of the open panel and its 12 px gap
+	const panel = await box(page, "files");
+	const freeMiddle = (panel.x + panel.width + 12 + stage.x + stage.width) / 2;
+	expect(bar.x + bar.width / 2).toBeCloseTo(freeMiddle, 0);
 	expect(bar.y + bar.height).toBeLessThan(stage.y + stage.height);
 	await studio.zoom("actual");
 	await expect(page.getByTestId("zoom-percent")).toHaveText("100%");
@@ -437,6 +440,19 @@ test("test_strip_shows_without_a_card_and_add_photo_shows_when_the_panel_is_hidd
 	await page.getByTestId("files-fold").click();
 	const chooser = page.waitForEvent("filechooser");
 	await page.getByTestId("add-photo-bar").click();
+	await chooser;
+});
+
+test("test_the_empty_stage_has_an_add_photos_button_that_opens_the_chooser", async ({
+	studio,
+}) => {
+	const { page } = studio;
+	// no photo yet: the stage invites one, and the bar and the legend strip are not there
+	await expect(page.getByTestId("photo-canvas")).toHaveCount(0);
+	await expect(page.getByTestId("stage-bar")).toHaveCount(0);
+	await expect(page.getByTestId("legend-strip")).toHaveCount(0);
+	const chooser = page.waitForEvent("filechooser");
+	await page.getByTestId("add-photos").click();
 	await chooser;
 });
 

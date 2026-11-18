@@ -14,10 +14,15 @@ import { useEffect, useRef, useState } from "react";
 import { usePencilAuto } from "@/features/pencil/usePencilAuto";
 import { usePencilExtras } from "@/features/pencil/usePencilExtras";
 import { shownWidthCm } from "@/features/size/paper";
-import SizeCard from "@/features/size/SizeCard";
 import type { SizeState } from "@/features/size/useSize";
-import { baseName, ToolBody, ToolHead } from "@/features/tools/Panel";
-import { GRID_MODE, type Look, type StageId } from "@/features/tools/settings";
+import { baseName } from "@/features/tools/baseName";
+import {
+	GRID_MODE,
+	GRID_UNIT,
+	type Look,
+	type StageId,
+} from "@/features/tools/settings";
+import { SizeCardLazy, ToolCard } from "@/features/tools/ToolCard";
 import { KEYS, loadJson, useSaved } from "@/lib/storage";
 import { Icon, IconButton, type IconName, Tip } from "@/ui/icons";
 import BarHandle, { barLeft } from "./BarHandle";
@@ -119,6 +124,8 @@ export default function StageBar(p: {
 
 	// Pencil is a drawing of its own: Edges is off while it is the base (its saved switch stays)
 	const noEdges = p.look.base.kind === "pencil";
+	// a Grid with squares (not Thirds) is on: the Paper line tells its cell
+	const gridOn = p.look.grid.on && p.look.grid.mode !== GRID_MODE.thirds;
 	const info: Record<StageId, { label: string; icon: IconName; tip: string }> =
 		{
 			base: {
@@ -205,8 +212,13 @@ export default function StageBar(p: {
 											})),
 						}}
 					>
-						<ToolHead id={id} look={p.look} onLook={p.onLook} />
-						<ToolBody id={id} look={p.look} onLook={p.onLook} extras={extras} />
+						<ToolCard
+							id={id}
+							look={p.look}
+							onLook={p.onLook}
+							extras={extras}
+							paper={p.size.whole !== null}
+						/>
 					</Popup>
 				))}
 				<span className="h-5 w-px bg-separator" />
@@ -226,14 +238,19 @@ export default function StageBar(p: {
 					}}
 				>
 					{p.size.whole && (
-						<SizeCard
+						<SizeCardLazy
 							choice={p.size.choice}
 							onChange={p.size.set}
 							photoW={p.size.whole.width}
 							photoH={p.size.whole.height}
 							cells={
-								p.look.grid.on && p.look.grid.mode !== GRID_MODE.thirds
+								gridOn && p.look.grid.unit === GRID_UNIT.cells
 									? p.look.grid.cells
+									: null
+							}
+							stepCm={
+								gridOn && p.look.grid.unit === GRID_UNIT.cm
+									? p.look.grid.cm
 									: null
 							}
 							real={lock.on}
@@ -271,6 +288,8 @@ export default function StageBar(p: {
 					<Dropdown.Popover placement="top">
 						<Dropdown.Menu
 							aria-label="Zoom"
+							// Real size is a check item; the menu still closes after it, as after Fit.
+							shouldCloseOnSelect
 							onAction={(key) => act(String(key))}
 							disabledKeys={lock.on ? ["fit", "actual", "double"] : []}
 						>
@@ -291,13 +310,19 @@ export default function StageBar(p: {
 							>
 								<Label>200%</Label>
 							</Dropdown.Item>
-							<Dropdown.Item
-								id="real"
-								textValue="Real size"
-								data-testid="zoom-real"
+							<Dropdown.Section
+								selectionMode="multiple"
+								selectedKeys={lock.on ? ["real"] : []}
 							>
-								<Label>Real size</Label>
-							</Dropdown.Item>
+								<Dropdown.Item
+									id="real"
+									textValue="Real size"
+									data-testid="zoom-real"
+								>
+									<Label>Real size</Label>
+									<Dropdown.ItemIndicator />
+								</Dropdown.Item>
+							</Dropdown.Section>
 							{lock.on ? (
 								<Dropdown.Item
 									id="unlock"

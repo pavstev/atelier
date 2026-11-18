@@ -5,6 +5,15 @@
 @import "@heroui/styles";
 @import "./atelier-theme.css" layer(theme);
 
+/* Where the free part of the stage starts: the right edge of the open side panel (0 when it is hidden
+ * or a drawer). `StageArea` sets it; the bar and the legend strip center on what is right of it, and
+ * the bar grip reads it as a length in px. */
+@property --free-left {
+	syntax: "<length>";
+	inherits: true;
+	initial-value: 0px;
+}
+
 /* The look is the Graphite theme (docs/design/2026-11-01-heroui-color-system.md). */
 body {
 	background: var(--background);

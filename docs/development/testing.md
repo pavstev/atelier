@@ -23,6 +23,10 @@ checks the size, the range and a loose match to a reference picture.
 compares it with `crates/atelier-core/tests/reference`. The size and range must match, and the mean
 difference must be 3.0 or less.
 
+`ts_ranges.rs` reads the knob ranges of the web app (`features/pencil/knobs.ts` and
+`features/tools/settings.ts`) as text and checks each one against the core: the least and the most
+are accepted, one step outside is `Error::BadInput`. It fails when a range cannot be found.
+
 `robust_calls.rs` checks that a bad number gives `Error::BadInput` and never a panic.
 `peak_memory.rs` checks the peak memory of decoding a 48 MP photo.
 
@@ -37,8 +41,14 @@ times out.
 
 - The specs use the app's own storage keys (`KEYS` in `src/lib/keys.ts`) and `data-testid`
   attributes. A test id stays when the meaning stays.
-- A hidden native `<select>` sits behind each Hero UI select. Set it with the native value setter
-  and fire `change` and `input`. A row of buttons has buttons with the role `radio`. Click one.
+- A Hero UI select is a button that opens a list: click its first button, then click the `option`
+  by index (`studio.knob` does this). A slider is set with `setRange` in `e2e/studio.ts` (the
+  native value setter, then `input` and `change`). A row of buttons has buttons with the role
+  `radio`. Click one. `studio.knob(id, value)` picks the right way by itself, and opens the tab of
+  a `pencil-*` knob first.
+- A page patch a test needs (a full storage, for example) goes in with `page.addInitScript` as
+  well as on the open page, so a reload does not drop it. Vite reloads the page when it finds a
+  new dependency, and on a full HMR reload.
 - `smoke.spec.ts` runs on the dev server, on the built app (`PREVIEW=1`, with the real headers) and
   on a live site (`URL=...`).
 - Most specs open one real photo, `mona-lisa-2400.jpg`, read from `PHOTOS_DIR` (see "The test
@@ -70,7 +80,7 @@ Bless only for a change you meant, and say in the commit why the pictures moved.
 
 ```bash
 cargo xtask refs --bless        # the Rust reference pictures
-mise run web:golden:bless       # the browser goldens (it wipes e2e/golden first)
+mise run web:golden:bless       # the browser goldens (rewrites only the ones that fail)
 ```
 
 ## No photos in git

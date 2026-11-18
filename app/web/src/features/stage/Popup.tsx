@@ -20,6 +20,13 @@ function useNarrow(): boolean {
 	);
 }
 
+/**
+ * The sheet backdrop passes `isDismissable` on to React Aria's modal overlay, but its type does not
+ * list it. Off, the overlay does not dismiss on an outside press and does not swallow the click of
+ * a legend swatch above it; the effect in `Popup` closes the sheet instead.
+ */
+const OUTSIDE_PRESS_IS_OURS: object = { isDismissable: false };
+
 type ButtonProps = {
 	/** Set by Popup: the element the card anchors to in a split button. */
 	groupRef?: React.RefObject<HTMLDivElement | null>;
@@ -40,7 +47,8 @@ type ButtonProps = {
 	wrap?: (chevron: ReactNode) => ReactNode;
 };
 
-/** The round icon button of the bar. It has no `aria-pressed`, only the look of a pressed one. */
+/** The round icon button of the bar. When `on` is set it looks pressed and says so with `aria-pressed`
+ * (Base when it is not Photo, Paper while Fit to paper is on). */
 function BarButton(p: ButtonProps) {
 	if (p.onToggle) {
 		const chevron = (
@@ -86,7 +94,7 @@ function BarButton(p: ButtonProps) {
 			label={p.label}
 			tip={p.tip}
 			testid={p.testid}
-			variant={p.on ? "secondary" : "ghost"}
+			pressed={p.on}
 			disabled={p.disabled}
 			placement="top"
 			className="touch-none rounded-full select-none"
@@ -112,12 +120,17 @@ export default function Popup(p: {
 	// own press then decides. So a close asked just after a bar button went down is ignored here.
 	const barDown = useRef(0);
 	const groupRef = useRef<HTMLDivElement | null>(null);
+	// The close call is read from a ref, so a re-render during a press (a pan) keeps the press.
+	const closeRef = useRef(onOpenChange);
+	closeRef.current = onOpenChange;
 
 	// A press outside the card closes it. The bar buttons decide for themselves (a press on the
 	// button of this card closes it, a press on another opens that one), and the lists and menus a
-	// card opens are part of the card.
+	// card opens are part of the card. A sheet does the same, so a press on a legend swatch (above
+	// the scrim) holds its color and closes the sheet, as the pop-up does. The sheet does not
+	// dismiss itself on an outside press: that would swallow the click of the swatch.
 	useEffect(() => {
-		if (!open || narrow) return;
+		if (!open) return;
 		let down: { x: number; y: number } | null = null;
 		const inside = (t: Element | null) =>
 			!!t?.closest(
@@ -133,7 +146,7 @@ export default function Popup(p: {
 			const d = down;
 			down = null;
 			if (d && Math.hypot(e.clientX - d.x, e.clientY - d.y) <= 6)
-				onOpenChange(false);
+				closeRef.current(false);
 		};
 		document.addEventListener("pointerdown", press, true);
 		document.addEventListener("pointerup", release, true);
@@ -141,7 +154,7 @@ export default function Popup(p: {
 			document.removeEventListener("pointerdown", press, true);
 			document.removeEventListener("pointerup", release, true);
 		};
-	}, [open, narrow, onOpenChange]);
+	}, [open]);
 
 	if (narrow)
 		return (
@@ -152,7 +165,7 @@ export default function Popup(p: {
 					onPress={() => onOpenChange(!open)}
 				/>
 				<Sheet isOpen={open} onOpenChange={onOpenChange}>
-					<Sheet.Backdrop variant="transparent">
+					<Sheet.Backdrop variant="transparent" {...OUTSIDE_PRESS_IS_OURS}>
 						<Sheet.Content className="max-h-[75dvh]">
 							<Sheet.Dialog
 								aria-label={p.title}

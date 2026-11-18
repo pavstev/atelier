@@ -8,7 +8,8 @@
 //! cargo run -q --release -p atelier-core --example bench -- compare OUT BEFORE AFTER
 //! ```
 //!
-//! `IN` holds PNG or JPEG photos (a JPEG is turned into a PNG with `sips`, in `OUT/.in`).
+//! `IN` holds PNG or JPEG photos (a JPEG is turned into a PNG with `sips`, in `OUT/.in-upright`, and
+//! turned upright by its EXIF Orientation).
 //! `render` writes `OUT/TAG-<layer>-<photo>.png` and `OUT/row-TAG-<photo>.png`. A see-through layer is shown the way the app
 //! stacks it: Edges as ink on white paper, Grid over the work picture, Shapes and Values opaque.
 //! `NAME` keeps only the photos whose file name holds it. `compare` writes

@@ -5,7 +5,9 @@ import { Button } from "@heroui/react";
 import { type ReactNode, type RefObject, useEffect, useState } from "react";
 import { useFacts } from "@/draw/facts";
 import type { Level } from "@/features/pencil/grades";
-import Picker, { AREA_START, type Fixed } from "@/features/picker/Picker";
+import { AREA_START } from "@/features/picker/area";
+import type { Fixed } from "@/features/picker/Picker";
+import PickerLazy, { preloadPicker } from "@/features/picker/PickerLazy";
 import type { SizeState } from "@/features/size/useSize";
 import {
 	LAYOUT,
@@ -74,6 +76,12 @@ export default function StageArea(p: {
 	const { reset: resetSee } = see;
 	// biome-ignore lint/correctness/useExhaustiveDependencies: runs when the photo changes
 	useEffect(() => resetSee(), [p.photoId, resetSee]);
+	// the picker chunk loads a moment after a photo opens, so its first use does not wait
+	useEffect(() => {
+		if (p.photoId == null) return;
+		const t = setTimeout(preloadPicker, 1500);
+		return () => clearTimeout(t);
+	}, [p.photoId]);
 	const [picking, setPicking] = useState(false);
 	const [area, setArea] = useState(AREA_START);
 	// a color held from the legend turns the picker on
@@ -95,7 +103,15 @@ export default function StageArea(p: {
 		p.onLayout((l) => ({ ...l, widths: { left: w } }));
 	return (
 		<main className="flex min-w-0 flex-1 flex-col">
-			<div className="@container relative min-h-0 flex-1">
+			<div
+				// the free stage starts right of the open panel (a wide window); the Add photo button
+				// shows while the panel is hidden, so the legend strip keeps clear of it
+				className={`@container relative min-h-0 flex-1 [--free-left:0px] ${
+					layout.panels.left
+						? "[--legend-gap:3.5rem]"
+						: "[--legend-gap:0.5rem] md:[--free-left:calc(var(--panel-gap)+min(var(--left-w),50vw)+var(--panel-gap))]"
+				}`}
+			>
 				{p.errors.length > 0 && (
 					<div
 						role="alert"
@@ -131,7 +147,7 @@ export default function StageArea(p: {
 					onFiles={p.onFiles}
 				/>
 				{photo && picking && (
-					<Picker
+					<PickerLazy
 						box={viewport.box}
 						photo={photo}
 						layers={p.layers}

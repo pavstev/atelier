@@ -217,7 +217,8 @@ type NumberProps = {
 	label: string;
 	/** 0 shows an empty box. */
 	value: number;
-	onChange: (v: number) => void;
+	/** `v` is the number typed, or 0 for an empty, zero or negative box; `empty` is true when the text is gone. */
+	onChange: (v: number, empty: boolean) => void;
 	/** The box lost focus. */
 	onBlur?: () => void;
 	placeholder?: string;
@@ -250,7 +251,7 @@ export function NumberBox({
 				onBlur={onBlur}
 				onChange={(e) => {
 					const n = Number.parseFloat(e.target.value);
-					onChange(Number.isFinite(n) && n > 0 ? n : 0);
+					onChange(Number.isFinite(n) && n > 0 ? n : 0, !Number.isFinite(n));
 				}}
 				className="h-(--icon-btn-bar) w-24 rounded-field border border-border bg-field px-2.5 text-right text-sm text-field-foreground atelier-focus"
 			/>

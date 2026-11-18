@@ -24,19 +24,27 @@ How the Atelier web app looks and behaves, as rules. What each control does is i
 
 - **The stage** fills the window. Nothing pushes the photo: the panel and the bar float over it.
 - **The photo panel** is a glass card on the left. It holds the photo list only, no tools. A
-  handle on its edge (or `[`) hides it, and its right edge resizes it. Under 768 px it is a drawer
+  handle just right of its edge (or `[`) hides it, and a drag on the edge itself resizes it. The
+  handle stays off the drag line. Under 768 px it is a drawer
   that starts closed.
-- **The bottom bar** sits at the bottom center and shows only while a photo is open. Left to
-  right: See photo | Base, Edges, Grid | Paper, Zoom | Color picker | the grip. Thin lines split
-  the groups. The grip drags the bar along the stage (not on a phone).
+- **The free stage** is the stage minus the open photo panel (a wide window; on a phone the drawer
+  floats over everything). The bottom bar and the legend strip center on it and never sit on the
+  panel. With the panel hidden it is the whole window. The panel's right edge plus its gap is
+  `--free-left`, set in `StageArea.tsx`.
+- **The bottom bar** sits at the bottom center of the free stage and shows only while a photo is
+  open. Left to right: See photo | Base, Edges, Grid | Paper, Zoom | Color picker | the grip. Thin
+  lines split the groups. The grip drags the bar along the free stage (not on a phone); it stops at
+  the panel edge. A saved place is a share of the free stage.
 - **Pop-up cards.** A bar button opens its card above the button. One card is open at a time. A
   second press, Esc or a press outside closes it. A drag on the photo pans and keeps the card open.
 - **The phone sheet.** Under 768 px a card is a bottom sheet instead, with the same body. The
-  window width decides, so a card is written once (`features/stage/Popup.tsx`).
-- **The legend strip** is a glass row of swatches at the top center of the stage, below the error
-  banner and the title bar area of an installed app. It shows the legend of Values, Shapes or
-  Pencil, stays on one row and scrolls sideways when it is too wide. A swatch press holds its color
-  in the picker card.
+  window width decides, so a card is written once (`features/stage/Popup.tsx`). A press outside
+  closes the sheet as it closes a pop-up. The legend strip sits above the sheet scrim
+  (`--z-legend`), so a swatch press holds its color and closes the sheet, as on a wide window.
+- **The legend strip** is a glass row of swatches at the top center of the free stage, below the
+  error banner and the title bar area of an installed app. It shows the legend of Values, Shapes or
+  Pencil, stays on one row and scrolls sideways when it is too wide. It keeps clear of the Add photo
+  button, which shows while the panel is hidden. A swatch press holds its color in the picker card.
 - **Fixed layer order**, bottom first: one base, then Edges, then Grid.
 
 ## The bar buttons
@@ -44,7 +52,9 @@ How the Atelier web app looks and behaves, as rules. What each control does is i
 - **Split buttons for Edges and Grid.** The main part switches the layer on or off and looks
   pressed while it is on. The chevron next to it opens the card. The Edges and Grid cards also
   have the switch in their head.
-- **Base** has no switch. It looks pressed when the base is not Photo.
+- **Base** has no switch. It looks pressed when the base is not Photo, and says so with
+  `aria-pressed`. **Paper** does the same while Fit to paper is on.
+- **Real size** in the zoom menu is a checkbox item (`aria-checked`, a check mark while it is on).
 - **A blocked button** stays visible, dimmed, with a tip that says why (Edges in Pencil mode).
 - **Toggles without a card**: See photo and the color picker.
 

@@ -26,6 +26,7 @@ Atelier is a photo study tool for painters: a Rust core (wasm) behind a React we
 | `app/web/e2e/` | the Playwright suite (headless Chromium only) and the golden pictures | changing browser tests |
 | `app/web/src/sw/` | the service worker: `sw.ts`, `routes.ts`, `precache.ts`; built to `/sw.js` by `app/web/scripts/swPlugin.ts` | changing offline or caching |
 | `app/web/src/pwa/` | the page side: `register.ts`, `state.ts`, `usePwa.ts`, `labels.ts`, `InstallButton.tsx`, `intake.ts`, `persist.ts` | changing install, update, Open with or Share |
+| `app/web/src/edge/` | `worker.ts`: the Cloudflare Worker script, only for a `POST /share` that no service worker took | changing what Cloudflare runs |
 | `app/web/public/` | favicons, app icons, share images, `manifest.webmanifest`, `_headers` | changing icons or the manifest |
 | `app/web/brand/` | the logo source for favicons and share images | changing the brand |
 | `app/web/scripts/` | the wasm build and brand scripts; the glue it writes is `app/web/wasm/` (committed at release) | changing the web build |

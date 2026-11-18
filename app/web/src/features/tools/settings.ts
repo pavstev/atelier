@@ -5,6 +5,7 @@ import {
 	PENCIL_START,
 	type PencilLook,
 } from "@/features/pencil/knobs";
+import { GRID_CM, gridMilli } from "@/features/size/paper";
 import { isRecord } from "@/lib/clean";
 import { KEYS, loadJson, loadText, usePersisted } from "@/lib/storage";
 
@@ -70,6 +71,10 @@ export type Look = {
 		opacity: number;
 		mode: number;
 		cells: number;
+		/** What the Grid counts: `GRID_UNIT.cells` or `GRID_UNIT.cm` (a step in whole cm on the paper). */
+		unit: number;
+		/** The step in whole cm, one of `GRID_CM`; used when `unit` is cm. */
+		cm: number;
 		width: number;
 		group: number;
 		/** The rows sit in the middle, the part row split between the top and the bottom. */
@@ -104,6 +109,8 @@ export const LOOK: Look = {
 		opacity: 100,
 		mode: GRID_MODE.both,
 		cells: 6,
+		unit: 0,
+		cm: 5,
 		width: 2,
 		group: 2,
 		center: false,
@@ -112,7 +119,10 @@ export const LOOK: Look = {
 	},
 };
 
-/** The Grid cell counts across the long side, in slider order (`CELL_STEPS` in `grid.rs`). */
+/** What the Grid counts (`LABELS.gridUnit` has the names in this order). */
+export const GRID_UNIT = { cells: 0, cm: 1 } as const;
+
+/** The Grid cell counts across the width, in slider order (`CELL_STEPS` in `grid.rs`). */
 export const GRID_CELLS: readonly number[] = [
 	3, 4, 6, 8, 9, 10, 12, 18, 20, 24, 30, 40, 50,
 ];
@@ -157,6 +167,7 @@ function cleanLook(raw: unknown): Look {
 	const grid = pick(r.grid, LOOK.grid);
 	// Grid cells must be one of the steps the core takes.
 	if (!GRID_CELLS.includes(grid.cells)) grid.cells = LOOK.grid.cells;
+	if (!GRID_CM.includes(grid.cm)) grid.cm = LOOK.grid.cm;
 	if (!GRID_GROUPS.includes(grid.group)) grid.group = LOOK.grid.group;
 	if (!/^#[0-9a-f]{6}$/i.test(grid.color)) grid.color = LOOK.grid.color;
 	// Every count and percent must sit in the range the core accepts; else the start value.
@@ -183,6 +194,7 @@ function cleanLook(raw: unknown): Look {
 	fit(edges, LOOK.edges, "even", 0, 100);
 	fit(grid, LOOK.grid, "opacity", OPACITY_MIN, 100);
 	fit(grid, LOOK.grid, "mode", GRID_MODE.thirds, GRID_MODE.both);
+	fit(grid, LOOK.grid, "unit", GRID_UNIT.cells, GRID_UNIT.cm);
 	fit(grid, LOOK.grid, "width", 1, GRID_WIDTH_MAX);
 	return { base, values, shapes, pencil, edges, grid };
 }
@@ -214,12 +226,21 @@ export const LABELS = {
 	pencilPaper: ["Smooth", "Medium", "Rough"],
 	edgesMode: ["Lines", "Transfer", "Masses"],
 	gridMode: ["Thirds", "Grid", "Both"],
+	gridUnit: ["Cells", "cm"],
 	gridGroup: ["2 × 2", "4 × 4"],
 	gridPaint: ["Contrast", "One color"],
 };
 
-/** The call that draws layer `id` with its settings. */
-export function callFor(id: LayerId, s: Look): Call {
+/**
+ * The call that draws layer `id` with its settings. `widthCm` is the width of the picture on the
+ * paper (`shownWidthCm`), or null with no photo: only a Grid in cm reads it, and without it the
+ * Grid counts cells.
+ */
+export function callFor(
+	id: LayerId,
+	s: Look,
+	widthCm: number | null = null,
+): Call {
 	switch (id) {
 		case "edges":
 			return {
@@ -252,6 +273,11 @@ export function callFor(id: LayerId, s: Look): Call {
 				layer: "grid",
 				mode: s.grid.mode,
 				cells: s.grid.cells,
+				// 0: count `cells`; else the squares across the width in thousandths (a step in cm)
+				cellsMilli:
+					s.grid.unit === GRID_UNIT.cm && widthCm !== null
+						? gridMilli(widthCm, s.grid.cm)
+						: 0,
 				width: s.grid.width,
 				group: s.grid.group,
 				center: s.grid.center ? 1 : 0,

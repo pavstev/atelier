@@ -14,7 +14,7 @@
 //! | shapes | step 0 shadows, 1 halftones, 2 lights, 3 accents | `detail` |
 //! | edges | mode 0 lines, 1 transfer, 2 masses | `amount`, `width`, `even` |
 //! | pencil | `look` 0 tone, 1 drawing, 3 hatch (2 is not a look), 4 by pencil; `mask` the pencils, bit 0 the 9B to bit 7 the 4H (255 all) | [`PENCIL_NUMBERS`] numbers in this order: `detail`, `key`, `contrast` (percent, 50 changes nothing), `highlights` 0 to 25 and `darks` 0 to 100 (whole percent), `local`, `grain` (percent), `paper` 0 smooth 1 medium 2 rough, `angle` 0 to 179 (whole degrees), `density` (percent), `step` 1 to 8 (by pencil; the lightest is 1), then `smudge`, `lift` and `cross` (percent, 0 off). The answer also has the level `mark`. `pencil_auto` reads the photo and gives the start of `key`, `contrast` and `highlights` with what it read; `pencil_suggest` gives the `mask` of the best 3 to 6 of the eight pencils |
-//! | layers | `edges_layer`, `values_layer`, `shapes_layer`, `pencil_layer`, `grid_layer`: RGBA | edges: alpha is 255 minus the largest channel; values, shapes and pencil: alpha 255; grid: alpha only on lines (`mode` 0 thirds, 1 grid, 2 both; `cells` one of the `CELL_STEPS` (3 to 50) across the width; `width` 1 to 16; `group` 2 or 4; `color`; `center` 0 or 1) |
+//! | layers | `edges_layer`, `values_layer`, `shapes_layer`, `pencil_layer`, `grid_layer`: RGBA | edges: alpha is 255 minus the largest channel; values, shapes and pencil: alpha 255; grid: alpha only on lines (`mode` 0 thirds, 1 grid, 2 both; `cells` one of the `CELL_STEPS` (3 to 50) across the width, or with `grid_layer_milli` a fine count in thousandths, 100 to 500000; `width` 1 to 16; `group` 2 or 4; `color`; `center` 0 or 1) |
 //!
 //! The photo comes in as RGB, already decoded and turned upright by the page (the browser
 //! decoder). [`prepare_work`] brings it to the work size.
@@ -147,6 +147,25 @@ pub fn shapes_view(work: &Rgb, step: u32, detail: f64) -> Result<(Rgb, Vec<[u8; 
 /// # Errors
 /// A number out of range.
 pub fn edges_view(work: &Rgb, mode: u32, amount: f64, width: u32, even: f64) -> Result<Rgb> {
+    edges_view_kept(work, &mut None, mode, amount, width, even)
+}
+
+/// [`edges_view`] with the edge map of `work` kept by the caller. Lines and Transfer read the map
+/// from `kept`, or make it there when `kept` is empty; Masses never touches it. `kept` must hold
+/// the map of this very `work` picture (the caller drops it when the work picture changes); a map
+/// of another size is an [`Error::BadInput`]. The picture is byte for byte the one of
+/// [`edges_view`].
+///
+/// # Errors
+/// A number out of range, or a kept map that does not fit `work`.
+pub fn edges_view_kept(
+    work: &Rgb,
+    kept: &mut Option<Rgb>,
+    mode: u32,
+    amount: f64,
+    width: u32,
+    even: f64,
+) -> Result<Rgb> {
     let work = image(work, 3, "work")?;
     let mode = pick(mode, 0, 2, "edges mode")?;
     knob(amount, "amount")?;
@@ -162,8 +181,14 @@ pub fn edges_view(work: &Rgb, mode: u32, amount: f64, width: u32, even: f64) -> 
         };
         return shapes::view(work, &v);
     }
-    let edges = edges::map::strength(work);
-    edges::trace::view_amount(work, mode == 1, amount as f32, scale, even, &edges)
+    if kept
+        .as_ref()
+        .is_some_and(|m| m.width != work.width || m.height != work.height || !m.is_well_formed(1))
+    {
+        return Err(Error::bad("kept edge map does not fit the work picture"));
+    }
+    let edges = kept.get_or_insert_with(|| edges::map::strength(work));
+    edges::trace::view_amount(work, mode == 1, amount as f32, scale, even, edges)
 }
 
 /// The Grid color that asks for Contrast lines (`GRID_CONTRAST` in
@@ -229,7 +254,22 @@ fn opaque(img: &Rgb) -> Layer {
 /// # Errors
 /// A number out of range.
 pub fn edges_layer(work: &Rgb, mode: u32, amount: f64, width: u32, even: f64) -> Result<Layer> {
-    let v = edges_view(work, mode, amount, width, even)?;
+    edges_layer_kept(work, &mut None, mode, amount, width, even)
+}
+
+/// [`edges_layer`] with the edge map kept by the caller, see [`edges_view_kept`].
+///
+/// # Errors
+/// A number out of range, or a kept map that does not fit `work`.
+pub fn edges_layer_kept(
+    work: &Rgb,
+    kept: &mut Option<Rgb>,
+    mode: u32,
+    amount: f64,
+    width: u32,
+    even: f64,
+) -> Result<Layer> {
+    let v = edges_view_kept(work, kept, mode, amount, width, even)?;
     Ok(layer_with(&v, |p| 255 - p[0].max(p[1]).max(p[2])))
 }
 
@@ -405,13 +445,42 @@ pub fn grid_layer(
     let work = image(work, 3, "work")?;
     let mode = pick(mode, 0, 2, "grid mode")?;
     let cells = grid::cells_of(cells)?;
-    let width = usize::from(pick(width, 1, 16, "grid width")?);
+    let width = usize::from(pick(width, 1, grid::MAX_WIDTH as u32, "grid width")?);
     let group = grid::group_of(group)?;
     let center = pick(center, 0, 1, "grid center")? == 1;
     Ok(Layer {
         width: work.width,
         height: work.height,
         rgba: grid::layer(work, mode, cells, width, group, color, center)?,
+    })
+}
+
+/// [`grid_layer`] with the squares across the width counted in thousandths, 100 to 500000 (0.1 to
+/// 500 squares), so a square size that does not divide the width can be drawn: a grid of whole cm
+/// on a paper. 7500 is 7.5 squares, the last one a part square at the right and the bottom. A
+/// whole count `c` as `1000 c` draws the same bytes as [`grid_layer`]. `group` counts squares.
+///
+/// # Errors
+/// A number out of range, `milli` too.
+pub fn grid_layer_milli(
+    work: &Rgb,
+    mode: u32,
+    milli: u32,
+    width: u32,
+    group: u32,
+    color: u32,
+    center: u32,
+) -> Result<Layer> {
+    let work = image(work, 3, "work")?;
+    let mode = pick(mode, 0, 2, "grid mode")?;
+    let milli = grid::milli_of(milli)?;
+    let width = usize::from(pick(width, 1, grid::MAX_WIDTH as u32, "grid width")?);
+    let group = grid::group_of(group)?;
+    let center = pick(center, 0, 1, "grid center")? == 1;
+    Ok(Layer {
+        width: work.width,
+        height: work.height,
+        rgba: grid::layer_milli(work, mode, milli, width, group, color, center)?,
     })
 }
 

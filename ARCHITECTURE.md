@@ -9,8 +9,9 @@ on the user's device. There is no server code. The folder map is in [MAP.md](MAP
 file -> browser decoder -> RGBA pixels -> layers worker (wasm Photo) -> layer pictures -> canvases
 ```
 
-1. The photo worker (`features/photos/decodeWorker.ts`) decodes the photo with the browser (the
-   EXIF turn is applied), so the page never freezes. The page hands the RGBA pixels to the layers
+1. The photo worker (`features/photos/decodeWorker.ts`) decodes the photo upright (the EXIF
+   turn is applied; `orient.ts` turns it itself when a browser does not, as Safari in an installed
+   app), so the page never freezes. The page hands the RGBA pixels to the layers
    worker.
 2. The worker holds the wasm module. It keeps the last photos as a wasm `Photo`: the RGB copy and
    the work picture (long side 1024 px) stay between draws, so a knob redraws from them.
@@ -62,7 +63,7 @@ Every key is in `app/web/src/lib/keys.ts`.
 
 `app/web/scripts/build-wasm.sh` (via `mise run web:wasm`) builds `crates/atelier-wasm` and writes
 the JS glue into `app/web/wasm/`. The site is static files served by a Cloudflare Worker with
-static assets. The page's security headers are in `app/web/public/_headers`. When the glue is
+static assets, plus a tiny script for `POST /share` (`app/web/src/edge/worker.ts`). The page's security headers are in `app/web/public/_headers`. When the glue is
 committed and how a deploy skips Rust: [docs/development/release.md](docs/development/release.md).
 
 ## Tests

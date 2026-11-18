@@ -2,7 +2,7 @@
 // Run with `pnpm --dir app/web exec node --test "src/**/*.test.ts"`.
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { BAR_START, clampCenter, cleanBar } from "./barPlace.ts";
+import { BAR_START, clampCenter, cleanBar, shareOf } from "./barPlace.ts";
 
 test("a good save is kept and a bad one gives the middle", () => {
 	assert.equal(cleanBar({ x: 0.25 }), 0.25);
@@ -21,4 +21,19 @@ test("the bar stays inside the stage", () => {
 
 test("a bar wider than the stage sits in the middle", () => {
 	assert.equal(clampCenter(10, 990, 1000, 8), 500);
+});
+
+test("the bar stays right of the open side panel", () => {
+	// the free stage starts at 300: the bar's left edge stops at 308
+	assert.equal(clampCenter(5, 400, 1000, 8, 300), 508);
+	assert.equal(clampCenter(990, 400, 1000, 8, 300), 792);
+	// too wide for the free stage: inside the window at the right, as the CSS puts it
+	assert.equal(clampCenter(400, 700, 1000, 8, 300), 642);
+});
+
+test("the share is taken of the free stage", () => {
+	assert.equal(shareOf(500, 1000), 0.5);
+	assert.equal(shareOf(650, 1000, 300), 0.5);
+	assert.equal(shareOf(100, 1000, 300), 0);
+	assert.equal(shareOf(300, 300, 300), BAR_START);
 });

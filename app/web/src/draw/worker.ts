@@ -45,7 +45,16 @@ function draw(p: Photo, long: number, c: Call): Uint8Array {
 		case "pencil":
 			return p.pencil(long, c.look, c.mask, pencilNumbers(c));
 		case "grid":
-			return p.grid(long, c.mode, c.cells, c.width, c.group, c.color, c.center);
+			return p.grid(
+				long,
+				c.mode,
+				c.cells,
+				c.width,
+				c.group,
+				c.color,
+				c.center,
+				c.cellsMilli,
+			);
 	}
 }
 

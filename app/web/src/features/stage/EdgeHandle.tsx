@@ -1,6 +1,7 @@
 // The handle on the right edge of the glass side panel (the left edge of the window when the panel is
-// hidden) that hides or shows it: a small round button half over the panel edge. It fades in when the
-// pointer is near the edge, and stays when the panel is hidden.
+// hidden) that hides or shows it: a small round button just right of the panel edge, off the resize
+// line so a drag that starts on the middle of the edge still resizes. It fades in when the pointer is
+// near the edge, and stays when the panel is hidden.
 import { IconButton } from "@/ui/icons";
 
 export default function EdgeHandle(p: {
@@ -14,7 +15,8 @@ export default function EdgeHandle(p: {
 			className={`group/edge absolute top-1/2 left-0 z-(--z-drawer) flex h-16 w-5 -translate-x-1/2 -translate-y-1/2 items-center justify-center ${
 				p.hidden
 					? ""
-					: "md:left-[calc(var(--panel-gap)+min(var(--left-w),50vw))]"
+					: // right of the resize line (4 px each side of the edge), so a drag on the middle of the edge resizes
+						"md:left-[calc(var(--panel-gap)+min(var(--left-w),50vw)+4px)] md:translate-x-0 md:justify-start"
 			}`}
 		>
 			<IconButton

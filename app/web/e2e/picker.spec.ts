@@ -634,6 +634,31 @@ test("test_a_tall_held_skin_card_stays_inside_a_short_stage", async ({
 	await expect(card).toHaveAttribute("data-pinned", "true");
 });
 
+test("test_shapes_legend_swatch_holds_a_pile_color", async ({ studio }) => {
+	const { page } = studio;
+	await studio.openSynthetic(480, 640, "piles.png");
+	await studio.base("shapes");
+	await page.keyboard.press("Escape");
+	const strip = page.getByTestId("legend-strip");
+	// the start step (Accents) has no piles; Shadows has some
+	await expect(strip.getByTestId("legend-swatch")).toHaveCount(0);
+	await studio.knob("shapes-step", 0);
+	await page.keyboard.press("Escape");
+	// the piles of the Paint step, as Munsell values; the value legend is not shown
+	await expect(strip.getByLabel("Mix piles")).toBeVisible();
+	await expect(strip.getByLabel("Value legend")).toHaveCount(0);
+	const swatch = strip.getByTestId("legend-swatch").first();
+	await expect(swatch).toHaveText(/^V\d+$/);
+	await swatch.getByRole("button").click();
+	await expect(page.getByTestId("picker-card").getByRole("heading")).toHaveText(
+		/^Paint mix · V\d+$/,
+	);
+	await expect(page.getByTestId("tool-picker")).toHaveAttribute(
+		"aria-pressed",
+		"true",
+	);
+});
+
 test("test_a_strip_swatch_holds_its_color_and_a_pencil_swatch_holds_its_grade", async ({
 	studio,
 }) => {

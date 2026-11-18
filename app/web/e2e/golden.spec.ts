@@ -2,7 +2,7 @@
 // layer and every preset or mode. Each layer picture is put on white, scaled to 128 px on the
 // long side and compared with e2e/golden/<layer>-<option>.png: the same size, and a mean
 // difference of at most 3.0 (the rule of `cargo xtask refs`). A missing golden fails.
-// `mise run web:golden:bless` writes them again; say in the commit why they moved.
+// `mise run web:golden:bless` writes again only the ones that fail; say in the commit why they moved.
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import type { Page } from "@playwright/test";
@@ -137,6 +137,15 @@ async function check(page: Page, layer: LayerId, name: string) {
 	const actual = await snapshot(page, layer);
 	const file = join(GOLDEN_DIR, `${name}.png`);
 	if (BLESS) {
+		// Keep a golden that still passes, so a bless moves only the pictures that changed.
+		if (existsSync(file)) {
+			const old = await meanDiff(
+				page,
+				actual,
+				readFileSync(file).toString("base64"),
+			);
+			if (old.same && old.mean <= MAX_MEAN_DIFF) return;
+		}
 		mkdirSync(GOLDEN_DIR, { recursive: true });
 		writeFileSync(file, Buffer.from(actual, "base64"));
 		return;

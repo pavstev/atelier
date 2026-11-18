@@ -63,6 +63,11 @@ export function clampCm(n: unknown, fallback = CM_MIN): number {
 	return Math.min(CM_MAX, Math.max(CM_MIN, x));
 }
 
+/** A side as typed in a Custom box, to keep in the choice. NaN is an empty box: it is kept as 0, which
+ * `paperCm` shows as the start side. Any number (0 and negatives too) is kept to `CM_MIN`..`CM_MAX`. */
+export const sideTyped = (v: number): number =>
+	Number.isNaN(v) ? 0 : clampCm(v);
+
 const isStart = (c: Choice) =>
 	c.paper === SIZE_START.paper &&
 	c.w === SIZE_START.w &&
@@ -153,28 +158,53 @@ export function shownWidthCm(
 	return (photoW / Math.max(photoW, photoH, 1)) * long;
 }
 
-/** The side of one Grid cell in cm: the long side of the paper over the cells across it. */
-export const cellCm = (paperLongCm: number, cells: number): number =>
-	paperLongCm / Math.max(1, cells);
+/** The side of one Grid cell in cm: the shown width over the cells across it (the core counts the
+ * cells across the width). */
+export const cellCm = (widthCm: number, cells: number): number =>
+	widthCm / Math.max(1, cells);
 
 /** A number of cm for the eye: one decimal at most, no trailing zero (21, 29.7, 6.7). */
 export const fmtCm = (n: number): string => String(Math.round(n * 10) / 10);
 
+/** The Grid steps in whole cm, in slider order: the ones a hand grid uses (7 and 9 are left out). */
+export const GRID_CM: readonly number[] = [1, 2, 3, 4, 5, 6, 8, 10];
+
+/** The fewest and the most squares across the width the core takes, in thousandths of a square
+ * (`MILLI_MIN` and `MILLI_MAX` in `grid.rs`). */
+export const GRID_MILLI_MIN = 100;
+export const GRID_MILLI_MAX = 500_000;
+
 /**
- * The one line under the chips. It names the paper, and the Grid cell when a Grid with cells is on
- * (`cells` is null otherwise). With Whole photo the cell is "about", because the photo and the paper
- * need not have the same shape.
+ * The squares across the width, in thousandths, for a Grid of `stepCm` squares on a picture that
+ * is `widthCm` wide on the paper (`shownWidthCm`). It is not whole when the step does not divide
+ * the width (30 cm in 4 cm steps is 7.5 squares: 7500). Kept inside the range the core takes: a
+ * picture narrower than a tenth of a step has no line anyway.
+ */
+export function gridMilli(widthCm: number, stepCm: number): number {
+	const n = Math.round((widthCm / Math.max(stepCm, 1e-9)) * 1000);
+	if (!Number.isFinite(n)) return GRID_MILLI_MIN;
+	return Math.min(GRID_MILLI_MAX, Math.max(GRID_MILLI_MIN, n));
+}
+
+/**
+ * The one line under the chips. It names the paper, and the Grid cell when a Grid is on: with
+ * cells (`cells` is null otherwise) the shown width over the cells, and with a Grid in cm
+ * (`stepCm`, else null) the step itself. With Whole photo the cell is "about", because the photo
+ * and the paper need not have the same shape.
  */
 export function factText(
 	c: Choice,
 	photoW: number,
 	photoH: number,
 	cells: number | null,
+	stepCm: number | null = null,
 ): string {
 	const cm = paperCm(c, photoW, photoH);
 	const head = `${fmtCm(cm.w)} × ${fmtCm(cm.h)} cm.`;
-	if (cells === null) return head;
-	const cell = fmtCm(cellCm(Math.max(cm.w, cm.h), cells));
+	if (stepCm === null && cells === null) return head;
+	const cell = fmtCm(
+		stepCm ?? cellCm(shownWidthCm(c, photoW, photoH), cells ?? 1),
+	);
 	return `${head} Grid cell: ${c.fit ? "" : "about "}${cell} cm.`;
 }
 

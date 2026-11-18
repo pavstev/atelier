@@ -16,16 +16,27 @@ export function cleanBar(raw: unknown): number {
 
 /**
  * The center of the bar in pixels, kept so the whole bar stays inside the stage (`edge` px of
- * room at each side). A bar wider than the stage sits in the middle.
+ * room at each side). `from` is where the free stage starts (the right edge of the open side
+ * panel, 0 when it is hidden). A bar wider than the free stage stays inside the window at the
+ * right, as `barLeft` in CSS does, or in the middle of the window when it is wider than that too.
  */
 export function clampCenter(
 	center: number,
 	bar: number,
 	stage: number,
 	edge: number,
+	from = 0,
 ): number {
-	const lo = bar / 2 + edge;
+	const lo = from + bar / 2 + edge;
 	const hi = stage - bar / 2 - edge;
-	if (lo >= hi) return stage / 2;
+	if (lo >= hi) return Math.max(stage / 2, hi);
 	return Math.min(hi, Math.max(lo, center));
+}
+
+/** The share of the free stage (from `from` to `stage`) at a pixel center; the middle when it has no width. */
+export function shareOf(center: number, stage: number, from = 0): number {
+	const room = stage - from;
+	return room > 0
+		? Math.min(1, Math.max(0, (center - from) / room))
+		: BAR_START;
 }

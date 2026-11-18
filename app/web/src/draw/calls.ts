@@ -105,6 +105,8 @@ export type Call =
 			layer: "grid";
 			mode: number;
 			cells: number;
+			/** 0 counts `cells`; else the squares across the width in thousandths (a grid in cm). */
+			cellsMilli: number;
 			width: number;
 			group: number;
 			center: number;

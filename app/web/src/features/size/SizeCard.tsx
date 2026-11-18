@@ -7,13 +7,13 @@ import { Switch, ToggleButton, ToggleButtonGroup } from "@heroui/react";
 import { NumberBox, Row, Segment } from "@/ui/fields";
 import {
 	type Choice,
-	CM_MAX,
 	CUSTOM,
 	factText,
 	ORIENTS,
 	PAPERS,
 	paperCm,
 	shownWidthCm,
+	sideTyped,
 } from "./paper";
 import SizePreview from "./SizePreview";
 import { useSettled } from "./useSettled";
@@ -33,8 +33,10 @@ export default function SizeCard(p: {
 	/** The photo before any cut, in px. */
 	photoW: number;
 	photoH: number;
-	/** The cells across the long side of the Grid, or null when no Grid with cells is on. */
+	/** The cells across the width of the Grid, or null when no Grid with cells is on. */
 	cells: number | null;
+	/** The step of a Grid in whole cm, or null when no Grid in cm is on. */
+	stepCm: number | null;
 	/** The real size is on (the zoom is locked to the paper width). */
 	real: boolean;
 	/** The width of the lit screen in cm; 0 when not known yet. */
@@ -53,15 +55,20 @@ export default function SizeCard(p: {
 	const side = (key: "w" | "h", v: number) =>
 		p.onChange((cur) => {
 			const now = paperCm(cur, photoW, photoH);
+			const typed = sideTyped(v);
 			return {
 				...cur,
 				paper: CUSTOM,
-				w: key === "w" ? Math.min(CM_MAX, v) : now.w,
-				h: key === "h" ? Math.min(CM_MAX, v) : now.h,
+				w: key === "w" ? typed : now.w,
+				h: key === "h" ? typed : now.h,
 			};
 		});
 	const width = useSettled(custom ? c.w : cm.w, (v) => side("w", v));
 	const height = useSettled(custom ? c.h : cm.h, (v) => side("h", v));
+	// an empty box is sent on as NaN; a typed 0 or negative stays a number (kept to the minimum)
+	const typeSide =
+		(s: { type: (v: number) => void }) => (v: number, empty: boolean) =>
+			s.type(empty ? Number.NaN : v);
 	return (
 		<>
 			<h2 className="flex min-h-(--icon-btn-bar) items-center text-sm font-medium">
@@ -115,14 +122,14 @@ export default function SizeCard(p: {
 						testid="size-width"
 						label="Width"
 						value={width.shown}
-						onChange={width.type}
+						onChange={typeSide(width)}
 						onBlur={width.flush}
 					/>
 					<NumberBox
 						testid="size-height"
 						label="Height"
 						value={height.shown}
-						onChange={height.type}
+						onChange={typeSide(height)}
 						onBlur={height.flush}
 					/>
 				</div>
@@ -177,7 +184,7 @@ export default function SizeCard(p: {
 					aria-live="polite"
 					className="min-h-8 text-xs text-muted"
 				>
-					{factText(c, photoW, photoH, p.cells)}
+					{factText(c, photoW, photoH, p.cells, p.stepCm)}
 				</p>
 			</div>
 		</>
