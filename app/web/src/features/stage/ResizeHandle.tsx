@@ -71,7 +71,7 @@ export default function ResizeHandle(p: {
 			aria-valuemin={p.min}
 			aria-valuemax={p.max}
 			data-testid="files-resize"
-			className="atelier-focus group/resize absolute inset-y-(--panel-gap) left-[calc(var(--panel-gap)+min(var(--left-w),50vw))] z-(--z-popup) w-2 -translate-x-1/2 cursor-col-resize touch-none select-none max-md:hidden"
+			className="atelier-focus group/resize absolute top-(--panel-top) bottom-(--panel-gap) left-[calc(var(--panel-gap)+min(var(--left-w),50vw))] z-(--z-popup) w-2 -translate-x-1/2 cursor-col-resize touch-none select-none max-md:hidden"
 			onPointerDown={(e) => {
 				if (e.button !== 0) return;
 				drag.current = { w: p.width, now: p.width };

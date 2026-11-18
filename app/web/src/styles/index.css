@@ -182,22 +182,32 @@ aside.glass {
 	bottom: max(1.25rem, calc(env(safe-area-inset-bottom) + 0.5rem));
 }
 
-/* Installed in Chrome or Edge with Window Controls Overlay: there is no title bar. The page draws up
- * into it and only the window buttons float on top. Safari, a normal tab and the other display modes
- * never match this query, so nothing here changes them. The env() values describe the free part of
- * the title bar: x is where it starts (the buttons are left of it on a Mac), width is how wide it is
- * (the buttons are right of it on Windows). */
+/* Installed in Chrome or Edge with Window Controls Overlay: there is no native title bar. The page
+ * draws its own: a translucent strip along the top edge, in the color of the page, with the photo
+ * blurred behind it. The logo sits in it, the Install button at its right end and, on a wide window,
+ * the photo list buttons (add, search, sort, layout), which `Files` moves into the slot
+ * `[data-testid="titlebar-tools"]`. The side panel starts under the strip. Safari, a normal tab and
+ * the other display modes never match this query, so nothing here changes them. The env() values
+ * describe the free part of the title bar: x is where it starts (the buttons are left of it on a
+ * Mac), width is how wide it is (the buttons are right of it on Windows). */
+.titlebar-tools {
+	display: none;
+}
 @media (display-mode: window-controls-overlay) {
-	/* An invisible strip along the top edge. Dragging it moves the window. It sits behind the page
-	 * (z-index -1), so it never catches a click. */
+	/* The strip. Dragging it moves the window. It sits over the stage (z-index 3) and under the panel,
+	 * the bar, the pop-ups and the logo. */
 	body::before {
 		content: "";
 		position: fixed;
 		top: 0;
 		left: 0;
 		right: 0;
-		height: env(titlebar-area-height, 0px);
-		z-index: -1;
+		height: env(titlebar-area-height, 2.5rem);
+		z-index: 3;
+		background: color-mix(in oklab, var(--background) 72%, transparent);
+		border-bottom: 1px solid var(--glass-edge);
+		-webkit-backdrop-filter: var(--glass-blur);
+		backdrop-filter: var(--glass-blur);
 		-webkit-app-region: drag;
 		app-region: drag;
 	}
@@ -219,24 +229,43 @@ aside.glass {
 		-webkit-app-region: no-drag;
 		app-region: no-drag;
 	}
-	/* The logo starts right of the window buttons, and sits in the middle of the title bar height
-	 * when the side panel is hidden. With the panel open it stays level with the panel's top row. */
+	/* The logo starts right of the window buttons. On a narrow window (a drawer) it sits in the middle
+	 * of the title bar height when the side panel is hidden, and level with the panel's top row when
+	 * it is open. On a wide window it always sits in the middle of the strip. */
 	[data-testid="logo"] {
 		left: max(0.75rem, calc(env(titlebar-area-x, 0px) + 0.5rem));
 	}
-	:root:has([data-testid="files"][data-collapsed="true"]) [data-testid="logo"] {
-		top: max(
-			0px,
-			calc((env(titlebar-area-height, 2.5rem) - var(--logo-h)) / 2)
-		);
+	@media (max-width: 767px) {
+		:root:has([data-testid="files"][data-collapsed="true"])
+			[data-testid="logo"] {
+			top: max(
+				0px,
+				calc((env(titlebar-area-height, 2.5rem) - var(--logo-h)) / 2)
+			);
+		}
 	}
 	@media (min-width: 768px) {
-		:root:has([data-testid="files"][data-collapsed="false"])
-			[data-testid="logo"] {
-			left: max(
-				calc(var(--panel-gap) + var(--panel-pad) + 1px),
-				calc(env(titlebar-area-x, 0px) + 0.5rem)
+		:root {
+			--panel-top: calc(env(titlebar-area-height, 2.5rem) + 0.25rem);
+		}
+		:root [data-testid="logo"] {
+			top: max(
+				0px,
+				calc((env(titlebar-area-height, 2.5rem) - var(--logo-h)) / 2)
 			);
+			left: max(0.75rem, calc(env(titlebar-area-x, 0px) + 0.5rem));
+		}
+		/* The photo list buttons: right of the logo, ending at the right edge of the panel below. */
+		.titlebar-tools {
+			position: fixed;
+			top: 0;
+			height: env(titlebar-area-height, 2.5rem);
+			left: calc(max(0.75rem, env(titlebar-area-x, 0px) + 0.5rem) + 5.5rem);
+			right: calc(100vw - var(--panel-gap) - min(var(--left-w), 50vw));
+			z-index: 4;
+			display: flex;
+			align-items: center;
+			padding-right: var(--panel-pad);
 		}
 	}
 	/* The top-right corner (the Install button) ends at the window buttons on Windows, where they sit

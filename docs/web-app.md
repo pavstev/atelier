@@ -296,11 +296,14 @@ has these folders. Paths below are under `src/`.
   (Share on Android: `POST /share`). The worker keeps shared files in the `atelier-share` cache
   until the page reads them, then empties it. A share that no service worker takes (the app never
   opened on this device) gets a redirect to the app from the Cloudflare Worker, not an error.
-- Installed in Chrome or Edge, the app uses Window Controls Overlay: there is no title bar, the
-  page draws up to the top edge and only the window buttons float on top. Safari always keeps its
-  native title bar, and Ctrl+Cmd+F hides it.
+- Installed in Chrome or Edge, the app uses Window Controls Overlay: there is no native title bar.
+  The page draws its own, a translucent strip in the page color along the top edge (drag it to move
+  the window). The logo and the Install button sit in it. On a wide window the photo list buttons
+  (add, search, sort, layout) sit in it too, right of the logo, and the side panel starts under it.
+  Show the native title bar again (the button at the top right of the window) and the buttons go
+  back into the panel. Safari always keeps its native title bar, and Ctrl+Cmd+F hides it.
 - `src/sw/` is the worker (`sw.ts`, `routes.ts`, `precache.ts`). `src/pwa/` is the page side:
-  `register.ts`, `state.ts`, `usePwa.ts`, `InstallButton.tsx`, `intake.ts`
+  `register.ts`, `state.ts`, `usePwa.ts`, `useTitleSlot.ts`, `InstallButton.tsx`, `intake.ts`
   (launched and shared photos) and `persist.ts` (asks the browser to keep the photo store).
 - A photo is decoded and tiled off the main thread by `features/photos/decodeWorker.ts`.
 

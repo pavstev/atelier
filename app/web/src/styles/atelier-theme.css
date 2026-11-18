@@ -91,6 +91,9 @@
 		--panel-pad: 0.75rem;
 		/* the gap between the glass side panel and the window edge (a wide window) */
 		--panel-gap: 0.75rem;
+		/* where the side panel starts from the top (a wide window); an installed app with a title bar
+		 * overlay moves it down under the bar (index.css) */
+		--panel-top: var(--panel-gap);
 		--logo-h: 2rem;
 		--shadow-photo:
 			0 2px 6px rgb(0 0 0 / 0.3), 0 18px 48px rgb(0 0 0 / 0.38),

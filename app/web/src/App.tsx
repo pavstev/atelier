@@ -120,6 +120,8 @@ export default function App() {
 				<Logo className="h-[21px] w-auto" outline={layout.panels.left} />
 				<span className="sr-only">Atelier</span>
 			</div>
+			{/* the title bar slot of an installed app: the photo buttons move in here (see index.css) */}
+			<div data-testid="titlebar-tools" className="titlebar-tools" />
 			<div className="fixed top-3 right-3 z-(--z-banner)">
 				<InstallButton />
 			</div>

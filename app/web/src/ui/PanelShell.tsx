@@ -42,7 +42,7 @@ export default function PanelShell(
 				aria-label={label}
 				data-testid={testid}
 				data-collapsed="false"
-				className={`glass fixed flex flex-col gap-2 overflow-hidden p-(--panel-pad) max-md:inset-y-0 max-md:left-0 max-md:z-(--z-drawer) max-md:w-[min(var(--left-w),88vw)] md:inset-y-(--panel-gap) md:left-(--panel-gap) md:z-(--z-panel) md:w-[min(var(--left-w),50vw)] md:rounded-(--radius-card) ${className ?? ""}`}
+				className={`glass fixed flex flex-col gap-2 overflow-hidden p-(--panel-pad) max-md:inset-y-0 max-md:left-0 max-md:z-(--z-drawer) max-md:w-[min(var(--left-w),88vw)] md:top-(--panel-top) md:bottom-(--panel-gap) md:left-(--panel-gap) md:z-(--z-panel) md:w-[min(var(--left-w),50vw)] md:rounded-(--radius-card) ${className ?? ""}`}
 				{...drag}
 			>
 				{children}

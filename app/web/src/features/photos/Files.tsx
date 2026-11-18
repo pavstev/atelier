@@ -1,10 +1,13 @@
 // The left panel: the photo list, full height. The first row holds the logo (fixed to the window
 // corner in `App.tsx`) and, on its right, the icon buttons: add photos, search, sort and the list or
-// tiles switch. Under it one list of the photos on this device, which scrolls inside itself (a row
+// tiles switch. In an installed app with a title bar overlay (a wide window) those buttons sit in the
+// translucent title bar instead, level with the logo, and the panel starts under the bar. Under it one list of the photos on this device, which scrolls inside itself (a row
 // is `PhotoRow`). The panel hides fully; the handle on its edge (`EdgeHandle`) brings it back.
 // Photos can be dropped on the panel. Everything stays on the device.
 import { Dropdown, Label, ScrollShadow, SearchField } from "@heroui/react";
 import { useMemo, useState } from "react";
+import { createPortal } from "react-dom";
+import { useTitleSlot } from "@/pwa/useTitleSlot";
 import { IconButton } from "@/ui/icons";
 import PanelShell from "@/ui/PanelShell";
 import { useFileDrop } from "@/ui/useFileDrop";
@@ -41,6 +44,7 @@ export default function Files(p: Props) {
 	const [searching, setSearching] = useState(false);
 	const [view, setView] = useState<View>(readView);
 	const drop = useFileDrop(p.onFiles);
+	const slot = useTitleSlot();
 	const change = (next: Partial<View>) =>
 		setView((v) => {
 			const n = { ...v, ...next };
@@ -64,6 +68,54 @@ export default function Files(p: Props) {
 	);
 	const narrowed = terms.length > 0;
 
+	const tools = (
+		<>
+			<IconButton
+				label="Add photos"
+				icon="plus"
+				testid="photo-add"
+				variant="primary"
+				onPress={p.onAdd}
+			/>
+			<IconButton
+				label="Search photos"
+				icon="search"
+				testid="photo-search-toggle"
+				pressed={searching}
+				onPress={() => (searching ? closeSearch() : setSearching(true))}
+			/>
+			<Dropdown>
+				<IconButton label="Sort photos" icon="sort" testid="photo-sort" />
+				<Dropdown.Popover className="min-w-40">
+					<Dropdown.Menu
+						selectionMode="single"
+						disallowEmptySelection
+						selectedKeys={new Set([view.sort])}
+						onSelectionChange={(keys) => {
+							const next = SORTS.find((s) => keys !== "all" && keys.has(s.id));
+							if (next) change({ sort: next.id });
+						}}
+					>
+						{SORTS.map((s) => (
+							<Dropdown.Item key={s.id} id={s.id} textValue={s.label}>
+								<Dropdown.ItemIndicator />
+								<Label>{s.label}</Label>
+							</Dropdown.Item>
+						))}
+					</Dropdown.Menu>
+				</Dropdown.Popover>
+			</Dropdown>
+			<IconButton
+				label={view.layout === "tiles" ? "Show as a list" : "Show as tiles"}
+				icon={view.layout === "tiles" ? "list" : "grid"}
+				testid="photo-layout"
+				onPress={() =>
+					change({ layout: view.layout === "tiles" ? "list" : "tiles" })
+				}
+			/>
+		</>
+	);
+
 	return (
 		<PanelShell
 			label="Photos"
@@ -73,53 +125,18 @@ export default function Files(p: Props) {
 			className={drop.over ? "ring-2 ring-accent ring-inset" : ""}
 			{...drop.props}
 		>
-			<div className="flex h-(--logo-h) shrink-0 items-center justify-end gap-1">
-				<IconButton
-					label="Add photos"
-					icon="plus"
-					testid="photo-add"
-					variant="primary"
-					onPress={p.onAdd}
-				/>
-				<IconButton
-					label="Search photos"
-					icon="search"
-					testid="photo-search-toggle"
-					pressed={searching}
-					onPress={() => (searching ? closeSearch() : setSearching(true))}
-				/>
-				<Dropdown>
-					<IconButton label="Sort photos" icon="sort" testid="photo-sort" />
-					<Dropdown.Popover className="min-w-40">
-						<Dropdown.Menu
-							selectionMode="single"
-							disallowEmptySelection
-							selectedKeys={new Set([view.sort])}
-							onSelectionChange={(keys) => {
-								const next = SORTS.find(
-									(s) => keys !== "all" && keys.has(s.id),
-								);
-								if (next) change({ sort: next.id });
-							}}
-						>
-							{SORTS.map((s) => (
-								<Dropdown.Item key={s.id} id={s.id} textValue={s.label}>
-									<Dropdown.ItemIndicator />
-									<Label>{s.label}</Label>
-								</Dropdown.Item>
-							))}
-						</Dropdown.Menu>
-					</Dropdown.Popover>
-				</Dropdown>
-				<IconButton
-					label={view.layout === "tiles" ? "Show as a list" : "Show as tiles"}
-					icon={view.layout === "tiles" ? "list" : "grid"}
-					testid="photo-layout"
-					onPress={() =>
-						change({ layout: view.layout === "tiles" ? "list" : "tiles" })
-					}
-				/>
-			</div>
+			{slot ? (
+				createPortal(
+					<div className="ml-auto flex shrink-0 items-center gap-1">
+						{tools}
+					</div>,
+					slot,
+				)
+			) : (
+				<div className="flex h-(--logo-h) shrink-0 items-center justify-end gap-1">
+					{tools}
+				</div>
+			)}
 			{searching && (
 				<SearchField
 					autoFocus
