@@ -244,7 +244,7 @@ export default function Files(p: Props) {
 			data-layout={view.layout}
 			className={
 				tiles
-					? "grid grid-cols-[repeat(auto-fill,minmax(5.5rem,1fr))] gap-1"
+					? "grid grid-cols-[repeat(auto-fill,minmax(5.5rem,6.5rem))] justify-start gap-1"
 					: "flex flex-col gap-px"
 			}
 		>

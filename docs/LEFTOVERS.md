@@ -36,8 +36,6 @@ own, with the bench in [development/bench.md](development/bench.md).
 | 73 | Pencil bench, 2026-11-18: Hatch is the weakest look (MS-SSIM 0.53 to 0.85, false contours 40 percent on average, gradient reversal 13 percent). After a 2 px blur its tone error matches Tone, so the strokes break the structure, not the tone. | `crates/atelier-core/src/pencil/hatch.rs`, `bench/pencil-eval/` |
 | 74 | Pencil bench, 2026-11-18: Auto uses only 0.746 of the pencil range on two of six photos (a dark space photo and a dark interior), in every look, Tone too. Check whether Auto should stretch to the full range. | `crates/atelier-core/src/pencil/` |
 | 75 | Pencil bench, 2026-11-18: Lifted lights barely moves tone error or banding but adds grain in the lights (grain bias 0.06 on Drawing, 0.12 on Hatch). Smudge on Drawing cuts banding from 23 to 2 percent but softens structure (MS-SSIM 0.90 to 0.85). Rate both by eye before tuning. | `crates/atelier-core/src/pencil/smudge.rs`, `crates/atelier-core/src/pencil/` |
-| 77 | Folder list: in tiles mode a lone tile under a nested folder is bigger than the tiles at the top (the auto-fill grid has fewer, wider columns in the narrower indented area). Fix idea: a fixed tile size with the grid left-aligned, checked on the top list too. | `app/web/src/features/photos/Files.tsx` `photoList` |
-| 78 | The reload on a failed lazy chunk (`vite:preloadError`) is covered only by a unit test of the guard. The browser test runs on the dev server, where that event never fires. Test it once on the built app (`PREVIEW=1`): block a chunk, see one reload, then the message. | `app/web/e2e/chunk-error.spec.ts`, `app/web/src/pwa/reloadOnce.ts` |
 
 ## Where leftovers come from
 
