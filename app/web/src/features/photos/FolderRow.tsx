@@ -1,7 +1,9 @@
 // One folder of the list: an arrow, the folder icon, the name and how many photos are in it (the
-// folders inside count too). A click opens or closes it. On hover or focus four small buttons float
-// over the right end: a new folder inside, rename, move and delete. The row can be dragged onto
-// another folder, and photos and folders can be dropped on it (`drag.ts`).
+// folders inside count too). A click opens or closes it; a double-click or F2 renames it. On hover
+// or focus three small buttons float over the right end: a new folder inside, move and delete (a
+// fourth would hide the name on a narrow panel; a touch screen also gets the pen, as it has no
+// double-click or F2). The row can be dragged onto another folder, and
+// photos and folders can be dropped on it (`drag.ts`).
 import { Input } from "@heroui/react";
 import { memo, useState } from "react";
 import { Icon, IconButton } from "@/ui/icons";
@@ -38,6 +40,10 @@ const FolderRow = memo(function FolderRow(p: Props) {
 		const name = text.trim();
 		if (save && name && name !== f.name) p.onRename(f.id, name);
 		else setText(f.name);
+	};
+	const startRename = () => {
+		setText(f.name);
+		p.onEditing(f.id, true);
 	};
 	return (
 		<div
@@ -76,7 +82,12 @@ const FolderRow = memo(function FolderRow(p: Props) {
 					data-testid="folder-toggle"
 					aria-expanded={p.open}
 					className="atelier-focus flex min-w-0 flex-1 cursor-pointer items-center gap-1 rounded-(--radius-chip) text-start text-sm"
+					title="Double-click or press F2 to rename"
 					onClick={() => p.onToggle(f.id, !p.open)}
+					onDoubleClick={startRename}
+					onKeyDown={(e) => {
+						if (e.key === "F2") startRename();
+					}}
 				>
 					<Icon
 						name={p.open ? "down" : "right"}
@@ -105,17 +116,15 @@ const FolderRow = memo(function FolderRow(p: Props) {
 						className={ACTION}
 						onPress={() => p.onNewInside(f.id)}
 					/>
+					{/* a touch screen has no double-click or F2: the pen shows there only */}
 					<IconButton
 						label={`Rename ${f.name}`}
 						tip="Rename"
 						icon="pen"
 						testid="folder-rename"
 						size="row"
-						className={ACTION}
-						onPress={() => {
-							setText(f.name);
-							p.onEditing(f.id, true);
-						}}
+						className={`${ACTION} hidden pointer-coarse:inline-flex`}
+						onPress={startRename}
 					/>
 					<MoveMenu
 						label={`Move ${f.name}`}

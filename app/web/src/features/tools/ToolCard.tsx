@@ -3,6 +3,7 @@
 // fallback holds the card's width and a floor of its height, so the card does not jump much.
 import { lazy, Suspense } from "react";
 import type { PencilExtras } from "@/features/pencil/usePencilExtras";
+import { LoadBoundary } from "@/ui/LoadBoundary";
 import type { Look, StageId } from "./settings";
 
 const Panel = lazy(() => import("./PanelCard"));
@@ -26,17 +27,21 @@ export function ToolCard(p: {
 	paper: boolean;
 }) {
 	return (
-		<Suspense fallback={<Hold rows={p.id === "base" ? 3 : 6} />}>
-			<Panel {...p} />
-		</Suspense>
+		<LoadBoundary>
+			<Suspense fallback={<Hold rows={p.id === "base" ? 3 : 6} />}>
+				<Panel {...p} />
+			</Suspense>
+		</LoadBoundary>
 	);
 }
 
 /** The Paper card. */
 export function SizeCardLazy(p: React.ComponentProps<typeof Size>) {
 	return (
-		<Suspense fallback={<Hold rows={8} />}>
-			<Size {...p} />
-		</Suspense>
+		<LoadBoundary>
+			<Suspense fallback={<Hold rows={8} />}>
+				<Size {...p} />
+			</Suspense>
+		</LoadBoundary>
 	);
 }

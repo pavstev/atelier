@@ -233,7 +233,8 @@ The left panel is the photo list and nothing else, full height.
 - A folder holds photos and other folders, to any depth. A photo is in one folder, or at the top.
 - A folder row has an arrow, a name and a count of the photos inside (the folders inside count
   too). Click it to open or close it. Which folders are open is remembered.
-- Hold the pointer on a folder row for four buttons: a new folder inside, rename, move and delete.
+- Hold the pointer on a folder row for three buttons: a new folder inside, move and delete.
+  Double-click the name, or press F2, to rename it.
 - Drag a photo or a folder onto a folder row to move it in. Drop it on the open part under a
   folder, or on empty space, to put it there (empty space is the top). A folder cannot go into
   itself or into a folder inside it.
@@ -324,6 +325,9 @@ has these folders. Paths below are under `src/`.
 - `src/sw/` is the worker (`sw.ts`, `routes.ts`, `precache.ts`). `src/pwa/` is the page side:
   `register.ts`, `state.ts`, `usePwa.ts`, `useTitleSlot.ts`, `InstallButton.tsx`, `intake.ts`
   (launched and shared photos) and `persist.ts` (asks the browser to keep the photo store).
+- A lazy part (a tool card, the color picker) that fails to load reloads the page once
+  (`pwa/reloadOnce.ts`); if it still fails, `ui/LoadBoundary.tsx` shows a short message and a
+  Reload button.
 - A photo is decoded and tiled off the main thread by `features/photos/decodeWorker.ts`.
 
 ### Photos on this device

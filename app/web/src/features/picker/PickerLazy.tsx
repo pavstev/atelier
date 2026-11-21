@@ -9,6 +9,11 @@ import {
 	useLayoutEffect,
 	useRef,
 } from "react";
+import { LoadBoundary } from "@/ui/LoadBoundary";
+
+/** The look of the failed message: a banner on the stage, like the error banner (`StageArea.tsx`). */
+const FAILED =
+	"absolute top-4 left-1/2 z-(--z-banner) -translate-x-1/2 rounded-(--radius-chip) bg-surface py-1 ps-3 pe-1 shadow-overlay";
 
 const load = () => import("./Picker");
 const Picker = lazy(load);
@@ -53,8 +58,10 @@ export default function PickerLazy(p: Props) {
 		};
 	}, [p.box]);
 	return (
-		<Suspense fallback={null}>
-			<Picker {...p} startAt={last} />
-		</Suspense>
+		<LoadBoundary className={FAILED}>
+			<Suspense fallback={null}>
+				<Picker {...p} startAt={last} />
+			</Suspense>
+		</LoadBoundary>
 	);
 }

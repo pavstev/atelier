@@ -105,16 +105,16 @@ test("test_enter_keeps_the_first_name_and_rename_changes_it", async ({
 	await page.getByTestId("folder-new").click();
 	await page.getByTestId("folder-name").press("Enter");
 	await expect(folder(page, "New folder")).toBeVisible();
-	// the pen opens the name again; an empty name keeps the old one
+	// a double-click opens the name again; an empty name keeps the old one
 	const row = folder(page, "New folder");
-	await row.hover();
-	await row.getByTestId("folder-rename").click();
+	await row.getByTestId("folder-toggle").dblclick();
 	const input = page.getByTestId("folder-name");
 	await input.fill("   ");
 	await input.press("Enter");
 	await expect(folder(page, "New folder")).toBeVisible();
-	await folder(page, "New folder").hover();
-	await folder(page, "New folder").getByTestId("folder-rename").click();
+	// F2 does the same
+	await folder(page, "New folder").getByTestId("folder-toggle").focus();
+	await page.keyboard.press("F2");
 	await page.getByTestId("folder-name").fill("Faces");
 	await page.getByTestId("folder-name").press("Enter");
 	await expect(folder(page, "Faces")).toBeVisible();
@@ -436,4 +436,18 @@ test("test_tiles_show_a_grid_under_an_open_folder", async ({ studio }) => {
 	// a tile still carries its hover buttons
 	await photo(page, "one.png").hover();
 	await expect(photo(page, "one.png").getByTestId("photo-move")).toBeVisible();
+});
+
+// After a menu closes with Esc, the focus goes back to the plus and its tip can stay open under it.
+// The tip must not take the pointer, or the first folder row below it cannot be hovered.
+test("test_a_tip_left_under_the_plus_does_not_block_the_row_below", async ({
+	studio,
+}) => {
+	const { page } = studio;
+	await newFolder(page, "Studies");
+	await page.getByTestId("photo-add").click();
+	await page.keyboard.press("Escape");
+	const row = folder(page, "Studies");
+	await row.hover();
+	await expect(row.getByTestId("folder-new-inside")).toBeVisible();
 });

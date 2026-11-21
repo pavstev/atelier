@@ -34,7 +34,13 @@ export function useFolders(onSaveFail: () => void) {
 	}, [apply]);
 
 	const [openIds, setOpenIds] = useState<string[]>(readOpen);
-	useSaved(KEYS.open, openIds);
+	// the ids of deleted folders are not kept
+	const kept = useMemo(() => {
+		const ids = new Set(folders.map((f) => f.id));
+		const left = openIds.filter((id) => ids.has(id));
+		return left.length === openIds.length ? openIds : left;
+	}, [openIds, folders]);
+	useSaved(KEYS.open, kept);
 	const open = useMemo(() => new Set(openIds), [openIds]);
 	const setOpen = useCallback(
 		(id: string, on: boolean) =>

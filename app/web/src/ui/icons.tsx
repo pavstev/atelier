@@ -100,7 +100,11 @@ export function Tip(p: {
 	return (
 		<Tooltip delay={tipDelay()}>
 			{p.children}
-			<Tooltip.Content placement={p.placement ?? "bottom"}>
+			<Tooltip.Content
+				placement={p.placement ?? "bottom"}
+				// a tip never takes a pointer: after a menu closes its tip can stay under the button
+				className="pointer-events-none"
+			>
 				{p.text}
 			</Tooltip.Content>
 		</Tooltip>

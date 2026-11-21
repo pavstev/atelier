@@ -119,6 +119,8 @@ test("test_five_big_photos_keep_one_photo_in_the_worker", async ({
 	const cold = await show(4, "big1.png");
 	const warm = await show(0, "big5.png");
 	console.log(`SWITCH cold=${cold} ms warm=${warm} ms`);
-	expect(warm).toBeLessThan(1000);
+	// the real guard is `data-held` above (one photo in the worker); the time has 50 percent
+	// headroom, because a loaded machine measured 1006 ms on the base commit at a 1000 ms limit
+	expect(warm).toBeLessThan(1500);
 	expect(await photoWidth(page)).toBe("3840");
 });

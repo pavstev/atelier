@@ -27,6 +27,7 @@ import {
 import { cleanDocs } from "../src/features/photos/store/schema";
 import { hex, sha256Hex } from "../src/lib/bytes";
 import { keepNewest, Lru } from "../src/lib/lru";
+import { RELOAD_FLAG, RELOAD_GAP_MS, reloadOnce } from "../src/pwa/reloadOnce";
 
 const doc = (name: string, size = 1, at = 1): Doc => ({
 	id: name,
@@ -486,4 +487,34 @@ test("test_merge_keeps_a_move_the_other_tab_made_and_this_pages_own_move", () =>
 	// this page moved "b" itself: its move stands
 	const mine = [doc("a"), at(doc("b"), "y")];
 	expect(mergeDocs(base, mine, base)[1]?.folder).toBe("y");
+});
+
+test("test_reload_once_reloads_then_waits_a_minute", () => {
+	const map = new Map<string, string>();
+	const store = {
+		getItem: (k: string) => map.get(k) ?? null,
+		setItem: (k: string, v: string) => void map.set(k, v),
+	};
+	let reloads = 0;
+	const reload = () => void reloads++;
+	expect(reloadOnce(store, reload, 1_000)).toBe(true);
+	expect(map.has(RELOAD_FLAG)).toBe(true);
+	// the chunk is still broken on the reloaded page: no loop
+	expect(reloadOnce(store, reload, 2_000)).toBe(false);
+	expect(reloadOnce(store, reload, 1_000 + RELOAD_GAP_MS - 1)).toBe(false);
+	expect(reloads).toBe(1);
+	// a minute later one more reload is allowed
+	expect(reloadOnce(store, reload, 1_000 + RELOAD_GAP_MS)).toBe(true);
+	expect(reloads).toBe(2);
+	// a storage that throws never reloads, and never throws
+	const broken = {
+		getItem: () => {
+			throw new Error("denied");
+		},
+		setItem: () => {
+			throw new Error("denied");
+		},
+	};
+	expect(reloadOnce(broken, reload)).toBe(false);
+	expect(reloads).toBe(2);
 });

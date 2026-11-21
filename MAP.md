@@ -20,12 +20,12 @@ Atelier is a photo study tool for painters: a Rust core (wasm) behind a React we
 | `app/web/src/features/size/` | the Paper tool (was Size): `paper.ts` (paper table, crop rectangle, fact line, clean save), `crop.ts`, `useSize.ts` (the choice per photo and the cut photo), `SizeCard.tsx`, `SizePreview.tsx` | changing the paper or canvas frame |
 | `app/web/src/features/tools/` | `Panel.tsx` (the Base, Edges and Grid card bodies) and `settings.ts` (the start values and ranges of every part) | changing a tool |
 | `app/web/src/draw/` | the draw pipeline: `worker.ts` (the layers worker), `coreClient.ts`, `calls.ts`, `useLayers.ts`, `facts.ts` | changing how a layer is drawn |
-| `app/web/src/ui/` | parts that know nothing about photos: `fields.tsx`, `icons.tsx` (`Icon`, `IconButton`, `Tip`), `PanelShell.tsx`, `Logo.tsx`, `useFrameDrag.ts` (the drag of the bar grip and the panel edge) | changing a shared control |
+| `app/web/src/ui/` | parts that know nothing about photos: `fields.tsx`, `icons.tsx` (`Icon`, `IconButton`, `Tip`), `PanelShell.tsx`, `Logo.tsx`, `LoadBoundary.tsx` (a lazy part that fails shows a Reload button), `useFrameDrag.ts` (the drag of the bar grip and the panel edge) | changing a shared control |
 | `app/web/src/lib/` | `keys.ts` (every saved key), `storage.ts` (load and save them) and small helpers | changing what is saved |
 | `app/web/src/styles/` | `index.css` and `atelier-theme.css` (colors and the design sizes: radius, icon buttons, z-index, tooltip delay) | changing the look |
 | `app/web/e2e/` | the Playwright suite (headless Chromium only) and the golden pictures | changing browser tests |
 | `app/web/src/sw/` | the service worker: `sw.ts`, `routes.ts`, `precache.ts`; built to `/sw.js` by `app/web/scripts/swPlugin.ts` | changing offline or caching |
-| `app/web/src/pwa/` | the page side: `register.ts`, `state.ts`, `usePwa.ts`, `useTitleSlot.ts`, `labels.ts`, `InstallButton.tsx`, `intake.ts`, `persist.ts` | changing install, update, Open with or Share |
+| `app/web/src/pwa/` | the page side: `register.ts`, `state.ts`, `usePwa.ts`, `useTitleSlot.ts`, `labels.ts`, `InstallButton.tsx`, `intake.ts`, `persist.ts`, `reloadOnce.ts` (reload once when a lazy chunk is gone after a deploy) | changing install, update, Open with or Share |
 | `app/web/src/edge/` | `worker.ts`: the Cloudflare Worker script, only for a `POST /share` that no service worker took | changing what Cloudflare runs |
 | `app/web/public/` | favicons, app icons, share images, `manifest.webmanifest`, `_headers` | changing icons or the manifest |
 | `app/web/brand/` | the logo source for favicons and share images | changing the brand |
