@@ -30,6 +30,8 @@ const ICONS = {
 	grip: "M6 3.5h.01M6 8h.01M6 12.5h.01M10 3.5h.01M10 8h.01M10 12.5h.01",
 	left: "M10 3L5 8l5 5",
 	right: "M6 3l5 5-5 5",
+	folder: "M2 4.5h4l1.5 1.5H14v7H2z",
+	move: "M2.5 8h8M7.5 5l3 3-3 3M13.5 3.5v9",
 } as const;
 
 export type IconName = keyof typeof ICONS;

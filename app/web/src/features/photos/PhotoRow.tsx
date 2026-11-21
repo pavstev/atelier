@@ -4,9 +4,11 @@
 import { Input, Tooltip } from "@heroui/react";
 import { memo, useState } from "react";
 import { IconButton, tipDelay } from "@/ui/icons";
+import { startDrag } from "./drag";
+import MoveMenu from "./MoveMenu";
 import PhotoCard from "./PhotoCard";
 import { highlight } from "./search";
-import type { Doc } from "./store";
+import type { Doc, Folder } from "./store";
 
 /** The pen and the bin: a `row` icon button that fills on hover (the bin turns red). */
 const ROW_ACTION = "rounded-field transition-colors hover:bg-foreground/15";
@@ -20,7 +22,14 @@ function Thumb(p: { src: string; tile?: boolean }) {
 				p.tile ? "aspect-square w-full" : "size-7"
 			}`}
 		>
-			{p.src && <img src={p.src} alt="" className="size-full object-contain" />}
+			{p.src && (
+				<img
+					src={p.src}
+					alt=""
+					draggable={false}
+					className="size-full object-contain"
+				/>
+			)}
 		</span>
 	);
 }
@@ -50,7 +59,12 @@ type RowProps = {
 	tile: boolean;
 	active: boolean;
 	terms: string[];
+	/** All folders, for the move menu. */
+	folders: Folder[];
+	/** The folder path to show under the name (a search result), or "". */
+	where: string;
 	onSelect: (id: string) => void;
+	onMove: (id: string, folder: string) => void;
 	onRename: (id: string, name: string) => void;
 	onRemove: (id: string) => void;
 	onFacts: (id: string, change: Partial<Doc>) => void;
@@ -72,6 +86,8 @@ const PhotoRow = memo(function PhotoRow(p: RowProps) {
 		<li
 			data-testid="photo-row"
 			data-active={p.active}
+			draggable={!editing}
+			onDragStart={(e) => startDrag(e, { kind: "photo", id: d.id })}
 			className={`group relative flex rounded-field bg-(--row) hover:[--row:var(--default)] ${
 				tile ? "flex-col gap-1 p-1" : "items-center gap-2 px-1 py-0.5"
 			} ${p.active ? "[--row:var(--card)] shadow-surface" : "[--row:transparent]"}`}
@@ -112,7 +128,19 @@ const PhotoRow = memo(function PhotoRow(p: RowProps) {
 							onClick={() => p.onSelect(d.id)}
 						>
 							<Thumb src={d.thumb} tile={tile} />
-							<Name name={d.name} terms={p.terms} />
+							{p.where ? (
+								<span className="flex min-w-0 flex-col">
+									<Name name={d.name} terms={p.terms} />
+									<span
+										data-testid="photo-where"
+										className="truncate text-xs text-muted"
+									>
+										{p.where}
+									</span>
+								</span>
+							) : (
+								<Name name={d.name} terms={p.terms} />
+							)}
 						</button>
 					</Tooltip.Trigger>
 					<Tooltip.Content placement="right" offset={14}>
@@ -139,6 +167,14 @@ const PhotoRow = memo(function PhotoRow(p: RowProps) {
 							setText(d.name);
 							setEditing(true);
 						}}
+					/>
+					<MoveMenu
+						label={`Move ${d.name}`}
+						testid="photo-move"
+						folders={p.folders}
+						current={d.folder}
+						className={ROW_ACTION}
+						onMove={(to) => p.onMove(d.id, to)}
 					/>
 					<IconButton
 						label={`Delete ${d.name}`}

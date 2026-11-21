@@ -9,6 +9,10 @@ export const KEYS = {
 	bar: "atelier-web-bar",
 	/** The list of photos (name, size, preview). */
 	docs: "atelier-web-kept",
+	/** The folders of the photo list (id, name, parent folder). */
+	folders: "atelier-web-folders",
+	/** The ids of the folders that are open in the photo list. */
+	open: "atelier-web-folders-open",
 	/** The id of the photo that was on screen last. */
 	active: "atelier-web-active",
 	/** The sort and the layout of the photo list. */

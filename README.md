@@ -47,7 +47,7 @@ Then open http://localhost:5173/. More commands: [CONTRIBUTING.md](CONTRIBUTING.
 | ✏️ **Edges** | A line drawing traced from the photo: Lines, Transfer or Masses. Big forms get heavy lines, detail gets light ones. |
 | 📐 **Grid** | Thirds, a square grid or both, to copy proportions. Contrast lines stay visible on any part of the photo. |
 | 📏 **Real size** | Lock the zoom to a width in cm and hold a brush or a canvas next to the screen. |
-| 🗂️ **Your photo list** | Every photo you add stays in the list, with its own zoom. Search, sort, list or tiles. |
+| 🗂️ **Your photo list** | Every photo you add stays in the list, with its own zoom. Folders, search, sort, list or tiles. |
 | 🔒 **Private by design** | The photo is decoded and drawn on your device. No upload, no analytics, no account. |
 | 🦀 **One Rust core** | All pixel work is Rust compiled to wasm. The same photo gives the same bytes every time. |
 

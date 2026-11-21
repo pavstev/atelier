@@ -213,15 +213,34 @@ The left panel is the photo list and nothing else, full height.
 - Photos are listed newest first. A row is a small preview and the name. Hold the pointer on a row
   and a card opens on the right with a bigger preview, the file size, the pixel size and the day
   and time it was added.
-- The **plus** button adds photos, several at once. You can also drop photos on the panel or the
-  stage. There is no limit on how many.
+- The **plus** button opens a menu: **Add photos** (several at once) or **New folder**. You can also
+  drop photos on the panel or the stage. There is no limit on how many. New photos go to the top
+  of the list. Drop them on a folder row and they go into that folder.
 - The **search** button opens a search box. It takes several words in any order, ignores case and
-  accents, and matches the file name and the date. It marks the match and shows a count. Closing
-  it clears it.
-- A **menu** sorts by newest, oldest, name or size. It is remembered.
-- A button switches the list between rows and tiles.
+  accents, and matches the file name and the date. It marks the match and shows a count. A search
+  shows a flat list of the matches from every folder, each with its folder path under the name.
+  Closing it clears it.
+- A **menu** sorts by newest, oldest, name or size. It is remembered. It sorts the photos inside
+  each folder. Folders stay first, by name.
+- A button switches the list between rows and tiles. In tiles a folder is still a full-width row,
+  and its photos are a grid under it.
 - A photo with the same name and size as one in the list replaces it, so there are no duplicates.
-- Click a photo to show it. The pen renames it and the bin deletes it.
+- Click a photo to show it. The pen renames it and the bin deletes it. The move button puts it in
+  a folder or back at the top.
+
+#### Folders
+
+- A folder holds photos and other folders, to any depth. A photo is in one folder, or at the top.
+- A folder row has an arrow, a name and a count of the photos inside (the folders inside count
+  too). Click it to open or close it. Which folders are open is remembered.
+- Hold the pointer on a folder row for four buttons: a new folder inside, rename, move and delete.
+- Drag a photo or a folder onto a folder row to move it in. Drop it on the open part under a
+  folder, or on empty space, to put it there (empty space is the top). A folder cannot go into
+  itself or into a folder inside it.
+- Deleting a folder deletes the photos and folders inside it from this device. A folder that holds
+  something asks first and says how many. An empty folder goes at once.
+- A photo that is picked inside a closed folder (a search result, or the photo that comes back
+  after a reload) opens the folders around it and scrolls into view.
 
 ### What is saved
 
@@ -309,6 +328,10 @@ has these folders. Paths below are under `src/`.
 
 ### Photos on this device
 
+- Folders are a second small list (`store/folders.ts`: id, name, parent), saved in its own key, with
+  the ids of the open folders in a third. A photo names its folder (`Doc.folder`). A photo whose
+  folder is gone shows at the top. `store/tree.ts` has the questions (who is inside, counts,
+  paths) and `useFolders.ts` the state. Another tab that saves the folders wins.
 - `features/photos/store/` and `features/photos/useDocsList.ts` keep the photo list: the file bytes in IndexedDB, one
   list with a tiny preview of each photo, and a bigger preview in a second store. A photo is the
   same photo when its bytes are (a SHA-256 hash).

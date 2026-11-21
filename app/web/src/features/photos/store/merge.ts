@@ -4,7 +4,8 @@ import type { Doc } from "./schema";
 /**
  * `base` is the list both started from (what this page last read or wrote), `local` is this page
  * now, `remote` is what storage holds now. A photo one side added stays; a photo one side removed
- * from `base` goes; a photo both have keeps this page's fields (it knows its own previews best).
+ * from `base` goes; a photo both have keeps this page's fields (it knows its own previews best),
+ * except its folder when only the other tab moved it.
  * New local photos go on top, as new photos do.
  */
 export function mergeDocs(base: Doc[], local: Doc[], remote: Doc[]): Doc[] {
@@ -13,11 +14,22 @@ export function mergeDocs(base: Doc[], local: Doc[], remote: Doc[]): Doc[] {
 	const l = ids(local);
 	const r = ids(remote);
 	const mine = new Map(local.map((d) => [d.id, d]));
+	const was = new Map(base.map((d) => [d.id, d]));
 	const out: Doc[] = [];
 	for (const d of local) if (!b.has(d.id) && !r.has(d.id)) out.push(d);
 	for (const d of remote) {
 		if (b.has(d.id) && !l.has(d.id)) continue; // this page removed it
-		out.push(mine.get(d.id) ?? d);
+		const own = mine.get(d.id);
+		const before = was.get(d.id);
+		// a move into a folder that only the other tab made stands (this page did not move it)
+		out.push(
+			own &&
+				before &&
+				own.folder === before.folder &&
+				d.folder !== before.folder
+				? { ...own, folder: d.folder }
+				: (own ?? d),
+		);
 	}
 	return out;
 }

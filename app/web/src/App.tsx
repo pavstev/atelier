@@ -51,8 +51,8 @@ export default function App() {
 	// asked to keep the photo store
 	const { open } = ph;
 	const add = useCallback(
-		(files: File[]) => {
-			void open(files);
+		(files: File[], folder = "") => {
+			void open(files, folder);
 			if (files.length > 0) void askPersist(navigator);
 		},
 		[open],
@@ -139,6 +139,8 @@ export default function App() {
 			/>
 			<Files
 				photos={ph.docs}
+				folders={ph.folders}
+				openFolders={ph.openFolders}
 				activeId={ph.activeId}
 				collapsed={layout.panels.left}
 				onFacts={ph.patch}
@@ -152,6 +154,13 @@ export default function App() {
 				onFiles={add}
 				onRename={ph.rename}
 				onRemove={ph.remove}
+				onMove={ph.moveTo}
+				onFolderOpen={ph.setFolderOpen}
+				onOpenFolders={ph.openFolderIds}
+				onAddFolder={ph.addFolder}
+				onRenameFolder={ph.renameFolder}
+				onMoveFolder={ph.moveFolder}
+				onRemoveFolder={ph.removeFolder}
 			/>
 			<StageArea
 				root={root}

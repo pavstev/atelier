@@ -5,7 +5,11 @@ import { type DragEvent, useState } from "react";
 const carriesFiles = (e: DragEvent) => e.dataTransfer.types.includes("Files");
 
 /** The drag handlers for the element, and whether files are over it now. */
-export function useFileDrop(onFiles: (files: File[]) => void) {
+export function useFileDrop(
+	onFiles: (files: File[]) => void,
+	/** Called at every drop of files, even when none of them is an image. */
+	onDone?: () => void,
+) {
 	const [over, setOver] = useState(false);
 	const props = {
 		onDragOver: (e: DragEvent) => {
@@ -22,6 +26,7 @@ export function useFileDrop(onFiles: (files: File[]) => void) {
 			if (!carriesFiles(e)) return;
 			e.preventDefault();
 			setOver(false);
+			onDone?.();
 			const files = Array.from(e.dataTransfer.files).filter((f) =>
 				f.type.startsWith("image/"),
 			);

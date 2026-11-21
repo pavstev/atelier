@@ -105,6 +105,7 @@ Browser tests find every control by `data-testid`. To find a real id:
 | A setting | `<part>-<setting>`: `values-detail`, `grid-cells`, `pencil-contrast` |
 | A tab | `<card>-tab-<id>`: `pencil-tab-look` |
 | One of many in a row | one id for each item, and a `data-*` for which: `pencil-grade` with `data-grade`, `size-preset` with `data-preset` |
+| The photo list | `photo-<thing>` for a photo (`photo-row`, `photo-open`, `photo-move`) and `folder-<thing>` for a folder (`folder-row` with `data-folder`, `data-open`, `folder-toggle`, `folder-count`, `folder-move`). The lists are `photos` (the top) and `folder-photos`; the open part of a folder is `folder-children`. The plus is a menu: `photo-add` opens `photo-add-files` and `folder-new`. |
 
 - State is an `aria-*` or `data-*` attribute (`aria-pressed`, `aria-checked`, `data-active`,
   `data-locked`), never a class alone.

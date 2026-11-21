@@ -22,6 +22,8 @@ export type Doc = {
 	preview: boolean;
 	/** SHA-256 of the file bytes in hex ("" until it is made): the same bytes are the same photo. */
 	hash: string;
+	/** The id of the folder that holds the photo, "" at the top. An id with no folder counts as the top. */
+	folder: string;
 };
 
 /** The longest tiny preview (a data URL) a save may hold. */
@@ -48,6 +50,7 @@ function cleanDoc(k: unknown): Doc | null {
 				? k.thumb
 				: "",
 		preview: k.preview === true,
+		folder: typeof k.folder === "string" ? k.folder : "",
 		hash:
 			typeof k.hash === "string" && /^[0-9a-f]{64}$/.test(k.hash) ? k.hash : "",
 	};

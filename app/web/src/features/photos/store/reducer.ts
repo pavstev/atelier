@@ -14,6 +14,10 @@ export type DocsAction =
 			after: string | null;
 	  }
 	| { type: "remove"; id: string }
+	/** These photos go (a folder deleted with its photos). */
+	| { type: "drop"; ids: ReadonlySet<string> }
+	/** These photos move into a folder ("" is the top). */
+	| { type: "move"; ids: ReadonlySet<string>; folder: string }
 	/** Only these ids stay (the others have no stored file). */
 	| { type: "keep"; ids: ReadonlySet<string> }
 	| { type: "set"; list: Doc[] };
@@ -55,6 +59,18 @@ export function docsReducer(ds: Doc[], a: DocsAction): Doc[] {
 		case "remove": {
 			const next = ds.filter((d) => d.id !== a.id);
 			return next.length === ds.length ? ds : next;
+		}
+		case "drop": {
+			const next = ds.filter((d) => !a.ids.has(d.id));
+			return next.length === ds.length ? ds : next;
+		}
+		case "move": {
+			if (!ds.some((d) => a.ids.has(d.id) && d.folder !== a.folder)) return ds;
+			return ds.map((d) =>
+				a.ids.has(d.id) && d.folder !== a.folder
+					? { ...d, folder: a.folder }
+					: d,
+			);
 		}
 		case "keep": {
 			const next = ds.filter((d) => a.ids.has(d.id));

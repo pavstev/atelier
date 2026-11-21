@@ -30,6 +30,8 @@ type AddContext = {
 	show: (id: string, img: ImageData) => void;
 	fail: Fail;
 	clear: Clear;
+	/** The folder the new photos go into, "" for the top. */
+	folder: string;
 };
 
 const sameNameAndSize = (a: { name: string; size: number }, b: File) =>
@@ -53,6 +55,7 @@ const newDoc = (
 	tile: false,
 	preview: false,
 	hash: "",
+	folder: "",
 	...more,
 });
 
@@ -93,6 +96,8 @@ async function addAll(files: File[], c: AddContext) {
 	const seenHashes = new Set<string>();
 	const rest: Doc[] = [];
 	const replaced = new Map<string, Partial<Doc>>();
+	/** Photos that were in the list already; a drop on a folder moves them into it. */
+	const reused = new Set<string>();
 	const miss = (file: File, e: unknown) => {
 		failed.push(file.name);
 		reason ||= errText(e);
@@ -119,13 +124,14 @@ async function addAll(files: File[], c: AddContext) {
 			hash && d.hash ? d.hash === hash : sameNameAndSize(d, file),
 		);
 		const id = old?.id ?? crypto.randomUUID();
+		if (old) reused.add(id);
 		if (old) decoded.delete(id);
 		/** The photo joins the list without showing. */
 		const join = async () => {
 			const more = await prepareJoin(id, file, img, hash);
 			if (old)
 				replaced.set(id, { ...more, width: img.width, height: img.height });
-			else rest.push(newDoc(id, file, img, at, more));
+			else rest.push(newDoc(id, file, img, at, { ...more, folder: c.folder }));
 		};
 		if (firstId !== null || me !== c.latest.current) {
 			await join();
@@ -144,13 +150,18 @@ async function addAll(files: File[], c: AddContext) {
 		}
 		firstId = id;
 		saving.push(saveFile(id, file));
-		c.apply({ type: "show", doc: newDoc(id, file, img, at, { hash }) });
+		c.apply({
+			type: "show",
+			doc: newDoc(id, file, img, at, { hash, folder: c.folder }),
+		});
 		c.show(id, img);
 	}
 	await Promise.all(saving);
 	if (rest.length > 0 || replaced.size > 0)
 		// new ones go right under the photo that was shown, in the order they were picked
 		c.apply({ type: "join", rest, replaced, at, after: firstId });
+	if (c.folder !== "" && reused.size > 0)
+		c.apply({ type: "move", ids: reused, folder: c.folder });
 	if (failed.length > 0)
 		c.fail("open", `Could not open ${failed.join(", ")}: ${reason}`);
 }
