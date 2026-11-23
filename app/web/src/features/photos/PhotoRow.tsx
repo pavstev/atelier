@@ -11,16 +11,17 @@ import { highlight } from "./search";
 import type { Doc, Folder } from "./store";
 
 /** The pen and the bin: a `row` icon button that fills on hover (the bin turns red). */
-const ROW_ACTION = "rounded-field transition-colors hover:bg-foreground/15";
+const ROW_ACTION =
+	"rounded-(--radius-chip) transition-colors hover:bg-foreground/15";
 
 /** The little preview of a photo, or a plain box until it is made. A small square in the list, the
  * whole width of its tile in tiles. */
 function Thumb(p: { src: string; tile?: boolean }) {
 	return (
 		<span
-			className={`grid shrink-0 place-items-center overflow-hidden rounded-(--radius-chip) bg-default ${
-				p.tile ? "aspect-square w-full" : "size-7"
-			}`}
+			className={`grid shrink-0 grid-cols-[100%] grid-rows-[100%] place-items-center overflow-hidden rounded-(--radius-chip) ${
+				p.src ? "" : "bg-default"
+			} ${p.tile ? "aspect-square w-full" : "size-7"}`}
 		>
 			{p.src && (
 				<img
@@ -88,9 +89,13 @@ const PhotoRow = memo(function PhotoRow(p: RowProps) {
 			data-active={p.active}
 			draggable={!editing}
 			onDragStart={(e) => startDrag(e, { kind: "photo", id: d.id })}
-			className={`group relative flex rounded-field bg-(--row) hover:[--row:var(--default)] ${
+			className={`group relative flex rounded-field bg-(--ovl-bg) transition-colors duration-100 ${
 				tile ? "flex-col gap-1 p-1" : "items-center gap-2 px-1 py-0.5"
-			} ${p.active ? "[--row:var(--card)] shadow-surface" : "[--row:transparent]"}`}
+			} ${
+				p.active
+					? "[--ovl-bg:var(--default-hover)] shadow-[inset_2px_0_0_var(--accent)]"
+					: "[--ovl-bg:transparent] hover:[--ovl-bg:var(--default)] has-[:focus-visible]:[--ovl-bg:var(--default)]"
+			}`}
 		>
 			{editing ? (
 				<>
@@ -150,10 +155,10 @@ const PhotoRow = memo(function PhotoRow(p: RowProps) {
 			)}
 			{!editing && (
 				<span
-					className={`pointer-coarse:pointer-events-auto pointer-coarse:opacity-100 pointer-events-none absolute flex items-center gap-0.5 opacity-0 group-focus-within:opacity-100 group-hover:opacity-100 group-focus-within:[&>button]:pointer-events-auto group-hover:[&>button]:pointer-events-auto ${
+					className={`pointer-coarse:pointer-events-auto pointer-coarse:opacity-100 pointer-events-none absolute flex items-center gap-1 opacity-0 group-has-[:focus-visible]:opacity-100 group-hover:opacity-100 group-has-[:focus-visible]:[&>button]:pointer-events-auto group-hover:[&>button]:pointer-events-auto ${
 						tile
-							? "top-1.5 right-1.5 rounded-field bg-(--row)/90 p-0.5 backdrop-blur-sm"
-							: "inset-y-0 right-0 rounded-e-field bg-[linear-gradient(to_left,var(--row)_75%,transparent)] ps-6 pe-0.5"
+							? "top-2 right-2 rounded-[6px] bg-default/90 p-0.5 backdrop-blur-sm"
+							: "inset-y-0 right-0 rounded-e-field bg-[linear-gradient(to_left,var(--ovl-bg)_75%,transparent)] ps-6 pe-1"
 					}`}
 				>
 					<IconButton

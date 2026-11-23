@@ -64,7 +64,7 @@
 		--icon-btn-bar: 1.75rem;
 		--icon-btn-row: 1.5rem;
 		--icon-size-bar: 1rem;
-		--icon-size-row: 0.875rem;
+		--icon-size-row: 1rem;
 
 		/* Stacking order, low to high (z-(--z-bar)):
 		 *   stage   the photo and its layers

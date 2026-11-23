@@ -174,12 +174,12 @@ aside.glass {
 }
 @media (max-width: 767px) {
 	[data-testid="logo"] {
-		top: max(0.75rem, env(safe-area-inset-top));
-		left: max(0.75rem, env(safe-area-inset-left));
+		top: max(calc(0.75rem + 1px), env(safe-area-inset-top));
+		left: max(calc(0.75rem + 1px), env(safe-area-inset-left));
 	}
 }
 [data-testid="stage-bar-frame"] {
-	bottom: max(1.25rem, calc(env(safe-area-inset-bottom) + 0.5rem));
+	bottom: max(0.75rem, calc(env(safe-area-inset-bottom) + 0.5rem));
 }
 
 /* Installed in Chrome or Edge with Window Controls Overlay: there is no native title bar. The page
@@ -248,7 +248,7 @@ aside.glass {
 	}
 	@media (min-width: 768px) {
 		:root {
-			--panel-top: calc(var(--title-h) + 0.25rem);
+			--panel-top: calc(var(--title-h) + var(--panel-gap));
 		}
 		:root [data-testid="logo"] {
 			top: max(0px, calc((var(--title-h) - var(--logo-h)) / 2));
@@ -264,7 +264,7 @@ aside.glass {
 			z-index: 4;
 			display: flex;
 			align-items: center;
-			padding-right: var(--panel-pad);
+			padding-right: calc(var(--panel-pad) + 1px);
 		}
 	}
 	/* The top-right corner (the Install button) ends at the window buttons on Windows, where they sit

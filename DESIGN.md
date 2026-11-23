@@ -27,6 +27,17 @@ How the Atelier web app looks and behaves, as rules. What each control does is i
   handle just right of its edge (or `[`) hides it, and a drag on the edge itself resizes it. The
   handle stays off the drag line. Under 768 px it is a drawer
   that starts closed.
+- **The panel's pixels.** Everything in the panel sits on a 4 px grid and on whole pixels. The card
+  is inset 12 px from the window (`--panel-gap`, the same gap as the bottom bar), has a 1 px edge and
+  12 px padding, so content starts 13 px in; the logo uses the same 13 px. Rows are 32 px high
+  (a 28 px thumb, 4 px around it, 8 px between thumb and name) and touch each other. Icon buttons
+  are 28 px in a bar and 24 px in a row; icons are 16 px. Radii nest: row 8, thumb and row buttons
+  4. The hover and active look is one variable (`--ovl-bg`) that the row and the buttons floating
+  over its right end both read, so they never show two colors. Hover is `--default`; the active
+  row is `--default-hover` with a 2 px accent bar. A mouse press leaves no overlay behind; only
+  keyboard focus (`:focus-visible`) shows it (on a touch screen a tap does). A folder's indent step
+  is 16 px and its guide line sits under the parent's arrow. In an installed app the panel starts
+  12 px under the title strip.
 - **The free stage** is the stage minus the open photo panel (a wide window; on a phone the drawer
   floats over everything). The bottom bar and the legend strip center on it and never sit on the
   panel. With the panel hidden it is the whole window. The panel's right edge plus its gap is

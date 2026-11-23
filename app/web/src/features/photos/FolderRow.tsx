@@ -11,7 +11,8 @@ import { type DropCtx, dragProps, dropProps } from "./drag";
 import MoveMenu from "./MoveMenu";
 import { type Folder, subtree } from "./store";
 
-const ACTION = "rounded-field transition-colors hover:bg-foreground/15";
+const ACTION =
+	"rounded-(--radius-chip) transition-colors hover:bg-foreground/15";
 
 type Props = {
 	folder: Folder;
@@ -52,8 +53,10 @@ const FolderRow = memo(function FolderRow(p: Props) {
 			data-over={p.over}
 			data-folder={f.id}
 			{...dragProps({ kind: "folder", id: f.id }, !p.editing)}
-			className={`group relative flex items-center gap-1 rounded-field px-1 py-0.5 hover:bg-default ${
-				p.over ? "bg-accent/20 ring-1 ring-accent ring-inset" : ""
+			className={`group relative flex min-h-8 items-center gap-1 rounded-field bg-(--ovl-bg) px-1 transition-colors duration-100 has-[[data-testid=folder-toggle]:focus-visible]:outline-2 has-[[data-testid=folder-toggle]:focus-visible]:-outline-offset-2 has-[[data-testid=folder-toggle]:focus-visible]:outline-(--focus) ${
+				p.over
+					? "[--ovl-bg:color-mix(in_oklab,var(--accent)_20%,transparent)] ring-1 ring-accent ring-inset"
+					: "[--ovl-bg:transparent] hover:[--ovl-bg:var(--default)] has-[:focus-visible]:[--ovl-bg:var(--default)] pointer-coarse:focus-within:[--ovl-bg:var(--default)]"
 			}`}
 			{...dropProps(f.id, p.drop)}
 		>
@@ -81,7 +84,7 @@ const FolderRow = memo(function FolderRow(p: Props) {
 					type="button"
 					data-testid="folder-toggle"
 					aria-expanded={p.open}
-					className="atelier-focus flex min-w-0 flex-1 cursor-pointer items-center gap-1 rounded-(--radius-chip) text-start text-sm"
+					className="flex min-w-0 flex-1 cursor-pointer outline-none items-center gap-1 rounded-(--radius-chip) text-start text-sm"
 					title="Double-click or press F2 to rename"
 					onClick={() => p.onToggle(f.id, !p.open)}
 					onDoubleClick={startRename}
@@ -91,7 +94,7 @@ const FolderRow = memo(function FolderRow(p: Props) {
 				>
 					<Icon
 						name={p.open ? "down" : "right"}
-						className="size-3.5 shrink-0 text-muted"
+						className="size-4 shrink-0 text-muted"
 					/>
 					<Icon name="folder" className="size-4 shrink-0" />
 					<span data-testid="folder-label" className="truncate">
@@ -99,14 +102,14 @@ const FolderRow = memo(function FolderRow(p: Props) {
 					</span>
 					<span
 						data-testid="folder-count"
-						className="ms-auto shrink-0 ps-1 text-xs text-muted"
+						className="relative top-px ms-auto shrink-0 ps-1 text-xs text-muted"
 					>
 						{p.count}
 					</span>
 				</button>
 			)}
 			{!p.editing && (
-				<span className="pointer-events-none absolute inset-y-0 right-0 flex items-center gap-0.5 rounded-e-field bg-[linear-gradient(to_left,var(--default)_75%,transparent)] ps-6 pe-0.5 opacity-0 group-focus-within:opacity-100 group-hover:opacity-100 group-focus-within:[&>*]:pointer-events-auto group-hover:[&>*]:pointer-events-auto">
+				<span className="pointer-events-none absolute inset-y-0 right-0 flex items-center gap-1 rounded-e-field bg-[linear-gradient(to_left,var(--ovl-bg)_75%,transparent)] ps-6 pe-1 opacity-0 pointer-coarse:group-focus-within:opacity-100 group-has-[:focus-visible]:opacity-100 group-hover:opacity-100 pointer-coarse:group-focus-within:[&>*]:pointer-events-auto group-has-[:focus-visible]:[&>*]:pointer-events-auto group-hover:[&>*]:pointer-events-auto">
 					<IconButton
 						label={`New folder inside ${f.name}`}
 						tip="New folder inside"

@@ -36,6 +36,7 @@ own, with the bench in [development/bench.md](development/bench.md).
 | 73 | Pencil bench, 2026-11-18: Hatch is the weakest look (MS-SSIM 0.53 to 0.85, false contours 40 percent on average, gradient reversal 13 percent). After a 2 px blur its tone error matches Tone, so the strokes break the structure, not the tone. | `crates/atelier-core/src/pencil/hatch.rs`, `bench/pencil-eval/` |
 | 74 | Pencil bench, 2026-11-18: Auto uses only 0.746 of the pencil range on two of six photos (a dark space photo and a dark interior), in every look, Tone too. Check whether Auto should stretch to the full range. | `crates/atelier-core/src/pencil/` |
 | 75 | Pencil bench, 2026-11-18: Lifted lights barely moves tone error or banding but adds grain in the lights (grain bias 0.06 on Drawing, 0.12 on Hatch). Smudge on Drawing cuts banding from 23 to 2 percent but softens structure (MS-SSIM 0.90 to 0.85). Rate both by eye before tuning. | `crates/atelier-core/src/pencil/smudge.rs`, `crates/atelier-core/src/pencil/` |
+| 77 | The bottom bar is centered on the free stage at a fractional x (about 581.47 at 1280 px), so its 1 px edge is blurry. Fix idea: round the left edge in `StageArea.tsx` (a whole pixel left and width). The bar icons' path boxes also sit at half pixels. | `app/web/src/features/stage/StageArea.tsx`, `app/web/src/features/stage/StageBar.tsx`, `app/web/src/ui/icons.tsx` |
 
 ## Where leftovers come from
 

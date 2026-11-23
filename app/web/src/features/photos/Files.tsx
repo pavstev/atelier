@@ -245,7 +245,7 @@ export default function Files(p: Props) {
 			className={
 				tiles
 					? "grid grid-cols-[repeat(auto-fill,minmax(5.5rem,6.5rem))] justify-start gap-1"
-					: "flex flex-col gap-px"
+					: "flex flex-col"
 			}
 		>
 			{list.map((d) =>
@@ -272,11 +272,7 @@ export default function Files(p: Props) {
 				{kids.map((f) => {
 					const isOpen = p.openFolders.has(f.id);
 					return (
-						<div
-							key={f.id}
-							data-testid="folder"
-							className="flex flex-col gap-0.5"
-						>
+						<div key={f.id} data-testid="folder" className="flex flex-col">
 							<FolderRow
 								folder={f}
 								folders={p.folders}
@@ -295,7 +291,7 @@ export default function Files(p: Props) {
 							{isOpen && (
 								<div
 									data-testid="folder-children"
-									className="ms-3 flex flex-col gap-0.5 border-s border-foreground/15 ps-1"
+									className="ms-3 flex flex-col border-s border-foreground/15 ps-[3px]"
 									{...dropProps(f.id, dropCtx)}
 								>
 									{level(f.id)}
@@ -412,7 +408,7 @@ export default function Files(p: Props) {
 					onChange={setQuery}
 					className="w-full"
 				>
-					<SearchField.Group>
+					<SearchField.Group className="h-8">
 						<SearchField.SearchIcon />
 						<SearchField.Input
 							data-testid="photo-search"
@@ -442,10 +438,10 @@ export default function Files(p: Props) {
 			<ScrollShadow
 				ref={scroller}
 				data-testid="photo-scroll"
-				className="atelier-scroll flex min-h-24 flex-1 flex-col gap-2"
+				className="atelier-scroll -m-1 flex min-h-24 flex-1 flex-col gap-2 p-1"
 			>
 				<div
-					className="flex min-h-full flex-col gap-0.5"
+					className="flex min-h-full shrink-0 flex-col"
 					{...dropProps("", dropCtx)}
 				>
 					{p.photos.length === 0 && p.folders.length === 0 ? (

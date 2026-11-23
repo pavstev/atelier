@@ -15,8 +15,10 @@ export default function EdgeHandle(p: {
 			className={`group/edge absolute top-1/2 left-0 z-(--z-drawer) flex h-16 w-5 -translate-x-1/2 -translate-y-1/2 items-center justify-center ${
 				p.hidden
 					? ""
-					: // right of the resize line (4 px each side of the edge), so a drag on the middle of the edge resizes
-						"md:left-[calc(var(--panel-gap)+min(var(--left-w),50vw)+4px)] md:translate-x-0 md:justify-start"
+					: // a phone drawer has no handle (its invisible box would sit over the drawer edge); a wide
+						// window puts it right of the resize line (4 px each side of the edge), so a drag on the
+						// middle of the edge resizes
+						"max-md:hidden md:left-[calc(var(--panel-gap)+min(var(--left-w),50vw)+4px)] md:translate-x-0 md:justify-start"
 			}`}
 		>
 			<IconButton
