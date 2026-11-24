@@ -60,7 +60,7 @@ test("a bad value falls back to its start, the good ones stay", () => {
 		base: { kind: "oil", opacity: 9 }, // unknown kind, under the least opacity
 		values: { preset: 6, detail: 50.5, tint: "1" },
 		shapes: { step: Number.POSITIVE_INFINITY, detail: Number.NaN },
-		edges: { on: 1, opacity: 101, mode: 3, amount: -1, width: 0, even: 80 },
+		edges: { on: 1, opacity: 101, mode: 4, amount: -1, width: 0, even: 80 },
 		grid: {
 			on: true,
 			opacity: 10,

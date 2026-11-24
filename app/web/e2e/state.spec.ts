@@ -77,7 +77,7 @@ test("test_out_of_range_save_loads_with_start_values", async ({ studio }) => {
 		base: { kind: "values", opacity: 0 },
 		values: { preset: 7, detail: 50, tint: 2 },
 		shapes: { step: 9, detail: 500 },
-		edges: { on: true, opacity: 100, mode: 3, amount: 150 },
+		edges: { on: true, opacity: 100, mode: 4, amount: 150 },
 		grid: { on: true, opacity: 0, mode: 5, cells: 6, unit: 9, cm: 7 },
 	});
 	await page.reload();

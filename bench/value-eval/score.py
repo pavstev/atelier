@@ -158,6 +158,26 @@ def lce(a, b):
     return float((pair * np.minimum(e1, e2)).sum() / a.size)
 
 
+class Photo:
+    """The squinted photo at the sheet size: its L*, Munsell value, OKLab and light/shadow break."""
+
+    def __init__(self, path, size):
+        self.size = size
+        rgb = load(path, size).astype(np.float64)
+        sigma = SQUINT * max(size)
+        blur = np.stack(
+            [ndimage.gaussian_filter(rgb[..., c], sigma, mode="nearest") for c in range(3)],
+            -1,
+        )
+        blur = np.clip(np.round(blur), 0, 255).astype(np.uint8)
+        self.total = size[0] * size[1]
+        self.L = l_star(blur)
+        self.V = self.L / 10
+        self.lab = oklab(blur)
+        self.brk = otsu(self.L)
+        self.lit = self.L >= self.brk
+
+
 def score_values(ph, vmap):
     gray = vmap[..., 0]
     tones = np.unique(gray)

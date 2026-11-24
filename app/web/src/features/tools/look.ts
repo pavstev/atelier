@@ -27,7 +27,12 @@ export const BASES = [
 type BaseKind = (typeof BASES)[number]["id"];
 
 /** The modes of Edges, as the core numbers them (`LABELS.edgesMode` has the names in this order). */
-export const EDGES_MODE = { lines: 0, transfer: 1, masses: 2 } as const;
+export const EDGES_MODE = {
+	lines: 0,
+	transfer: 1,
+	masses: 2,
+	sketch: 3,
+} as const;
 /** The modes of Grid, as the core numbers them (`LABELS.gridMode` has the names in this order). */
 export const GRID_MODE = { thirds: 0, grid: 1, both: 2 } as const;
 /** What the Grid counts (`LABELS.gridUnit` has the names in this order). */
@@ -69,7 +74,7 @@ const lookSchema = group({
 	edges: group({
 		on: flag(false),
 		opacity,
-		mode: int(EDGES_MODE.lines, EDGES_MODE.lines, EDGES_MODE.masses),
+		mode: int(EDGES_MODE.lines, EDGES_MODE.lines, EDGES_MODE.sketch),
 		amount: int(67, 0, 100),
 		width: int(5, 1, EDGES_WIDTH_MAX),
 		/** 0 the line widths of Lines as traced, 100 one width end to end. */

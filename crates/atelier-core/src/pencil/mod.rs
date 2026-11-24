@@ -48,7 +48,7 @@ mod hatch;
 mod ink;
 mod lift;
 mod local;
-mod paper;
+pub(crate) mod paper;
 mod smudge;
 mod tone;
 

@@ -186,7 +186,7 @@ fn test_bad_numbers_are_bad_input() {
             );
         }
     }
-    assert!(edges_layer(&w, 3, 50.0, 3, 0.0).is_err());
+    assert!(edges_layer(&w, 4, 50.0, 3, 0.0).is_err());
     assert!(edges_layer(&w, 0, 100.1, 3, 0.0).is_err());
     for width in [0, 11] {
         assert!(edges_layer(&w, 0, 50.0, width, 0.0).is_err());
@@ -392,7 +392,7 @@ fn malformed_image_bad_input_everywhere() {
             Err(Error::BadInput(_))
         ));
         assert!(matches!(shapes_layer(w, 0, 50.0), Err(Error::BadInput(_))));
-        for mode in 0..3 {
+        for mode in 0..4 {
             assert!(matches!(
                 edges_layer(w, mode, 50.0, 3, 0.0),
                 Err(Error::BadInput(_))

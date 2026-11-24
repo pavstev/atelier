@@ -61,6 +61,33 @@ fn test_edges_keep_a_soft_plane_edge_on_a_calm_wall() {
 }
 
 #[test]
+fn test_edges_sketch_draws_graphite_strokes_on_the_same_edge() {
+    let w = equal_brightness();
+    let sketch = edges_layer(&w, 3, 67.0, 3, 0.0).unwrap();
+    let again = edges_layer(&w, 3, 67.0, 3, 0.0).unwrap();
+    assert_eq!(sketch, again, "same input, other bytes");
+    let inked: Vec<&[u8]> = sketch.rgba.chunks(4).filter(|p| p[3] > 0).collect();
+    let at = |from: usize, to: usize| {
+        sketch
+            .rgba
+            .chunks(4)
+            .enumerate()
+            .filter(|(i, p)| (from..to).contains(&(i % sketch.width)) && p[3] > 0)
+            .count()
+    };
+    assert!(at(16, 32) > 0, "no stroke on the luma edge");
+    assert!(at(56, 72) > 0, "no stroke on the color edge");
+    assert_eq!(at(40, 52) + at(76, 128), 0, "ink on a flat color");
+    // one gray that is not black
+    assert!(inked.iter().all(|p| p[0] == p[1] && p[1] == p[2]));
+    assert!(inked.iter().all(|p| p[0] > 10 && p[0] < 120));
+    // not the Lines picture
+    assert_ne!(sketch, edges_layer(&w, 0, 67.0, 3, 0.0).unwrap());
+    // a mode out of range is an error, never a panic
+    assert!(edges_layer(&w, 4, 67.0, 3, 0.0).is_err());
+}
+
+#[test]
 fn test_edges_draw_a_color_edge_of_equal_brightness() {
     let w = equal_brightness();
     assert!(ink_in(&w, 16, 32) > 0, "no line on the luma edge");

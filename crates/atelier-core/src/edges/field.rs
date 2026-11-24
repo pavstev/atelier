@@ -771,6 +771,15 @@ impl Cover {
         }
     }
 
+    /// Sets each coverage to `f(x, y, coverage)` (0 to 1).
+    pub(crate) fn map(&mut self, f: impl Fn(usize, usize, f32) -> f32) {
+        for (i, c) in self.v.iter_mut().enumerate() {
+            if *c > 0.0 {
+                *c = f(i % self.w, i / self.w, *c);
+            }
+        }
+    }
+
     /// Blends `grey` over the image by the coverage.
     pub(crate) fn paint(&self, img: &mut Rgb, grey: u8) {
         for (px, &c) in img.data.chunks_exact_mut(3).zip(&self.v) {

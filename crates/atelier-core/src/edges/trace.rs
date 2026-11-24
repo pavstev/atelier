@@ -24,6 +24,9 @@ use crate::edges::field::{
 use crate::error::{Error, Result, unit};
 use crate::img::{Image, Rgb, neighbors8, size_factor};
 
+mod sketch;
+pub(crate) use sketch::GRAPHITE;
+
 /// The knobs of the pipeline. `preset_opts` has the shipped picks.
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub(crate) struct EdgeOpts {
@@ -655,6 +658,19 @@ fn scale_opts(o: EdgeOpts, k: f32) -> EdgeOpts {
     }
 }
 
+/// The Sketch view of the app: the chains of Lines at this `amount` (0 to 100), drawn as graphite
+/// strokes (see `sketch`). `scale` multiplies every stroke width (1 is the start width).
+///
+/// # Errors
+/// The errors of `view_amount`.
+pub fn view_sketch(work: &Rgb, amount: f32, scale: f32, edges: &Image<u8>) -> Result<Rgb> {
+    if !(0.0..=100.0).contains(&amount) {
+        return Err(Error::bad("edges amount must be 0 to 100"));
+    }
+    let (set, opts) = lines_of(work, amount_opts(amount), false, 0.5, edges)?;
+    Ok(sketch::draw(&set, &opts, scale))
+}
+
 /// The body of `view` for a pipeline that is already picked.
 fn view_opts(
     work: &Rgb,
@@ -665,6 +681,19 @@ fn view_opts(
     even: f32,
     edges: &Image<u8>,
 ) -> Result<Rgb> {
+    let (set, opts) = lines_of(work, opts, transfer, ink, edges)?;
+    Ok(draw(&set, &opts, transfer, scale, even))
+}
+
+/// The kept chains of a pipeline (traced, thinned of faint ones and ranked), with the pipeline
+/// grown to the size of `work`.
+fn lines_of(
+    work: &Rgb,
+    opts: EdgeOpts,
+    transfer: bool,
+    ink: f32,
+    edges: &Image<u8>,
+) -> Result<(LineSet, EdgeOpts)> {
     check_view_inputs(work, ink, edges)?;
     let k = size_factor(work.width, work.height);
     let opts = scale_opts(
@@ -685,7 +714,7 @@ fn view_opts(
     } else {
         rank(&mut set.chains, budget);
     }
-    Ok(draw(&set, &opts, transfer, scale, even))
+    Ok((set, opts))
 }
 
 /// The range checks of `view_opts` (render checks that `work` is a 3 channel image): `ink` is 0 to 1 and

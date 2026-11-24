@@ -189,7 +189,7 @@ Grid.
       and comes back with another base. Grid works as on any base, with the dark Contrast lines of
       Paper. On a phone the card is a bottom sheet whose body scrolls inside it, so every control can
       be reached.
-- **Edges:** Lines, Transfer or Masses. Amount 0 to 100 (starts at 67). Width 1 to 10 (starts at 5).
+- **Edges:** Lines, Transfer, Masses or Sketch. Amount 0 to 100 (starts at 67). Width 1 to 10 (starts at 5).
   Even 0 to 100 (starts at 50; Lines only).
 - **Grid:** Thirds, Grid or Both. **Count by** is Cells or cm (it shows while a photo is open, so a
   paper is set; it starts on Cells). Cells is a select: 3, 4, 6, 8, 9, 10, 12, 18, 20, 24, 30, 40 or 50.

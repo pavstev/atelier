@@ -13,7 +13,7 @@ test("test_edges_width_adds_ink", async ({ studio }) => {
 			for (let i = 3; i < d.length; i += 4) n += d[i];
 			return n;
 		});
-	for (const mode of [0, 1, 2]) {
+	for (const mode of [0, 1, 2, 3]) {
 		// Lines (0) is the start mode: pressing it again changes nothing, so no draw follows
 		if (mode !== 0) await studio.knob("edges-mode", mode);
 		await studio.knob("edges-width", 1);
@@ -40,6 +40,48 @@ test("test_edges_even_only_in_lines", async ({ studio }) => {
 	await expect(page.getByTestId("error")).toHaveCount(0);
 	await studio.knob("edges-mode", 1);
 	await expect(page.getByTestId("edges-even")).toHaveCount(0);
+});
+
+test("test_edges_sketch_is_graphite_and_survives_a_reload", async ({
+	studio,
+}) => {
+	const { page } = studio;
+	await studio.open(MAIN_PHOTO);
+	await studio.layer("edges", true);
+	await studio.knob("edges-mode", 3);
+	// Sketch is one gray, not black: where the ink is nearly solid its color is a mid dark gray
+	// (a faint pixel loses its color to the canvas rounding, so only solid ones are read)
+	const gray = () =>
+		readCanvas(page, "layer-canvas-edges", ({ data: d }) => {
+			let ink = 0;
+			let top = 0;
+			for (let i = 0; i < d.length; i += 4) {
+				if (d[i + 3] === 0) continue;
+				ink++;
+				if (d[i + 3] >= 240) top = Math.max(top, d[i]);
+			}
+			return { ink, top };
+		});
+	const g = await gray();
+	expect(g.ink).toBeGreaterThan(1000);
+	expect(g.top).toBeGreaterThan(10);
+	expect(g.top).toBeLessThan(120);
+	await expect(page.getByTestId("edges-even")).toHaveCount(0);
+	await expect(page.getByTestId("error")).toHaveCount(0);
+	// it draws over every base that shows Edges (Pencil is a drawing of its own: Edges is off there)
+	for (const kind of ["values", "shapes", "paper", "photo"] as const) {
+		await studio.base(kind);
+		await expect(page.getByTestId("layer-canvas-edges")).toBeVisible();
+		expect((await gray()).ink, kind).toBeGreaterThan(1000);
+	}
+	await page.reload();
+	await expect(page.getByTestId("layer-canvas-edges")).toBeVisible({
+		timeout: 30_000,
+	});
+	await studio.tool("edges");
+	await expect(
+		page.locator("[data-testid=edges-mode]").getByRole("radio").nth(3),
+	).toBeChecked();
 });
 
 test("test_opacity_first", async ({ studio }) => {

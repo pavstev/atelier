@@ -61,7 +61,7 @@ const CASES: {
 		layer: "edges",
 		on: "edges",
 		steps: [
-			...sweep("edges-mode", [0, 1, 2], (m) => [
+			...sweep("edges-mode", [0, 1, 2, 3], (m) => [
 				["edges-mode", m],
 				["edges-amount", LOOK.edges.amount],
 			]),

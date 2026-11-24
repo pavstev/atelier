@@ -14,7 +14,7 @@
 //! | shapes | step 0 shadows, 1 halftones, 2 lights, 3 accents | `detail` |
 //! | edges | mode 0 lines, 1 transfer, 2 masses | `amount`, `width`, `even` |
 //! | pencil | `look` 0 tone, 1 drawing, 3 hatch (2 is not a look), 4 by pencil; `mask` the pencils, bit 0 the 9B to bit 7 the 4H (255 all) | [`PENCIL_NUMBERS`] numbers in this order: `detail`, `key`, `contrast` (percent, 50 changes nothing), `highlights` 0 to 25 and `darks` 0 to 100 (whole percent), `local`, `grain` (percent), `paper` 0 smooth 1 medium 2 rough, `angle` 0 to 179 (whole degrees), `density` (percent), `step` 1 to 8 (by pencil; the lightest is 1), then `smudge`, `lift` and `cross` (percent, 0 off). The answer also has the level `mark`. `pencil_auto` reads the photo and gives the start of `key`, `contrast` and `highlights` with what it read; `pencil_suggest` gives the `mask` of the best 3 to 6 of the eight pencils |
-//! | layers | `edges_layer`, `values_layer`, `shapes_layer`, `pencil_layer`, `grid_layer`: RGBA | edges: alpha is 255 minus the largest channel; values, shapes and pencil: alpha 255; grid: alpha only on lines (`mode` 0 thirds, 1 grid, 2 both; `cells` one of the `CELL_STEPS` (3 to 50) across the width, or with `grid_layer_milli` a fine count in thousandths, 100 to 500000; `width` 1 to 16; `group` 2 or 4; `color`; `center` 0 or 1) |
+//! | layers | `edges_layer`, `values_layer`, `shapes_layer`, `pencil_layer`, `grid_layer`: RGBA | edges: alpha is 255 minus the largest channel (Sketch, `mode` 3: one gray, alpha is the stroke coverage); values, shapes and pencil: alpha 255; grid: alpha only on lines (`mode` 0 thirds, 1 grid, 2 both; `cells` one of the `CELL_STEPS` (3 to 50) across the width, or with `grid_layer_milli` a fine count in thousandths, 100 to 500000; `width` 1 to 16; `group` 2 or 4; `color`; `center` 0 or 1) |
 //!
 //! The photo comes in as RGB, already decoded and turned upright by the page (the browser
 //! decoder). [`prepare_work`] brings it to the work size.
@@ -133,7 +133,9 @@ pub fn shapes_view(work: &Rgb, step: u32, detail: f64) -> Result<(Rgb, Vec<[u8; 
     shapes::steps_view(work, step, knob(detail, "detail")?, SHAPES_GUIDE)
 }
 
-/// Edges as a picture of ink on white paper. `mode` 0 lines, 1 transfer, 2 masses. `amount` is
+/// Edges as a picture of ink on white paper. `mode` 0 lines, 1 transfer, 2 masses, 3 sketch (the
+/// Lines chains at this `amount`, drawn as graphite strokes of one dark gray; `even` does
+/// nothing there). `amount` is
 /// 0 to 100. Lines: 0 few, 33 some, 67 many, 100 many with twice the line budget, and in between
 /// a straight blend. Transfer: `amount` 50 is the middle. Masses: the borders of the Shapes
 /// level that `amount` picks (0 to 49 big, 50 to 84 mid, 85 to 100 small), so the start Amount 67 is
@@ -167,7 +169,7 @@ pub fn edges_view_kept(
     even: f64,
 ) -> Result<Rgb> {
     let work = image(work, 3, "work")?;
-    let mode = pick(mode, 0, 2, "edges mode")?;
+    let mode = pick(mode, 0, 3, "edges mode")?;
     knob(amount, "amount")?;
     let scale = f32::from(pick(width, 1, EDGES_WIDTH_MAX, "edges width")? + 1) / 4.0;
     let even = knob(even, "edges even")?;
@@ -188,6 +190,9 @@ pub fn edges_view_kept(
         return Err(Error::bad("kept edge map does not fit the work picture"));
     }
     let edges = kept.get_or_insert_with(|| edges::map::strength(work));
+    if mode == 3 {
+        return edges::trace::view_sketch(work, amount as f32, scale, edges);
+    }
     edges::trace::view_amount(work, mode == 1, amount as f32, scale, even, edges)
 }
 
@@ -270,6 +275,21 @@ pub fn edges_layer_kept(
     even: f64,
 ) -> Result<Layer> {
     let v = edges_view_kept(work, kept, mode, amount, width, even)?;
+    if mode == 3 {
+        // Sketch: graphite of one gray, the alpha is the coverage of the stroke
+        let g = edges::trace::GRAPHITE;
+        let span = f32::from(255 - g);
+        let mut rgba = Vec::with_capacity(v.width * v.height * 4);
+        for p in v.data.chunks_exact(3) {
+            let c = f32::from(255 - p[0]) / span;
+            rgba.extend_from_slice(&[g, g, g, (c * 255.0).round().min(255.0) as u8]);
+        }
+        return Ok(Layer {
+            width: v.width,
+            height: v.height,
+            rgba,
+        });
+    }
     Ok(layer_with(&v, |p| 255 - p[0].max(p[1]).max(p[2])))
 }
 

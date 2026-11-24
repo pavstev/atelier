@@ -97,7 +97,7 @@ export const LABELS = {
 	shapesStep: ["Shadows", "Halftones", "Lights", "Accents"],
 	valuesTint: ["Gray", "Umber"],
 	pencilPaper: ["Smooth", "Medium", "Rough"],
-	edgesMode: ["Lines", "Transfer", "Masses"],
+	edgesMode: ["Lines", "Transfer", "Masses", "Sketch"],
 	gridMode: ["Thirds", "Grid", "Both"],
 	gridUnit: ["Cells", "cm"],
 	gridGroup: ["2 × 2", "4 × 4"],

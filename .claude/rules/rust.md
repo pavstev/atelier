@@ -12,7 +12,7 @@ Modules of `crates/atelier-core/src`. Each file starts with a `//!` line that sa
 |---|---|
 | `render` | The typed calls (`values_layer`, `shapes_layer`, `pencil_layer`, `edges_layer`, `grid_layer`, and the views under them) and the range checks. |
 | `values`, `shapes`, `pencil/`, `grid` | One part each. `pencil/` maps the photo onto the tones of graphite grades (it reuses the Values smoothing and label clean-up; the modules are in the next table). `grid.rs` draws the Grid (its constants live there too). |
-| `edges/` | Edges: `map` (the blurred Sobel edge map), `trace` (the lines traced from it) and `field` (the direction field). |
+| `edges/` | Edges: `map` (the blurred Sobel edge map), `trace` (the lines traced from it; `trace/sketch.rs` draws the Sketch mode, and uses the one position hash of `pencil::paper`) and `field` (the direction field). |
 | `deblock` | Calms the 8 px blocks of small JPEGs before the parts. |
 | `img`, `oklab`, `srgb`, `photo`, `error` | Image type, color math (`srgb::l_star` is the one CIE L*), the upright turn, `Error::bad`. |
 | `resize`, `filters` | Shared filters. `filters` holds one copy of each: the Sobel gradient, the box mean, the guided filter, the percentile and `Sorted`, the mode filter and the Otsu cut (the Gaussian blur is `edges::field::blur`); `resize` holds Lanczos. |

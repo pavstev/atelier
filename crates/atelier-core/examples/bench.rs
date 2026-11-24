@@ -15,7 +15,7 @@
 //! `NAME` keeps only the photos whose file name holds it. `compare` writes
 //! `OUT/cmp-BEFORE-AFTER-<photo>.png`.
 //!
-//! Env vars override the start values of one run: `BENCH_EDGES_MODE` (0 to 2), `BENCH_EDGES_AMOUNT`
+//! Env vars override the start values of one run: `BENCH_EDGES_MODE` (0 to 3), `BENCH_EDGES_AMOUNT`
 //! (0 to 100), `BENCH_EDGES_WIDTH` (1 to 10), `BENCH_EDGES_EVEN` (0 to 100), `BENCH_SHAPES_STEP` (0 to 3), `BENCH_SHAPES_DETAIL` (0 to 100),
 //! `BENCH_VALUES_PRESET` (0 to 5), `BENCH_VALUES_DETAIL` (0 to 100), `BENCH_VALUES_TINT` (0 or 1),
 //! `BENCH_GRID_MODE` (0 to 2), `BENCH_GRID_CELLS` (3 to 50, one of the Grid steps),
@@ -94,7 +94,7 @@ where
 impl Knobs {
     fn from_env() -> Res<Self> {
         Ok(Self {
-            edges_mode: knob_env("BENCH_EDGES_MODE", EDGES_MODE, 0, 2)?,
+            edges_mode: knob_env("BENCH_EDGES_MODE", EDGES_MODE, 0, 3)?,
             edges_amount: knob_env("BENCH_EDGES_AMOUNT", EDGES_AMOUNT, 0.0, 100.0)?,
             edges_width: knob_env("BENCH_EDGES_WIDTH", EDGES_WIDTH, 1, 10)?,
             edges_even: knob_env("BENCH_EDGES_EVEN", EDGES_EVEN, 0.0, 100.0)?,

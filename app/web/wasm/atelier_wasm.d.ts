@@ -9,8 +9,8 @@ export class Photo {
     free(): void;
     [Symbol.dispose](): void;
     /**
-     * The Edges layer: ink lines, transfer or mass borders, see-through. `mode` 0 lines,
-     * 1 transfer, 2 masses; `amount` 0 to 100; `line` the line width, 1 to 10 (3 is the width
+     * The Edges layer: ink lines, transfer, mass borders or graphite strokes, see-through. `mode`
+     * 0 lines, 1 transfer, 2 masses, 3 sketch; `amount` 0 to 100; `line` the line width, 1 to 10 (3 is the width
      * before the knob); `even` 0 to 100, how far the Lines widths go to one width.
      *
      * # Errors
