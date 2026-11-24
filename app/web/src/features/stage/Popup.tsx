@@ -3,22 +3,10 @@
 // The caller holds `open`, so only one card is open at a time. A second press on the button, Esc or
 // a press outside closes it. The button is an `IconButton` with round corners.
 import { Popover, Sheet } from "@heroui/react";
-import { type ReactNode, useEffect, useRef, useSyncExternalStore } from "react";
+import { type ReactNode, useEffect, useRef } from "react";
 import { NARROW } from "@/features/tools/settings";
 import { IconButton, type IconName } from "@/ui/icons";
-
-/** True in a window narrower than 768 px (a phone). */
-function useNarrow(): boolean {
-	return useSyncExternalStore(
-		(onChange) => {
-			const m = window.matchMedia(NARROW);
-			m.addEventListener("change", onChange);
-			return () => m.removeEventListener("change", onChange);
-		},
-		() => window.matchMedia(NARROW).matches,
-		() => false,
-	);
-}
+import { useMedia } from "@/ui/media";
 
 /**
  * The sheet backdrop passes `isDismissable` on to React Aria's modal overlay, but its type does not
@@ -114,7 +102,7 @@ export default function Popup(p: {
 	button: ButtonProps;
 	children: ReactNode;
 }) {
-	const narrow = useNarrow();
+	const narrow = useMedia(NARROW);
 	const { open, onOpenChange } = p;
 	// When a bar button is pressed, the popover sees a focus change and asks to close; the button's
 	// own press then decides. So a close asked just after a bar button went down is ignored here.

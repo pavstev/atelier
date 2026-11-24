@@ -6,8 +6,9 @@
 
 use super::cross::{self, THIRD_SALT, THIRD_SPACING};
 use super::ink::{darkest, darkness, grain_factor, hold_mean, lay, pressure, smoothstep, tone_of};
-use super::paper::{hash, scale};
+use super::paper::hash;
 use crate::edges::field::{Field, bil, structure_field};
+use crate::img::size_factor;
 use std::f32::consts::PI;
 
 /// The line spacing at density 0 and at density 1, in px at a long side of 1024.
@@ -34,15 +35,17 @@ const CROSS_SALT: i32 = 70_001;
 /// paper stay paper.
 const PAPER_RANGE: (f32, f32) = (0.026, 0.06);
 /// The share of the paper the first layer covers in the lights and mids, so a line is lighter than
-/// the full black of the darkest pencil: half the paper stays bare.
-const LIGHT_COVER: f32 = 0.5;
+/// the full black of the darkest pencil. A high share keeps the lines soft (a quarter of the paper
+/// stays bare), so the fine structure of the photo is less broken than by half bare lines (bench
+/// 2026-11-23: MS-SSIM up 0.676 to 0.73, tone error after a blur the same).
+const LIGHT_COVER: f32 = 0.75;
 /// The darkness at which the lines cover the whole paper.
 const DENSE_AT: f32 = 0.8;
 /// The darkness under which the lines come in one at a time (the nesting), each at the ink of
 /// this darkness, so a very light tone is a few faint lines and not a wash.
 const SPARSE_UNDER: f32 = 0.08;
 /// The most coverage the first layer draws. The second layer makes up the rest in the darks.
-const FIRST_MAX: f32 = 0.6;
+const FIRST_MAX: f32 = 0.75;
 /// The share of a line that is missing in the lightest work (rare gaps; the darks have none). Kept
 /// small: on a gray ground a gap reads as a white slit.
 const GAP_MAX: f32 = 0.03;
@@ -109,8 +112,8 @@ fn lines_share(d: f32) -> f32 {
 }
 
 /// How dark a line is at the tone darkness `d`, as a share of full darkness: the ink that makes
-/// the mean of the covered lines the tone. A light tone is a gray line (in L*, about
-/// `2 * tone - paper`), and the ink reaches full darkness at half darkness.
+/// the mean of the covered lines the tone. A light tone is a gray line (its darkness is the tone's
+/// over [`LIGHT_COVER`]), and the ink reaches full darkness at a darkness of [`LIGHT_COVER`].
 fn ink(d: f32) -> f32 {
     if d <= 0.0 {
         return 0.0;
@@ -279,7 +282,7 @@ fn stripe(pos: (f32, f32), dir: (f32, f32), lines: Lines, plan: Plan, salt: i32)
     let width = plan.width * lines.spacing * whole;
     // the soft edge is 1 px, less where the lines nearly touch, and lines that touch do not wander
     let bare = (lines.spacing - width).max(0.0);
-    let soft = bare.clamp(MIN_SOFT, 1.0);
+    let soft = bare.clamp(MIN_SOFT, 2.0);
     let sway = wander(id, along, lines.wander) * bare / lines.spacing;
     let off = (across - libm::floorf(across) - 0.5) * lines.spacing + sway;
     let edge = ((f32::midpoint(width, soft) - off.abs()) / soft).clamp(0.0, 1.0);
@@ -331,7 +334,7 @@ pub(crate) fn draw(
     density: f32,
     cross: f32,
 ) -> Vec<f32> {
-    let px = scale(w, h);
+    let px = size_factor(w, h);
     let spacing = (SPACING.0 + (SPACING.1 - SPACING.0) * density) * px;
     let first_lines = Lines {
         spacing,
@@ -407,6 +410,7 @@ pub(crate) fn draw(
 mod tests {
     use super::super::paper::{Paper, tooth};
     use super::*;
+    use crate::test_support::{box_gaps, flat_tone as flat, ramp_tone};
 
     /// The picture of `tone` with the default knobs but for `angle` and `density`.
     fn run(
@@ -420,60 +424,32 @@ mod tests {
         draw(tone, guide, w, h, &t, 0.5, angle, density, 0.0)
     }
 
-    /// A picture `w` by `h` of one tone with one dark pixel in the corner, so the tone is not the
-    /// darkest.
-    fn flat(l: f32, w: usize, h: usize) -> Vec<f32> {
-        let mut v = vec![l; w * h];
-        v[0] = 17.0;
-        v
-    }
-
-    /// The mean of the 16 px box at `(x0, y0)`.
-    fn box16(v: &[f32], w: usize, (x0, y0): (usize, usize)) -> f32 {
-        let mut s = 0.0;
-        for y in y0..y0 + 16 {
-            for x in x0..x0 + 16 {
-                s += v[y * w + x];
-            }
-        }
-        s / 256.0
-    }
-
-    /// The mean and the largest gap between the 16 px box means of `shown` and `tone`, on a grid of
-    /// boxes that keeps 16 px from the border (the hold is cut short there). Lines 5 px apart put
-    /// three or four of them in a box, so a box can be off by a line: the gaps are wider than
-    /// Drawing's.
-    fn gaps(shown: &[f32], tone: &[f32], (w, h): (usize, usize)) -> (f32, f32) {
-        let (mut sum, mut worst, mut n) = (0.0f32, 0.0f32, 0.0f32);
-        for y in (16..=h - 32).step_by(8) {
-            for x in (16..=w - 32).step_by(8) {
-                let gap = (box16(shown, w, (x, y)) - box16(tone, w, (x, y))).abs();
-                sum += gap;
-                worst = worst.max(gap);
-                n += 1.0;
-            }
-        }
-        (sum / n, worst)
+    /// The box gaps on a grid that keeps 16 px from the border (the hold is cut short there).
+    /// Lines 5 px apart put three or four of them in a box, so a box can be off by a line: the
+    /// gaps are wider than Drawing's.
+    fn gaps(shown: &[f32], tone: &[f32], size: (usize, usize)) -> (f32, f32) {
+        box_gaps(shown, tone, size, 16)
     }
 
     #[test]
     fn test_the_ink_is_a_pencil_gray_that_follows_the_tone() {
-        // a mid tone (L* 56, darkness 0.5) is drawn by lines of full darkness, a light one by gray lines
-        assert!((ink(0.5) - 1.0).abs() < 1e-6);
-        assert!((ink(0.2) - 0.4).abs() < 1e-6);
+        // a tone as dark as the first layer's cover is drawn by lines of full darkness, a light one by
+        // gray lines (the ink is the darkness over the cover)
+        assert!((ink(LIGHT_COVER) - 1.0).abs() < 1e-6);
+        assert!((ink(0.2) - 0.2 / LIGHT_COVER).abs() < 1e-6);
         assert_eq!(ink(0.0), 0.0);
         // the faintest lines are all the same gray, there are just fewer of them
-        assert!((ink(0.02) - 2.0 * SPARSE_UNDER).abs() < 1e-5);
+        assert!((ink(0.02) - SPARSE_UNDER / LIGHT_COVER).abs() < 1e-5);
         // the darks are dense: the lines cover the whole paper, a little under full ink
         assert!((coverage(DENSE_AT) - 1.0).abs() < 1e-5 && ink(DENSE_AT) > 0.75);
         assert!(ink(0.9) <= 1.0);
     }
 
     #[test]
-    fn test_the_first_layer_covers_half_the_paper_in_the_lights_and_mids() {
-        for d in [0.02f32, 0.08, 0.2, 0.4, 0.5] {
+    fn test_the_first_layer_covers_most_of_the_paper_in_the_lights_and_mids() {
+        for d in [0.02f32, 0.08, 0.2, 0.4, 0.5, 0.7] {
             let (a, b) = layers(d);
-            assert!((a - 0.5).abs() < 1e-4 && b == 0.0, "{d}: {a} {b}");
+            assert!((a - LIGHT_COVER).abs() < 1e-4 && b == 0.0, "{d}: {a} {b}");
         }
         assert_eq!(layers(0.0), (0.0, 0.0));
     }
@@ -486,8 +462,8 @@ mod tests {
             let (a, b) = layers(d);
             let all = 1.0 - (1.0 - a) * (1.0 - b);
             assert!((ink(d) * lines_share(d) * all - d).abs() < 1e-4, "{d}");
-            assert!(b == 0.0 || d > 0.55, "{d}");
-            assert!(b > 0.0 || d < 0.7, "{d}");
+            assert!(b == 0.0 || d > LIGHT_COVER, "{d}");
+            assert!(b > 0.0 || d < LIGHT_COVER + 0.05, "{d}");
             assert!(all >= last - 1e-5);
             last = all;
         }
@@ -601,9 +577,7 @@ mod tests {
     #[test]
     fn test_a_ramp_keeps_the_local_mean() {
         let (w, h) = (192, 96);
-        let tone: Vec<f32> = (0..w * h)
-            .map(|i| 17.0 + 78.0 * (i % w) as f32 / (w - 1) as f32)
-            .collect();
+        let tone = ramp_tone(w, h);
         let shown = run(&tone, &tone, (w, h), 45.0, 0.5);
         let (mean, worst) = gaps(&shown, &tone, (w, h));
         assert!(mean < 2.5 && worst < 12.0, "{mean} {worst}");

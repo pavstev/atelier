@@ -7,6 +7,7 @@ import {
 	ListBox,
 	Select,
 	Slider,
+	Switch,
 	ToggleButton,
 	ToggleButtonGroup,
 } from "@heroui/react";
@@ -30,6 +31,31 @@ export function Row(p: { label: string; children: ReactNode }) {
 				{p.children}
 			</div>
 		</div>
+	);
+}
+
+/** An on/off switch with no visible label (`label` is its accessible name). */
+export function Toggle(p: {
+	label: string;
+	on: boolean;
+	onChange: (v: boolean) => void;
+	disabled?: boolean;
+	testid: string;
+}) {
+	return (
+		<Switch
+			data-testid={p.testid}
+			aria-label={p.label}
+			isSelected={p.on}
+			isDisabled={p.disabled}
+			onChange={p.onChange}
+		>
+			<Switch.Content>
+				<Switch.Control>
+					<Switch.Thumb />
+				</Switch.Control>
+			</Switch.Content>
+		</Switch>
 	);
 }
 

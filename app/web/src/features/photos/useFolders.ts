@@ -2,8 +2,8 @@
 // The folders change only through `apply` (one pure reducer, `foldersReducer`), which writes the
 // ref and the state together. Another tab that saves the folders wins: this page reads them again
 // on the `storage` event. Which folders are open is a small saved list of ids on this device.
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { KEYS, SAVE_MS, useSaved } from "@/lib/storage";
+import { useCallback, useMemo, useState } from "react";
+import { KEYS, SAVE_MS, useSaved, useStorageEvent } from "@/lib/storage";
 import {
 	type Folder,
 	type FoldersAction,
@@ -11,27 +11,18 @@ import {
 	readFolders,
 	readOpen,
 } from "./store";
+import { useRefReducer } from "./useRefReducer";
 
 export function useFolders(onSaveFail: () => void) {
-	const [folders, setState] = useState<Folder[]>(readFolders);
-	const foldersRef = useRef(folders);
-	const apply = useCallback((a: FoldersAction) => {
-		const next = foldersReducer(foldersRef.current, a);
-		if (next === foldersRef.current) return;
-		foldersRef.current = next;
-		setState(next);
-	}, []);
+	const [folders, foldersRef, apply] = useRefReducer<Folder[], FoldersAction>(
+		readFolders,
+		foldersReducer,
+	);
 	useSaved(KEYS.folders, folders, SAVE_MS, { onFail: onSaveFail });
 	// another tab saved the folders
-	useEffect(() => {
-		const on = (e: StorageEvent) => {
-			if (e.storageArea !== localStorage) return;
-			if (e.key !== null && e.key !== KEYS.folders) return;
-			apply({ type: "set", list: readFolders() });
-		};
-		window.addEventListener("storage", on);
-		return () => window.removeEventListener("storage", on);
-	}, [apply]);
+	useStorageEvent(KEYS.folders, () =>
+		apply({ type: "set", list: readFolders() }),
+	);
 
 	const [openIds, setOpenIds] = useState<string[]>(readOpen);
 	// the ids of deleted folders are not kept

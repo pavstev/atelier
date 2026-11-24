@@ -4,7 +4,21 @@
 // (a phone). A swatch press holds its color in the picker card, so the strip needs no card open.
 import type { ReactNode } from "react";
 
-export default function LegendStrip(p: { children: ReactNode }) {
+export default function LegendStrip(p: {
+	children: ReactNode;
+	/** The Mac app: a column at the right edge of the stage, shown by a button in the bar. */
+	dock?: boolean;
+}) {
+	if (p.dock)
+		return (
+			<div
+				data-testid="legend-strip"
+				style={{ maxHeight: "min(32rem, calc(100% - 8rem))" }}
+				className="absolute top-1/2 right-3 z-(--z-bar) -translate-y-1/2 overflow-y-auto floating-card rounded-(--radius-card) p-1.5 [&_[data-testid=legend]]:flex-col"
+			>
+				{p.children}
+			</div>
+		);
 	return (
 		<div
 			data-testid="legend-strip"

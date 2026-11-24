@@ -3,7 +3,7 @@
 Study a photo like a painter. A Rust core does the pixel work. It runs in the browser as wasm,
 behind a React web app, on localhost and at https://atelier.stevanpavlovic.com (a Cloudflare
 Worker; a push to main deploys it). The native Swift Mac app left main on 2026-10-31; the tag
-`swift-app-last` keeps it. The first web app (Astro, Tauri, Python sidecar) is in the tag
+`swift-app-last` keeps it. A new Mac app, a Tauri window around the web app, is in `app/desktop/`. The first web app (Astro, Tauri, Python sidecar) is in the tag
 `web-site-last`.
 
 What the app does: [README.md](README.md) and [docs/web-app.md](docs/web-app.md). How it looks and
@@ -22,11 +22,11 @@ The tasks are in `mise.toml` (its header has the setup). While you work: `mise r
 Once before a push: `mise run check`. For a Rust file: `bash scripts/test-files.sh FILES`. For a
 core or web change also run `mise run web:e2e` once (`PHOTOS_DIR` must hold `mona-lisa-2400.jpg`;
 set up once with `pnpm --dir app/web exec playwright install chromium`). The test rules, the test
-photo and the bless commands (`cargo xtask refs --bless`, `mise run web:golden:bless`) are in
+photo and the bless commands (`ATELIER_BLESS=1 cargo refs`, `mise run web:golden:bless`) are in
 [docs/development/testing.md](docs/development/testing.md). Bless only for a meant change, and say
 in the commit why the pictures moved.
 
-`cargo xtask refs` renders the synthetic photo through each layer at a long side of 128 px and
+`cargo refs` renders the synthetic photo through each layer at a long side of 128 px and
 compares it with `crates/atelier-core/tests/reference` (size, range, a mean difference of at most 3.0).
 
 ## Rules
@@ -61,6 +61,7 @@ and what stays out.
 | 2026-11-14 | Pencil, as a Base choice: the photo as a gray picture in the tones of the graphite grades 4H to 9B (`crates/atelier-core/src/pencil/`). Its looks: Tone, Drawing, Hatch, By pencil. Hatch is a texture of the tone; By pencil is a view of the tone by pencil. | The old Line drawing and Pencil model tools, the Stroke order, a Sketch look (Edges is the line tool, `docs/LEFTOVERS.md` row 64). |
 | 2026-11-17 | The PWA (dropped 2026-11-06): an offline service worker, install, Open with and Share (`app/web/src/sw/`, `app/web/src/pwa/`). The worker never touches a photo or a model. | Push and sync. |
 | 2026-11-17 | The paper frame: the Paper tool (once called Size) in the bottom bar (`app/web/src/features/size/`). It picks a paper or canvas and can cut the photo to its shape. | The old canvas sizes, the materials, the 18 x 24 cm idea as a workspace. |
+| 2026-11-24 | A Mac app: a Tauri window around the web app (`app/desktop/`, [docs/development/mac-app.md](docs/development/mac-app.md)), with a see-through sidebar and no title bar. | The native Swift app, a second UI, Mac-only features beyond the window. |
 
 ### Dropped
 

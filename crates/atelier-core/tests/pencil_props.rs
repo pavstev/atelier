@@ -9,6 +9,7 @@ use atelier_core::render::{
 
 mod common;
 use common::support::PENCIL_START;
+use common::{gray, srgb_to_linear};
 
 /// The look numbers of the five looks.
 const LOOKS: [u32; 4] = [0, 1, 3, 4];
@@ -35,17 +36,6 @@ fn hash(x: usize, y: usize, seed: u32) -> u32 {
     h = h.wrapping_mul(0x2C1B_3C6D);
     h ^= h >> 12;
     h & 255
-}
-
-fn gray(w: usize, h: usize, f: impl Fn(usize, usize) -> u8) -> Rgb {
-    let mut data = Vec::with_capacity(w * h * 3);
-    for y in 0..h {
-        for x in 0..w {
-            let v = f(x, y);
-            data.extend_from_slice(&[v, v, v]);
-        }
-    }
-    Rgb::from_vec(w, h, 3, data)
 }
 
 /// A ramp from black to white, left to right.
@@ -75,14 +65,7 @@ fn render(img: &Rgb, look: u32, mask: u32, n: &[f64]) -> PencilLayer {
 
 /// The CIE L* of one RGB pixel (sRGB, D65).
 fn l_star(p: &[u8]) -> f64 {
-    let lin = |c: u8| {
-        let c = f64::from(c) / 255.0;
-        if c <= 0.04045 {
-            c / 12.92
-        } else {
-            ((c + 0.055) / 1.055).powf(2.4)
-        }
-    };
+    let lin = srgb_to_linear;
     let y = 0.2126 * lin(p[0]) + 0.7152 * lin(p[1]) + 0.0722 * lin(p[2]);
     if y > 216.0 / 24389.0 {
         116.0 * y.cbrt() - 16.0
@@ -432,9 +415,11 @@ fn fnv(l: &PencilLayer) -> u32 {
 #[test]
 fn test_drawing_and_hatch_with_the_effects_off_are_the_bytes_of_commit_372f8530() {
     // Pencil v3: smudge, lift and cross start at 0, and 0 skips their math. These hashes were taken
-    // from the view at commit 372f8530, before the three effects, on the same 128 px fixture.
+    // from the view at commit 372f8530, before the three effects, on the same 128 px fixture. The
+    // Hatch hash was taken again on 2026-11-23, when Hatch got softer lines: the
+    // lines moved, and the effects at 0 still add nothing to them.
     let w = common::work();
-    for (look, name, was) in [(1, "drawing", 32_247_863), (3, "hatch", 3_487_575_399)] {
+    for (look, name, was) in [(1, "drawing", 32_247_863), (3, "hatch", 3_583_726_232)] {
         let got = fnv(&render(&w, look, 255, &PENCIL_START));
         assert_eq!(got, was, "{name} moved from the bytes of 372f8530");
     }

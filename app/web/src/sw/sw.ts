@@ -1,5 +1,5 @@
 // The service worker: precaches the whole build, answers offline, takes shared photos, and takes over by itself when a new build is cached.
-import { routeOf, shareOutcome } from "./routes.ts";
+import { routeOf, SHARE_CACHE, shareOutcome } from "./routes.ts";
 
 declare const __PRECACHE__: string[];
 declare const __VERSION__: string;
@@ -7,7 +7,6 @@ declare const self: ServiceWorkerGlobalScope;
 
 const PREFIX = "atelier-shell-";
 const SHELL = `${PREFIX}${__VERSION__}`;
-const SHARE = "atelier-share";
 
 self.addEventListener("install", (e) => {
 	// A failed add fails the install, so the old worker stays. Only a full cache skips the wait,
@@ -39,7 +38,7 @@ self.addEventListener("message", (e) => {
 async function share(req: Request): Promise<Response> {
 	let ok = true;
 	try {
-		const c = await caches.open(SHARE);
+		const c = await caches.open(SHARE_CACHE);
 		// Clear earlier shares first, so an unread one is not added again.
 		const keys = (await c.keys()).map((k) => k.url);
 		for (const k of shareOutcome(keys, true).del) await c.delete(k);

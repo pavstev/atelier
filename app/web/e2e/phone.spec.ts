@@ -17,21 +17,16 @@ test("test_the_drawer_starts_closed_opens_over_the_stage_and_closes_again", asyn
 	await studio.openSynthetic(480, 640, "one.png");
 	await expect(files).toHaveAttribute("data-collapsed", "true");
 	// the stage has the whole window
-	const stage = await page.getByTestId("stage").boundingBox();
-	expect(stage?.width).toBeCloseTo(390, 0);
+	expect((await box(page, "stage")).width).toBeCloseTo(390, 0);
 	await expect(page.getByTestId("panel-scrim")).toHaveCount(0);
 
 	// the edge handle opens the drawer; it overlays the stage and is at most 88% wide
 	await page.getByTestId("files-expand").click();
 	await expect(files).toHaveAttribute("data-collapsed", "false");
-	const drawer = await files.boundingBox();
-	if (!drawer) throw new Error("no drawer");
+	const drawer = await box(page, "files");
 	expect(drawer.x).toBeCloseTo(0, 0);
 	expect(drawer.width).toBeLessThanOrEqual(390 * 0.88 + 1);
-	expect((await page.getByTestId("stage").boundingBox())?.width).toBeCloseTo(
-		390,
-		0,
-	);
+	expect((await box(page, "stage")).width).toBeCloseTo(390, 0);
 	// the logo and the four icon buttons fit inside the drawer, in one row
 	for (const id of [
 		"logo",
@@ -73,8 +68,7 @@ test("test_every_control_is_inside_the_phone_window_and_the_tools_open_as_sheets
 	);
 	await studio.base("values");
 	await expect(page.getByTestId("layer-canvas-base")).toBeVisible();
-	const sheet = await page.getByTestId("tool-popup").boundingBox();
-	if (!sheet) throw new Error("no sheet");
+	const sheet = await box(page, "tool-popup");
 	expect(sheet.x).toBeCloseTo(0, 0);
 	expect(sheet.width).toBeCloseTo(390, 0);
 	expect(sheet.y + sheet.height).toBeCloseTo(844, 0);
@@ -83,8 +77,7 @@ test("test_every_control_is_inside_the_phone_window_and_the_tools_open_as_sheets
 	await page.keyboard.press("Escape");
 	await expect(page.getByTestId("tool-popup")).toHaveCount(0);
 	// the bar fits the window
-	const bar = await page.getByTestId("stage-bar").boundingBox();
-	if (!bar) throw new Error("no bar");
+	const bar = await box(page, "stage-bar");
 	expect(bar.x).toBeGreaterThanOrEqual(0);
 	expect(bar.x + bar.width).toBeLessThanOrEqual(390);
 	await page.getByTestId("files-expand").click();

@@ -16,6 +16,7 @@ import StageArea from "@/features/stage/StageArea";
 import { Legend, PencilLegend } from "@/features/stage/Swatches";
 import {
 	callFor,
+	type Layers,
 	type Look,
 	NARROW,
 	STAGE_IDS,
@@ -81,10 +82,7 @@ export default function App() {
 		ph.layerFailed,
 	);
 
-	const shown = {} as Record<
-		StageId,
-		{ image: ImageData; opacity: number } | null
-	>;
+	const shown = {} as Layers;
 	for (const id of STAGE_IDS) {
 		const image = calls[id] ? pictures[id] : null;
 		shown[id] = image ? { image, opacity: look[id].opacity } : null;
@@ -117,11 +115,19 @@ export default function App() {
 				data-testid="logo"
 				className={`pointer-events-none fixed top-3 left-3 z-(--z-banner) flex h-(--logo-h) items-center text-foreground ${layout.panels.left ? "" : "md:top-[calc(var(--panel-gap)+var(--panel-pad)+1px)] md:left-[calc(var(--panel-gap)+var(--panel-pad)+1px)]"}`}
 			>
-				<Logo className="h-5 w-auto" outline={layout.panels.left} />
+				<Logo
+					className="h-5 w-auto"
+					outline={
+						layout.panels.left ||
+						document.documentElement.dataset.shell === "mac"
+					}
+				/>
 				<span className="sr-only">Atelier</span>
 			</div>
 			{/* the title bar slot of an installed app: the photo buttons move in here (see index.css) */}
 			<div data-testid="titlebar-tools" className="titlebar-tools" />
+			{/* the Mac app: a strip along the top edge that drags the window (index.css, Tauri) */}
+			<div data-tauri-drag-region className="mac-drag" />
 			<div className="fixed top-3 right-3 z-(--z-banner)">
 				<InstallButton />
 			</div>

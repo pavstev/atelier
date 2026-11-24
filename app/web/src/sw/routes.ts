@@ -1,4 +1,8 @@
 // Decides how the service worker answers a request: precache, shell, share or pass (network, untouched).
+
+/** The cache that holds the photos of a share until the page takes them (`pwa/intake.ts`). */
+export const SHARE_CACHE = "atelier-share";
+
 export function routeOf(
 	method: string,
 	url: string,

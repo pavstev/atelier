@@ -5,6 +5,7 @@ import { keepNewest } from "@/lib/lru";
 import init, { Photo } from "../../wasm/atelier_wasm.js";
 import { type Call, pencilAutoOf, pencilNumbers, type Rgb } from "./calls";
 import {
+	type DrawExtras,
 	PHOTO_GONE,
 	type WorkerRequest,
 	type WorkerResponse,
@@ -66,13 +67,10 @@ const NO_MARK = 255;
  * and 3 bytes per tone (or pile) after the pixels. Pencil adds one byte per tone after those: its
  * share of the photo in percent, then one byte for the marked level (255 for none).
  */
-function splitDraw(out: Uint8Array): {
+function splitDraw(out: Uint8Array): DrawExtras & {
 	width: number;
 	height: number;
 	rgba: Uint8Array<ArrayBuffer>;
-	tones?: Rgb[];
-	shares?: number[];
-	mark?: number;
 } {
 	const head = new DataView(out.buffer, out.byteOffset, 8);
 	const width = head.getUint32(0, true);

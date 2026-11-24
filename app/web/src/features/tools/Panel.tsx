@@ -2,11 +2,10 @@
 // pop-up card over the bottom bar (a bottom sheet on a phone). `ToolHead` is the top row of a card:
 // its name and, for Edges and Grid, the on/off switch. A body is three groups split by thin lines:
 // Opacity first, the main choice at full width, then its settings one line each.
-import { Switch } from "@heroui/react";
 import { lazy, Suspense } from "react";
 import type { PencilExtras } from "@/features/pencil/usePencilExtras";
 import { GRID_CM } from "@/features/size/paper";
-import { Choice, ColorField, Knob, Row, Segment } from "@/ui/fields";
+import { Choice, ColorField, Knob, Row, Segment, Toggle } from "@/ui/fields";
 import { BASE_NAMES, baseIndex } from "./baseName";
 import {
 	BASES,
@@ -20,6 +19,7 @@ import {
 	LABELS,
 	type Look,
 	OPACITY_MIN,
+	type SetLook,
 	type StageId,
 } from "./settings";
 
@@ -28,32 +28,16 @@ const PencilCard = lazy(() => import("@/features/pencil/PencilCard"));
 
 type Props = {
 	look: Look;
-	onLook: (f: (s: Look) => Look) => void;
+	onLook: SetLook;
 };
 
-function Toggle(p: {
-	label: string;
-	on: boolean;
-	onChange: (v: boolean) => void;
-	disabled?: boolean;
-	testid: string;
-}) {
-	return (
-		<Switch
-			data-testid={p.testid}
-			aria-label={p.label}
-			isSelected={p.on}
-			isDisabled={p.disabled}
-			onChange={p.onChange}
-		>
-			<Switch.Content>
-				<Switch.Control>
-					<Switch.Thumb />
-				</Switch.Control>
-			</Switch.Content>
-		</Switch>
-	);
-}
+/** What one tool card takes: its tool, the look and its setter, and what the Pencil card holds. */
+export type ToolCardProps = Props & {
+	id: StageId;
+	extras: PencilExtras;
+	/** A paper is set (a photo is open), so the Grid can count in cm. */
+	paper: boolean;
+};
 
 /** Changes the settings of one part of the look. */
 const setter =
@@ -87,9 +71,7 @@ const Rule = () => <div className="my-0.5 h-px bg-separator" />;
 
 /** The controls of one tool: Opacity first, then the main choice at full width, then its settings.
  * `extras` is what the Pencil card holds for the photo (Auto note, suggestion). */
-export function ToolBody(
-	p: Props & { id: StageId; extras: PencilExtras; paper: boolean },
-) {
+export function ToolBody(p: ToolCardProps) {
 	const s = p.look;
 	const set = setter(p);
 	/** The `value` and `onChange` of a field that holds one setting of one part. */

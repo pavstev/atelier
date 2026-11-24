@@ -26,9 +26,9 @@ core module (use the LSP tool, do not read the whole module).
 ## Checks, in order
 
 1. `bash scripts/test-files.sh <the changed .rs files>`.
-2. `cargo xtask refs`. A failure is expected only for the views you meant to change.
+2. `cargo refs`. A failure is expected only for the views you meant to change.
    Look at the picture before you bless: render the view and read the PNG.
-3. `cargo xtask refs --bless`. The commit message says which views moved and why.
+3. `ATELIER_BLESS=1 cargo refs`. The commit message says which views moved and why.
 4. `mise run check:fast`, then `mise run web:e2e` (headless Chromium) when a control changed, and
    `mise run check` once before the push.
 

@@ -67,6 +67,9 @@ pub(crate) use paper::Paper;
 /// How much of the fine detail the picture keeps at `detail` 0 (the rest is the simplified
 /// photo). At `detail` 1 all of it stays.
 const RETAIN_MIN: f32 = 0.25;
+/// The tone step (L*) at which the Smudge of Drawing counts a pixel half: a step of this size is
+/// kept, the few L* of the tooth blend away.
+const SMUDGE_EDGE_STOP: f32 = 12.0;
 /// The grain knob (0 to 1) at its start: half of the full tooth.
 const GRAIN_START: f32 = 0.5;
 
@@ -299,7 +302,11 @@ fn textured(tone: Vec<f32>, guide: &[f32], (w, h): (usize, usize), k: &Knobs) ->
     };
     // the stump works on the drawn graphite; By pencil keeps its tone for the step
     match k.look {
-        Look::Tone | Look::Drawing | Look::Hatch => smudge::drag(&shown, (w, h), angle, k.smudge),
+        // Drawing keeps its clear edges: only the tooth and the grain blend (bench 2026-11-23)
+        Look::Drawing => {
+            smudge::drag_stopped(&shown, (w, h), angle, k.smudge, Some(SMUDGE_EDGE_STOP))
+        }
+        Look::Tone | Look::Hatch => smudge::drag(&shown, (w, h), angle, k.smudge),
         Look::ByPencil => shown,
     }
 }

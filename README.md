@@ -28,7 +28,9 @@ Flat values, paint shapes, clean lines and a grid over your own photo. It runs i
 Open **https://atelier.stevanpavlovic.com** on a desktop or a laptop, then drop a photo on the page.
 Nothing to install, no account.
 
-Run it on your own machine with [mise](https://mise.jdx.dev). It installs Rust, Node, pnpm and the wasm tools.
+On a Mac you can also build a window app: [docs/development/mac-app.md](docs/development/mac-app.md).
+
+Run it on your own machine with [mise](https://mise.jdx.dev). It installs Rust (from `rust-toolchain.toml`), the wasm tools and the git hooks. You also need Node and pnpm.
 
 ```bash
 mise install

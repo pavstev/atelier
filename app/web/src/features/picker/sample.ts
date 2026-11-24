@@ -1,11 +1,9 @@
 // The color the stage shows at one photo pixel: the photo (or white Paper), then the base, Edges and
 // Grid layers over it in order, each by its own see-through and opacity. It follows `Stage.tsx`, so
 // the picker reads what the eye sees, in any base. While the photo button is held it is the bare photo.
-import { PAPER, STAGE_IDS, type StageId } from "@/features/tools/settings";
+import { type Layers, PAPER, STAGE_IDS } from "@/features/tools/settings";
 import type { Rgb } from "./mix";
 import { encodeOf, linearOf } from "./spectral";
-
-type Layers = Record<StageId, { image: ImageData; opacity: number } | null>;
 
 const PAPER_RGB: Rgb = [
 	Number.parseInt(PAPER.slice(1, 3), 16),

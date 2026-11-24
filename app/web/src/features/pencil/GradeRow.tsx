@@ -1,7 +1,7 @@
 // The "Pencils" row of the Base card in Pencil mode: one toggle button per pencil the painter owns.
 // The last pencil on cannot be switched off. Each button has `data-grade` and `aria-pressed`.
 import { ToggleButton, ToggleButtonGroup } from "@heroui/react";
-import { GRADES, maskWith } from "./grades";
+import { GRADES, hasBit, maskWith } from "./grades";
 
 export default function GradeRow(p: {
 	mask: number;
@@ -9,7 +9,7 @@ export default function GradeRow(p: {
 }) {
 	// the keys are the bit numbers of the pencils that are on
 	const on = GRADES.flatMap((_, bit) =>
-		(p.mask >> bit) & 1 ? [String(bit)] : [],
+		hasBit(p.mask, bit) ? [String(bit)] : [],
 	);
 	return (
 		<div className="flex flex-col gap-1">

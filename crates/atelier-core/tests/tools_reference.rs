@@ -6,7 +6,7 @@ mod common;
 use atelier_core::img::Rgb;
 use atelier_core::render;
 use common::support::{EDGES_EVEN, EDGES_WIDTH, PENCIL_START};
-use common::{check, mean_diff, over, work};
+use common::{check, mean_diff, over, rgb_of, work};
 /// The Grid width that draws 1 px lines on the 128 px fixture (16 px at a long side of 2048).
 const GRID_WIDTH: u32 = 16;
 
@@ -23,9 +23,8 @@ fn test_mean_diff_of_black_and_white_is_255() {
 #[test]
 fn test_values_reference() {
     let w = work();
-    let img = w.clone();
     for preset in 0..6 {
-        let got = render::values_view(&img, preset, 50.0, 0).unwrap().0;
+        let got = render::values_view(&w, preset, 50.0, 0).unwrap().0;
         assert_eq!((got.width, got.height), (w.width, w.height));
         assert!(
             got.data.chunks(3).all(|p| p[0] == p[1] && p[1] == p[2]),
@@ -38,9 +37,8 @@ fn test_values_reference() {
 #[test]
 fn test_shapes_reference() {
     let w = work();
-    let img = w.clone();
     for step in 0..4 {
-        let got = render::shapes_view(&img, step, 50.0).unwrap().0;
+        let got = render::shapes_view(&w, step, 50.0).unwrap().0;
         assert_eq!((got.width, got.height), (w.width, w.height));
         check(&format!("shapes_{step}"), &got);
     }
@@ -64,28 +62,19 @@ fn test_pencil_reference() {
         assert_eq!(p.tones.len(), mask.count_ones() as usize + 1);
         assert_eq!(p.shares.len(), p.tones.len());
         assert_eq!(p.mark, (look == 4).then_some(4));
-        let mut got = Rgb::new(w.width, w.height, 3);
-        for (d, p) in got
-            .data
-            .chunks_exact_mut(3)
-            .zip(p.layer.rgba.chunks_exact(4))
-        {
-            d.copy_from_slice(&p[..3]);
-        }
-        check(&format!("pencil_{name}"), &got);
+        check(&format!("pencil_{name}"), &rgb_of(&p.layer));
     }
 }
 
 #[test]
 fn test_lines_reference() {
     let w = work();
-    let img = w.clone();
     // Lines at 0, 33 and 67, and Transfer at 50
     for (preset, (mode, amount)) in [(0, 0.0), (0, 33.0), (0, 67.0), (1, 50.0)]
         .into_iter()
         .enumerate()
     {
-        let plain = render::edges_view(&img, mode, amount, EDGES_WIDTH, EDGES_EVEN).unwrap();
+        let plain = render::edges_view(&w, mode, amount, EDGES_WIDTH, EDGES_EVEN).unwrap();
         check(&format!("lines_{preset}_edges"), &plain);
     }
 }
@@ -93,11 +82,10 @@ fn test_lines_reference() {
 #[test]
 fn test_grid_reference() {
     let w = work();
-    let img = w.clone();
     for mode in 0..3 {
         let got = over(
-            &img,
-            &render::grid_layer(&img, mode, 8, GRID_WIDTH, 2, render::GRID_CONTRAST, 0).unwrap(),
+            &w,
+            &render::grid_layer(&w, mode, 8, GRID_WIDTH, 2, render::GRID_CONTRAST, 0).unwrap(),
         );
         // the lines cover the whole photo: no crop
         assert_eq!((got.width, got.height), (w.width, w.height));

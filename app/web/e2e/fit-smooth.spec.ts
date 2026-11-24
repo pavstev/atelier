@@ -2,48 +2,27 @@
 // specks (LEFTOVERS rows 71 and 65). At 100 percent the full canvas shows. The full canvas keeps
 // every pixel either way.
 import type { Page } from "@playwright/test";
-import { expect, test } from "./studio";
+import { expect, type Studio, test } from "./studio";
 
 const W = 2400;
 const H = 3600;
 
 /** Opens a photo of one-pixel black and white checks: the hardest detail to scale down. */
-async function openChecks(page: Page, name: string) {
-	await page.evaluate(
-		async ([w, h, name]) => {
-			const c = document.createElement("canvas");
-			c.width = Number(w);
-			c.height = Number(h);
-			const g = c.getContext("2d");
-			if (!g) throw new Error("no 2d canvas");
-			const img = g.createImageData(c.width, c.height);
-			for (let y = 0; y < c.height; y++)
-				for (let x = 0; x < c.width; x++) {
-					const v = (x + y) % 2 === 0 ? 0 : 255;
-					const i = (y * c.width + x) * 4;
-					img.data[i] = v;
-					img.data[i + 1] = v;
-					img.data[i + 2] = v;
-					img.data[i + 3] = 255;
-				}
-			g.putImageData(img, 0, 0);
-			const blob = await new Promise<Blob>((ok) =>
-				c.toBlob((b) => ok(b as Blob), "image/png"),
-			);
-			const input =
-				document.querySelector<HTMLInputElement>("input[type=file]");
-			if (!input) throw new Error("no file input");
-			const dt = new DataTransfer();
-			dt.items.add(new File([blob], String(name), { type: "image/png" }));
-			input.files = dt.files;
-			input.dispatchEvent(new Event("change", { bubbles: true }));
-		},
-		[W, H, name] as const,
-	);
-	await page
-		.locator("[data-testid=facts] p", { hasText: name })
-		.waitFor({ timeout: 30_000 });
-}
+const openChecks = (studio: Studio, name: string) =>
+	studio.openCanvas(W, H, name, (g) => {
+		const { width, height } = g.canvas;
+		const img = g.createImageData(width, height);
+		for (let y = 0; y < height; y++)
+			for (let x = 0; x < width; x++) {
+				const v = (x + y) % 2 === 0 ? 0 : 255;
+				const i = (y * width + x) * 4;
+				img.data[i] = v;
+				img.data[i + 1] = v;
+				img.data[i + 2] = v;
+				img.data[i + 3] = 255;
+			}
+		g.putImageData(img, 0, 0);
+	});
 
 /** The spread of the gray values of a canvas (standard deviation, 0 to 128). */
 const spread = (page: Page, testid: string) =>
@@ -68,7 +47,7 @@ test("test_a_big_photo_at_fit_is_shown_from_a_smooth_copy_without_specks", async
 	studio,
 }) => {
 	const { page } = studio;
-	await openChecks(page, "checks.png");
+	await openChecks(studio, "checks.png");
 	const small = page.getByTestId("smooth-photo");
 	const full = page.getByTestId("photo-canvas");
 	// the copy is made after the zoom settles, then it is the one that shows

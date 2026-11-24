@@ -4,6 +4,7 @@
 // when the focus is in a panel, a text box, a slider, a menu or a dialog, so those keep their own
 // keys.
 import { useEffect, useEffectEvent } from "react";
+import { ARROWS } from "@/ui/pointer";
 
 /** Where a key belongs to the thing that has the focus. */
 const OWN_KEYS =
@@ -14,12 +15,6 @@ const PRESSABLE = "button, a, summary";
 /** How far an arrow key moves the photo, in px; with Shift the big step. */
 const STEP = 10;
 const BIG_STEP = 100;
-const ARROWS: Record<string, [number, number]> = {
-	ArrowLeft: [-1, 0],
-	ArrowRight: [1, 0],
-	ArrowUp: [0, -1],
-	ArrowDown: [0, 1],
-};
 
 type Handlers = {
 	hasPhoto: boolean;
@@ -42,7 +37,7 @@ export function useShortcuts(p: Handlers) {
 			if (!e.repeat) p.onPanel();
 		} else if (e.key in ARROWS && p.hasPhoto) {
 			e.preventDefault();
-			const [x, y] = ARROWS[e.key] as [number, number];
+			const [x, y] = ARROWS[e.key] as readonly [number, number];
 			const step = e.shiftKey ? BIG_STEP : STEP;
 			p.onPan(x * step, y * step);
 		} else if (e.key === " " && p.hasPhoto && !t.closest(PRESSABLE)) {

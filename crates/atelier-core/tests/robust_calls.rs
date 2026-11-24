@@ -7,6 +7,9 @@ use atelier_core::img::Rgb;
 use atelier_core::render;
 use std::panic::{AssertUnwindSafe, catch_unwind};
 
+mod common;
+use common::pattern as pic;
+
 /// The odd sizes: 1 x 1, thin, small, square and a little bigger.
 const SIZES: [(usize, usize); 10] = [
     (1, 1),
@@ -24,14 +27,6 @@ const SIZES: [(usize, usize); 10] = [
 const WHOLE: [u32; 12] = [0, 1, 2, 3, 4, 5, 6, 8, 9, 12, 13, u32::MAX];
 /// The knob numbers: both ends, one step past, and the ones that are not numbers.
 const KNOBS: [f64; 7] = [-1.0, 0.0, 50.0, 100.0, 100.1, f64::NAN, f64::INFINITY];
-
-/// A made-up picture with a pattern, so the filters have edges to find.
-fn pic(w: usize, h: usize, channels: usize) -> Rgb {
-    let data = (0..w * h * channels)
-        .map(|i| ((i * 37) ^ (i / 3 * 11)) as u8)
-        .collect();
-    Rgb::from_vec(w, h, channels, data)
-}
 
 /// What went wrong in one call, or `None` when it answered `Ok` or `BadInput`.
 fn judge<T>(answer: std::thread::Result<Result<T, Error>>) -> Option<String> {

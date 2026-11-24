@@ -4,6 +4,7 @@ import { useEffect, useEffectEvent, useRef, useState } from "react";
 import { errText } from "@/lib/util";
 import type { Call, Rgb } from "./calls";
 import { draw, WORK_LONG_SIDE } from "./coreClient";
+import type { DrawExtras } from "./messages";
 
 const SETTLE_MS = 250;
 
@@ -21,22 +22,13 @@ const legendOf = (c: Call) =>
  * both, so an old mark never shows next to a new picture). */
 const markOf = (c: Call) => (c.layer === "pencil" ? `${c.look}:${c.step}` : "");
 
-type Drawn = {
+type One = (DrawExtras & { image: ImageData }) | null;
+type Drawn = NonNullable<One> & {
 	photo: ImageData;
 	layer: Call["layer"];
 	legend: string;
 	markKey: string;
-	image: ImageData;
-	tones?: Rgb[];
-	shares?: number[];
-	mark?: number;
 };
-type One = {
-	image: ImageData;
-	tones?: Rgb[];
-	shares?: number[];
-	mark?: number;
-} | null;
 
 /** The picture of one layer, or null while it is off or not drawn yet. */
 function useOne(

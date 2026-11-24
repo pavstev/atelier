@@ -1,7 +1,7 @@
 // The photo list: several photos, one in the layers worker, and the list and the photo on screen
 // come back after a reload (the files are kept in IndexedDB on this device).
 import type { Page } from "@playwright/test";
-import { expect, KEYS, stored, test } from "./studio";
+import { box, expect, KEYS, stored, test } from "./studio";
 
 const row = (page: Page) => page.getByTestId("photo-row");
 const photoWidth = (page: Page) =>
@@ -17,9 +17,8 @@ test("test_the_left_panel_is_the_photo_list_only_and_fills_its_height", async ({
 	await expect(files.getByTestId("dock")).toHaveCount(0);
 	await expect(files.getByTestId("tools")).toHaveCount(0);
 	// the list takes the room down to the bottom of the panel
-	const panel = await files.boundingBox();
-	const list = await page.getByTestId("photo-scroll").boundingBox();
-	if (!panel || !list) throw new Error("no box");
+	const panel = await box(page, "files");
+	const list = await box(page, "photo-scroll");
 	expect(panel.y + panel.height - (list.y + list.height)).toBeLessThan(24);
 });
 

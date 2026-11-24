@@ -6,7 +6,8 @@
 
 use super::grades::PAPER;
 use super::ink::smoothstep;
-use super::paper::{hash, scale};
+use super::paper::hash;
+use crate::img::size_factor;
 
 /// The tones at and under this L* are never touched.
 const FROM: f32 = 70.0;
@@ -75,7 +76,7 @@ pub(crate) fn lift(tone: &[f32], (w, h): (usize, usize), amount: f32) -> Vec<f32
     if amount <= 0.0 {
         return tone.to_vec();
     }
-    let size = CELL * scale(w, h);
+    let size = CELL * size_factor(w, h);
     let (cols, rows) = (
         libm::ceilf(w as f32 / size) as i32 + 1,
         libm::ceilf(h as f32 / size) as i32 + 1,

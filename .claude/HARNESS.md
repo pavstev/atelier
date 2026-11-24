@@ -14,7 +14,7 @@ special to Atelier, in git under `.claude/`, plus a `Makefile` and `lefthook.yml
 | `AGENTS.md` | every session (other agents read it too) | Check commands, rules, dropped features. Under 200 lines. |
 | `MAP.md` | when a session reads it (`CLAUDE.md` says to) | The folder map. |
 | `.claude/AGENT-MAP.md` | when the main thread reads it (`CLAUDE.md` says to), before it spawns a helper | Which helper does which job, in what order, and the agents of this repo. Never imported. |
-| `.claude/rules/rust.md` | on a file in `crates/`, `xtask/`, `Cargo.toml` | The Rust module map and work rules. |
+| `.claude/rules/rust.md` | on a file in `crates/`, `Cargo.toml` | The Rust module map and work rules. |
 | `.claude/rules/web.md` | on a file in `app/web/`, `scripts/*.sh`, `wrangler.jsonc`, `.claude/skills/ship/` | Which web doc to read, and the Cloudflare and release rules. |
 | `.claude/rules/docs.md` | on any `.md` file | English only, one home per fact. |
 

@@ -18,7 +18,9 @@ scales every line. In Lines, **Even** (0 to 100, starts at 50) pulls the widths 
 ## How it is made
 
 1. **The edge map** (`edges/map.rs`). Blur the luma with a Gaussian (sigma 2 px at 1024 px), take
-   the Sobel gradient, and scale it by its 99th percentile to 0 to 1.
+   the Sobel gradient, and scale it by its 99th percentile to 0 to 1. The color gradient (the
+   OKLab a and b planes, blurred the same way, times 4) counts too: each pixel takes the larger
+   of the two, so a color edge of equal brightness is drawn and a brightness edge is unchanged.
 2. **Thin.** The orientation comes from the structure tensor of the map. Non maximum suppression
    across it makes a thick band 1 px wide. Hysteresis keeps strong lines and the weak ones that
    touch them.
@@ -37,5 +39,5 @@ The Edges score on the BSDS500 boundary set is described in
 
 ## Known limits
 
-Edges see brightness only: a color edge of equal brightness is lost. See the Core rows in
-[LEFTOVERS.md](../LEFTOVERS.md).
+See the Core rows in [LEFTOVERS.md](../LEFTOVERS.md): round rims drawn as faint rings, short
+squiggles on leaves and grass, shadow shapes that close into loops.

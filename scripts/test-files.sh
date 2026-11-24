@@ -9,6 +9,5 @@ for f in "$@"; do
     crates/atelier-core/tests/*.rs)
       cargo test -q -p atelier-core --test "$(basename "$f" .rs)" ;;
     crates/atelier-wasm/*) cargo test -q -p atelier-wasm ;;
-    xtask/*) cargo test -q -p xtask ;;
   esac
 done

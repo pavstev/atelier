@@ -4,7 +4,7 @@ Bench-only scorer for the Values and Shapes layers, judged the way an oil painte
 shipped. The metrics and their sources: [the spec](../../docs/research/2026-11-04-value-eval-spec.md).
 
 It reads the bench pictures from `.agents/bench` in the repo
-(git-ignored): the photos in `eval/{set1,portraits,places}/photos` and `sunset/sunset.png`, and
+(git-ignored): the photos in `eval/{owner,portraits,places}/photos` and `sunset/sunset.png`, and
 the layers in `sheets-v3/{old,new,new2}-{values,shapes}-<photo>.png`. The sunset photo takes
 its old and new sheets from `sunset/sheets/` (`before-*` and `v1-*`). A JPEG photo needs its PNG
 copy from `sheets-v3/.in/`.

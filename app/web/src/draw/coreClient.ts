@@ -1,8 +1,8 @@
 // The page side of the layers worker (`worker.ts`, line in `connect.ts`). The worker keeps the
 // photo and draws. A photo goes to the worker once; a draw sends only the numbers.
-import type { Call, PencilAuto, Rgb } from "./calls";
+import type { Call, PencilAuto } from "./calls";
 import { connect } from "./connect";
-import { PHOTO_GONE } from "./messages";
+import { type DrawExtras, PHOTO_GONE } from "./messages";
 
 /** The long side of the picture on screen. */
 export const WORK_LONG_SIDE = 1024;
@@ -91,12 +91,7 @@ export async function draw(
 	call: Call,
 	long: number,
 	wanted?: () => boolean,
-): Promise<{
-	layer: ImageData;
-	tones?: Rgb[];
-	shares?: number[];
-	mark?: number;
-}> {
+): Promise<DrawExtras & { layer: ImageData }> {
 	const r = await withPhoto(
 		img,
 		(photo) => link({ kind: "draw", photo, long, call }),

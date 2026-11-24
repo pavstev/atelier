@@ -27,9 +27,10 @@ import {
 	nearestLevel,
 	pressureWords,
 } from "@/features/pencil/grades";
-import type { StageId } from "@/features/tools/settings";
+import type { Layers } from "@/features/tools/settings";
 import { Segment } from "@/ui/fields";
 import { IconButton } from "@/ui/icons";
+import { ARROWS, tapListeners } from "@/ui/pointer";
 import { AREA_START } from "./area";
 import { css, hex, ink } from "./color";
 import {
@@ -45,8 +46,6 @@ import {
 import { colorAround } from "./sample";
 import { labOfRgb } from "./spectral";
 
-type Layers = Record<StageId, { image: ImageData; opacity: number } | null>;
-
 /** A color held from outside the photo (a legend swatch), with its name for the card. */
 export type Fixed = { rgb: Rgb; label: string };
 
@@ -59,8 +58,6 @@ export const AREAS = [
 	{ name: "Large", px: 30 },
 ] as const;
 
-/** A press that moves more than this, in px, is a drag and not a click. */
-const TAP_SLOP = 8;
 /** The card's width, in px, and a first guess of its height; the real height is measured. */
 const CARD_W = 304;
 const CARD_H = 290;
@@ -173,16 +170,10 @@ export default function Picker(p: {
 	// the probe keys are read on the stage itself, before the page shortcuts (which move the photo)
 	const onKey = useEffectEvent((e: KeyboardEvent, el: HTMLElement) => {
 		if (e.target !== el || e.ctrlKey || e.metaKey || e.altKey) return;
-		const arrows: Record<string, [number, number]> = {
-			ArrowLeft: [-1, 0],
-			ArrowRight: [1, 0],
-			ArrowUp: [0, -1],
-			ArrowDown: [0, 1],
-		};
 		const at = mouse ?? { x: el.clientWidth / 2, y: el.clientHeight / 2 };
-		if (e.key in arrows) {
+		if (e.key in ARROWS) {
 			e.preventDefault();
-			const [dx, dy] = arrows[e.key] as [number, number];
+			const [dx, dy] = ARROWS[e.key] as readonly [number, number];
 			const step = e.shiftKey ? KEY_BIG : KEY_STEP;
 			setMouse({
 				x: Math.min(el.clientWidth, Math.max(0, at.x + dx * step)),
@@ -206,18 +197,9 @@ export default function Picker(p: {
 		el.style.cursor = "crosshair";
 		el.tabIndex = 0;
 		el.setAttribute("aria-describedby", helpId);
-		let down: Spot | null = null;
 		const move = (e: PointerEvent) => onMove(e, el);
 		const leave = () => setMouse(null);
-		const press = (e: PointerEvent) => {
-			down = e.button === 0 ? { x: e.clientX, y: e.clientY } : null;
-		};
-		const lift = (e: PointerEvent) => {
-			if (!down) return;
-			const far = Math.hypot(e.clientX - down.x, e.clientY - down.y) > TAP_SLOP;
-			down = null;
-			if (!far) onTap(e, el);
-		};
+		const { press, lift } = tapListeners((e) => onTap(e, el));
 		const key = (e: KeyboardEvent) => onKey(e, el);
 		const esc = (e: KeyboardEvent) => onEsc(e);
 		const focus = () => setFocused(el.matches(":focus-visible"));

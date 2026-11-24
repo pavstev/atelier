@@ -442,17 +442,12 @@ pub fn grid_layer(
     color: u32,
     center: u32,
 ) -> Result<Layer> {
-    let work = image(work, 3, "work")?;
-    let mode = pick(mode, 0, 2, "grid mode")?;
-    let cells = grid::cells_of(cells)?;
-    let width = usize::from(pick(width, 1, grid::MAX_WIDTH as u32, "grid width")?);
-    let group = grid::group_of(group)?;
-    let center = pick(center, 0, 1, "grid center")? == 1;
-    Ok(Layer {
-        width: work.width,
-        height: work.height,
-        rgba: grid::layer(work, mode, cells, width, group, color, center)?,
-    })
+    grid_with(
+        work,
+        mode,
+        || Ok(grid::cells_of(cells)? * grid::MILLI),
+        (width, group, color, center),
+    )
 }
 
 /// [`grid_layer`] with the squares across the width counted in thousandths, 100 to 500000 (0.1 to
@@ -471,9 +466,25 @@ pub fn grid_layer_milli(
     color: u32,
     center: u32,
 ) -> Result<Layer> {
+    grid_with(
+        work,
+        mode,
+        || grid::milli_of(milli),
+        (width, group, color, center),
+    )
+}
+
+/// The checks and the drawing both grid calls share. `fine` checks the square count and gives it
+/// in thousandths; it runs after the mode check, so the first bad number named does not change.
+fn grid_with(
+    work: &Rgb,
+    mode: u32,
+    fine: impl FnOnce() -> Result<usize>,
+    (width, group, color, center): (u32, u32, u32, u32),
+) -> Result<Layer> {
     let work = image(work, 3, "work")?;
     let mode = pick(mode, 0, 2, "grid mode")?;
-    let milli = grid::milli_of(milli)?;
+    let milli = fine()?;
     let width = usize::from(pick(width, 1, grid::MAX_WIDTH as u32, "grid width")?);
     let group = grid::group_of(group)?;
     let center = pick(center, 0, 1, "grid center")? == 1;

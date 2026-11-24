@@ -58,21 +58,6 @@ export function childFolders(folders: Folder[], parent: string): Folder[] {
 	return folders.filter((f) => f.parent === parent).sort(byName);
 }
 
-/** The photos directly inside `parent` ("" is the top), in list order. */
-export function photosIn(
-	docs: Doc[],
-	folders: Folder[],
-	parent: string,
-): Doc[] {
-	return docs.filter((d) => folderOf(d, folders) === parent);
-}
-
-/** How many photos sit in a folder and in every folder inside it. */
-export function countIn(docs: Doc[], folders: Folder[], id: string): number {
-	const ids = subtree(folders, id);
-	return docs.filter((d) => ids.has(folderOf(d, folders))).length;
-}
-
 /** The ids of the photos in a folder and in every folder inside it. */
 export function photoIdsIn(
 	docs: Doc[],

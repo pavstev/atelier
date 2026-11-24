@@ -1,5 +1,13 @@
 // What the base, the switches, opacities and knobs do to the canvases.
-import { expect, MAIN_PHOTO, setRange, test } from "./studio";
+import type { Page } from "@playwright/test";
+import { box, expect, MAIN_PHOTO, setRange, test } from "./studio";
+
+/** Presses the mouse down on the middle of the See photo button, and leaves it down. */
+async function pressHold(page: Page) {
+	const b = await box(page, "photo-hold");
+	await page.mouse.move(b.x + b.width / 2, b.y + b.height / 2);
+	await page.mouse.down();
+}
 
 test("test_bare_photo_on_open", async ({ studio }) => {
 	const { page } = studio;
@@ -123,10 +131,7 @@ test("test_photo_hold_hides_layers", async ({ studio }) => {
 	await studio.base("values");
 	const canvas = page.getByTestId("layer-canvas-base");
 	await expect(canvas).toBeVisible();
-	const box = await page.getByTestId("photo-hold").boundingBox();
-	if (!box) throw new Error("no hold button");
-	await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
-	await page.mouse.down();
+	await pressHold(page);
 	await expect(canvas).toBeHidden();
 	await page.waitForTimeout(350);
 	await page.mouse.up();
@@ -164,10 +169,7 @@ test("a press that leaves the See photo button does not keep the photo on", asyn
 	await studio.base("values");
 	const canvas = page.getByTestId("layer-canvas-base");
 	const hold = page.getByTestId("photo-hold");
-	const box = await hold.boundingBox();
-	if (!box) throw new Error("no hold button");
-	await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
-	await page.mouse.down();
+	await pressHold(page);
 	await expect(canvas).toBeHidden();
 	await page.mouse.move(5, 5);
 	await page.mouse.up();

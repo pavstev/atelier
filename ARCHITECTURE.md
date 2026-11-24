@@ -34,7 +34,8 @@ file -> browser decoder -> RGBA pixels -> layers worker (wasm Photo) -> layer pi
 | Shared UI | `app/web/src/ui/`, `lib/`, `styles/` | Fields, icons, the logo, storage helpers, the theme. |
 
 The import rule: `ui/` and `lib/` import no feature. A feature imports `ui/`, `lib/` and `draw/`.
-`App.tsx` joins the features.
+`App.tsx` joins the features. `@/` is an alias for `app/web/src/` (`tsconfig.json` and
+`vite.config.ts`).
 
 ## The layers
 
@@ -68,8 +69,8 @@ committed and how a deploy skips Rust: [docs/development/release.md](docs/develo
 
 ## Tests
 
-- Rust: one simple test per part in `crates/atelier-core/tests/tools_*.rs`, checked against reference
-  pictures (`cargo xtask refs`).
+- Rust: one reference test per part in `crates/atelier-core/tests/tools_reference.rs`, checked
+  against reference pictures (`cargo refs`).
 - Web: Playwright in headless Chromium, with golden pictures drawn from a synthetic photo.
 
 See [docs/development/testing.md](docs/development/testing.md).
@@ -77,9 +78,6 @@ See [docs/development/testing.md](docs/development/testing.md).
 ## The offline shell
 
 A hand-written service worker, `/sw.js` (`app/web/src/sw/`), precaches the whole build, so the app
-starts with no network. A small Vite plugin (`app/web/scripts/swPlugin.ts`) lists the built files
-and builds the worker after the app. The cache is named `atelier-shell-<version>`, where the
-version is the first 12 hex digits of a SHA-256 over the file list and bytes. A new worker takes
-over by itself once its cache is full, and the page reloads once (it looks for a new version on
-open, on return to the tab and every 30 minutes). The worker answers only same-origin
-GET and `POST /share`. Photos and models are never in its cache. Details: [docs/web-app.md](docs/web-app.md).
+starts with no network. The worker answers only same-origin GET and `POST /share`. Photos and
+models are never in its cache. What it does: [docs/web-app.md](docs/web-app.md#install-and-offline).
+How it is built: [docs/development/release.md](docs/development/release.md#the-service-worker).

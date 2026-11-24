@@ -46,3 +46,9 @@ uv run --with numpy --with scipy --with pillow python -I bench/value-eval/score.
 ```
 
 The same inputs give the same numbers. There is no randomness.
+
+## Pencil scorer
+
+`bench/pencil-eval/score.py` scores the Pencil looks on real photos (MS-SSIM, tone error, range
+use, banding and grain). `examples/pencil_render.rs` makes its pictures. How to run both:
+[bench/pencil-eval/README.md](../../bench/pencil-eval/README.md).

@@ -11,8 +11,9 @@
 //! thirds on top, as heavy lines. The line width is a knob.
 //!
 //! Every line is one color, with no halo: a color picked in the app, or [`CONTRAST`], where each
-//! pixel of a line takes the complement of the photo round it (the `OKLab` hue turned half way
-//! round, dark on a light patch and light on a dark one). A line thinner than 1 px is drawn 1 px
+//! pixel of a line takes the hue of the photo round it turned half way round (`OKLab`), in black or
+//! white. The tone, dark on a light patch and light on a dark one, is held along a line: it turns
+//! only where the smoothed patch lightness leaves a band round the split. A line thinner than 1 px is drawn 1 px
 //! wide and see-through in step, so the thinnest lines stay thin on screen.
 //!
 //! Same input, same bytes: integer line positions, no antialiasing.
@@ -44,13 +45,16 @@ pub const GROUPS: [usize; 2] = [2, 4];
 pub const CONTRAST: u32 = 1 << 24;
 /// A patch with an `OKLab` L above this gets a dark Contrast line, else a light one. It is where
 /// the dark and the light line read equally well on a gray.
-const CONTRAST_SPLIT: f32 = 0.56;
+const CONTRAST_SPLIT: f32 = 0.5;
 /// The `OKLab` L of a dark and of a light Contrast line.
-const CONTRAST_DARK: f32 = 0.2;
-const CONTRAST_LIGHT: f32 = 0.95;
+const CONTRAST_DARK: f32 = 0.0;
+const CONTRAST_LIGHT: f32 = 1.0;
 /// The patch a Contrast line reads its photo color from: a box of this radius, in px at a long
 /// side of 1024 (never under 2 px).
 const CONTRAST_REACH: usize = 8;
+/// A Contrast line turns dark or light only when the patch lightness leaves this band round
+/// [`CONTRAST_SPLIT`].
+const CONTRAST_HOLD: f32 = 0.05;
 
 /// `n * d / div` rounded to the nearest integer, in u64 so it cannot overflow.
 fn scaled(n: u64, d: u64, div: u64) -> usize {
@@ -189,14 +193,184 @@ fn thirds_into(mask: &mut [u8], size: (usize, usize), l: Line) {
 }
 
 /// The Contrast line color on a patch of `bg`: the hue turned half way round (a and b negated)
-/// and the lightness dark on a light patch, light on a dark one.
-fn complement(bg: Ok3) -> [u8; 3] {
-    let l = if bg[0] > CONTRAST_SPLIT {
-        CONTRAST_DARK
-    } else {
-        CONTRAST_LIGHT
-    };
+/// and the lightness `dark` or light.
+fn complement(bg: Ok3, dark: bool) -> [u8; 3] {
+    let l = if dark { CONTRAST_DARK } else { CONTRAST_LIGHT };
     oklab::to_srgb([l, -bg[1], -bg[2]])
+}
+
+/// Where the line pixels of one picture run along one axis: `lines` rows (or columns) of `len`
+/// pixels, the pixel `pos` of line `line` at `line * line_step + pos * pos_step`.
+struct Axis {
+    lines: usize,
+    len: usize,
+    line_step: usize,
+    pos_step: usize,
+}
+
+impl Axis {
+    fn at(&self, line: usize, pos: usize) -> usize {
+        line * self.line_step + pos * self.pos_step
+    }
+
+    /// For every line pixel, the length of the run of line pixels it sits in along this axis
+    /// (0 off the lines).
+    fn run_lengths(&self, mask: &[u8]) -> Vec<u32> {
+        let mut out = vec![0u32; mask.len()];
+        for line in 0..self.lines {
+            let mut pos = 0;
+            while pos < self.len {
+                if mask[self.at(line, pos)] == 0 {
+                    pos += 1;
+                    continue;
+                }
+                let start = pos;
+                while pos < self.len && mask[self.at(line, pos)] > 0 {
+                    pos += 1;
+                }
+                for p in start..pos {
+                    out[self.at(line, p)] = (pos - start) as u32;
+                }
+            }
+        }
+        out
+    }
+}
+
+/// `v` with each value the mean of the values within `reach` of it (fewer at the ends).
+fn smooth(v: &[f32], reach: usize) -> Vec<f32> {
+    let mut sums = vec![0.0f32];
+    for x in v {
+        sums.push(sums.last().copied().unwrap_or(0.0) + x);
+    }
+    (0..v.len())
+        .map(|i| {
+            let (a, b) = (i.saturating_sub(reach), (i + reach + 1).min(v.len()));
+            (sums[b] - sums[a]) / (b - a) as f32
+        })
+        .collect()
+}
+
+/// Dark or light along a run of patch lightness `v`, with a hold: the tone only turns when `v`
+/// leaves the band of [`CONTRAST_HOLD`] round [`CONTRAST_SPLIT`], so a value that wobbles about
+/// the split does not flip it. The start takes the side of the split.
+fn hold_tone(v: &[f32]) -> Vec<bool> {
+    let mut dark = v.first().is_some_and(|&x| x > CONTRAST_SPLIT);
+    v.iter()
+        .map(|&x| {
+            if x > CONTRAST_SPLIT + CONTRAST_HOLD {
+                dark = true;
+            } else if x < CONTRAST_SPLIT - CONTRAST_HOLD {
+                dark = false;
+            }
+            dark
+        })
+        .collect()
+}
+
+/// The tone of each line segment on one axis: a segment is a run of one line between two crossings
+/// (a thick line is its rows together), so the whole of it is dark or light, never both. It is dark
+/// when the patch lightness `l` under it is high on the whole. A crossing takes the tone of the
+/// segment before it on the horizontal axis. Pixels of no segment keep what `dark` holds.
+fn segment_tones(
+    ax: &Axis,
+    runs: (&[u32], &[u32]),
+    long: u32,
+    mask: &[u8],
+    l: &[f32],
+    dark: &mut [bool],
+) {
+    let smooth_reach = (long / 8) as usize;
+    let (along, across) = runs;
+    let is_seg = |i: usize| mask[i] > 0 && along[i] >= long && across[i] < long;
+    // (line, first pos, last pos + 1, group)
+    let mut segs: Vec<(usize, usize, usize, usize)> = Vec::new();
+    // per group: the first pos, and per pos the sum of `l` over the rows and their count
+    let mut groups: Vec<(usize, Vec<f32>, Vec<u32>)> = Vec::new();
+    let mut prev_from = 0;
+    for line in 0..ax.lines {
+        let from = segs.len();
+        let mut pos = 0;
+        while pos < ax.len {
+            if !is_seg(ax.at(line, pos)) {
+                pos += 1;
+                continue;
+            }
+            let start = pos;
+            while pos < ax.len && is_seg(ax.at(line, pos)) {
+                pos += 1;
+            }
+            let twin = segs[prev_from..from]
+                .iter()
+                .find(|s| s.0 + 1 == line && s.1 == start && s.2 == pos)
+                .map(|s| s.3);
+            let group = twin.unwrap_or_else(|| {
+                groups.push((start, vec![0.0; pos - start], vec![0; pos - start]));
+                groups.len() - 1
+            });
+            for p in start..pos {
+                groups[group].1[p - start] += l[ax.at(line, p)];
+                groups[group].2[p - start] += 1;
+            }
+            segs.push((line, start, pos, group));
+        }
+        prev_from = from;
+    }
+    let tones: Vec<Vec<bool>> = groups
+        .iter()
+        .map(|(_, sum, n)| {
+            let mean: Vec<f32> = sum.iter().zip(n).map(|(s, &n)| s / n as f32).collect();
+            hold_tone(&smooth(&mean, smooth_reach))
+        })
+        .collect();
+    for &(line, start, end, group) in &segs {
+        for p in start..end {
+            dark[ax.at(line, p)] = tones[group][p - start];
+        }
+    }
+    // a crossing keeps the tone of the line it cuts
+    for line in 0..ax.lines {
+        let mut last = None;
+        for pos in 0..ax.len {
+            let i = ax.at(line, pos);
+            if is_seg(i) {
+                last = Some(dark[i]);
+            } else if mask[i] > 0
+                && along[i] >= long
+                && across[i] >= long
+                && let Some(t) = last
+            {
+                dark[i] = t;
+            }
+        }
+    }
+}
+
+/// For every pixel of a line: is the Contrast line dark there? One tone per segment of a line,
+/// worked out from the mean patch lightness `l` under it (see [`segment_tones`]).
+fn line_tones(mask: &[u8], l: &[f32], size: (usize, usize)) -> Vec<bool> {
+    let (w, h) = size;
+    let mut dark: Vec<bool> = l.iter().map(|&v| v > CONTRAST_SPLIT).collect();
+    let rows = Axis {
+        lines: h,
+        len: w,
+        line_step: w,
+        pos_step: 1,
+    };
+    let cols = Axis {
+        lines: w,
+        len: h,
+        line_step: 1,
+        pos_step: w,
+    };
+    let (hrun, vrun) = (rows.run_lengths(mask), cols.run_lengths(mask));
+    // shorter than a line is the cut through a line the other way (a heavy line is under long / 64
+    // px thick)
+    let long = ((w.max(h) / 16).max(8)) as u32;
+    // the columns first: their crossings are then filled by the rows
+    segment_tones(&cols, (&vrun, &hrun), long, mask, l, &mut dark);
+    segment_tones(&rows, (&hrun, &vrun), long, mask, l, &mut dark);
+    dark
 }
 
 /// The mean `OKLab` L, a and b of the patch round every pixel, one plane each. Each input plane is
@@ -291,6 +465,8 @@ fn setup(work: &Rgb, mode: u8, width: usize, color: u32) -> Result<Setup> {
 /// [`Error::BadInput`] for a mode of 3 or more, `width` outside 1 to [`MAX_WIDTH`], or `color`
 /// above [`CONTRAST`]. `work` is a checked RGB picture, and `cells` and `group` come from
 /// [`cells_of`] and [`group_of`].
+// The render calls go through `layer_milli`; the whole count form stays for the unit tests.
+#[cfg(test)]
 pub fn layer(
     work: &Rgb,
     mode: u8,
@@ -332,15 +508,19 @@ pub fn layer_milli(
         m
     };
     // Contrast colors are worked out on the line pixels only
-    let means = (color == CONTRAST).then(|| patch_means(work));
+    let means = (color == CONTRAST).then(|| {
+        let m = patch_means(work);
+        let dark = line_tones(&mask, &m[0], size);
+        (m, dark)
+    });
     let one = color.to_be_bytes();
     let mut out = vec![0u8; size.0 * size.1 * 4];
     for (i, (px, &a)) in out.chunks_exact_mut(4).zip(&mask).enumerate() {
         if a > 0 {
             let c = means
                 .as_ref()
-                .map_or([one[1], one[2], one[3]], |[l, ca, cb]| {
-                    complement([l[i], ca[i], cb[i]])
+                .map_or([one[1], one[2], one[3]], |([l, ca, cb], dark)| {
+                    complement([l[i], ca[i], cb[i]], dark[i])
                 });
             px.copy_from_slice(&[c[0], c[1], c[2], a]);
         }
@@ -401,6 +581,11 @@ mod tests {
             inside = on;
         }
         n
+    }
+
+    /// Is the line dark on a patch of this color?
+    fn dark_on(p: [u8; 3]) -> bool {
+        oklab::from_srgb(p)[0] > CONTRAST_SPLIT
     }
 
     /// The WCAG relative luminance of an sRGB color.
@@ -466,13 +651,15 @@ mod tests {
         photos.extend([[200, 30, 30], [30, 160, 60], [40, 70, 220], [240, 220, 40]]);
         let mut least = f64::MAX;
         for p in photos {
-            least = least.min(wcag(complement(oklab::from_srgb(p)), p));
+            least = least.min(wcag(complement(oklab::from_srgb(p), dark_on(p)), p));
         }
         println!("least contrast {least:.2}");
         assert!(least >= 3.0, "contrast {least}");
-        let on_red = oklab::from_srgb(complement(oklab::from_srgb([200, 30, 30])));
+        let red = [200, 30, 30];
+        let on_red = oklab::from_srgb(complement(oklab::from_srgb(red), dark_on(red)));
         assert!(on_red[1] < 0.0, "the line on red leans green: {on_red:?}");
-        let on_blue = oklab::from_srgb(complement(oklab::from_srgb([40, 70, 220])));
+        let blue = [40, 70, 220];
+        let on_blue = oklab::from_srgb(complement(oklab::from_srgb(blue), dark_on(blue)));
         assert!(
             on_blue[2] > 0.0,
             "the line on blue leans yellow: {on_blue:?}"

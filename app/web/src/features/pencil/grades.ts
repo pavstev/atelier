@@ -1,7 +1,7 @@
 // The graphite pencils of the Pencil base: one list in the core's bit order, a short plain hint for
 // each, the set a mask picks, and the level a color is nearest to. No React and no photo here.
 import type { Rgb } from "@/draw/calls";
-import { type Rgb as Color, labOfRgb } from "@/features/picker/spectral";
+import { labOfRgb } from "@/features/picker/spectral";
 
 /** How hard to press: a pencil grade has one, bare paper has none. */
 type Pressure = "light" | "medium" | "firm";
@@ -38,9 +38,17 @@ export const PAPER_GRADE: Grade = {
 	pressure: null,
 };
 
+/** Is the pencil at `bit` (0 the 9B up to 7 the 4H) in `mask`? */
+export const hasBit = (mask: number, bit: number): boolean =>
+	((mask >> bit) & 1) === 1;
+
+/** The pencils of `mask`, darkest first. */
+export const gradesIn = (mask: number): Grade[] =>
+	GRADES.filter((_, bit) => hasBit(mask, bit));
+
 /** The grades of `mask`, darkest first, then Paper: the order of the levels the core answers. */
 export function gradesOf(mask: number): Grade[] {
-	return [...GRADES.filter((_, bit) => (mask >> bit) & 1), PAPER_GRADE];
+	return [...gradesIn(mask), PAPER_GRADE];
 }
 
 /**
@@ -52,7 +60,7 @@ export function stepPencil(
 	mask: number,
 	step: number,
 ): { count: number; at: number; grade: Grade } {
-	const lightFirst = GRADES.filter((_, bit) => (mask >> bit) & 1).reverse();
+	const lightFirst = gradesIn(mask).reverse();
 	const count = lightFirst.length;
 	const at = Math.min(Math.max(step, 1), Math.max(count, 1));
 	// the mask is never empty (`maskWith` keeps one pencil on), so the set has a pencil at `at`
@@ -101,7 +109,7 @@ export function levelsOf(
  * the marked level always counts (pixels were moved onto it, whatever its share in the legend).
  */
 export function nearestLevel(
-	color: Color,
+	color: Rgb,
 	levels: Level[],
 	mark: number | null = null,
 ): Level | null {

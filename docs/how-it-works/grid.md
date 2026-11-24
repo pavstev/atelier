@@ -27,9 +27,16 @@ In Both, the thirds are heavy lines too. The lines cover the whole photo and not
 
 ## Contrast lines
 
-Each pixel of a Contrast line takes the complement of the photo around it: the OKLab hue turned
-half way round. So a line is dark on a light patch and light on a dark one, and stays visible.
-Lines are one color, with no halo.
+Each pixel of a Contrast line takes the hue of the photo around it, turned half way round in
+OKLab. The tone is black on a light patch and white on a dark one, so the line stays visible.
+Lines have no halo.
+
+The tone is held along a line. It is worked out per segment, the part of a line between two
+crossings: the patch lightness is averaged across the thickness of the line, smoothed along it,
+and the tone turns only when the lightness leaves a band round the middle (0.45 to 0.55 in OKLab
+L). So a wobble in the photo does not make the line flicker. It still turns where the photo
+really changes, for example from a bright sky to a dark floor, because there neither tone would
+read on the whole segment. A crossing takes the tone of the line it cuts.
 
 ## How it is made
 
@@ -41,4 +48,5 @@ same bytes.
 
 ## Known limits
 
-Lines can be hard to see on a blown white area or a very dark photo. See the Core rows in [LEFTOVERS.md](../LEFTOVERS.md).
+A line that crosses a bright area and a dark area in one segment turns tone where the photo
+changes. Holding one tone for the whole segment was tried and read worse on a mixed segment.

@@ -10,6 +10,7 @@ import {
 	useRef,
 } from "react";
 import { LoadBoundary } from "@/ui/LoadBoundary";
+import { tapListeners } from "@/ui/pointer";
 
 /** The look of the failed message: a banner on the stage, like the error banner (`StageArea.tsx`). */
 const FAILED =
@@ -26,28 +27,18 @@ export function preloadPicker() {
 type Props = Omit<ComponentProps<typeof Picker>, "startAt">;
 type Start = { x: number; y: number; tap: boolean };
 
-/** A press that moves more than this, in px, is a drag and not a tap (`TAP_SLOP` in `Picker.tsx`). */
-const TAP_SLOP = 8;
-
 export default function PickerLazy(p: Props) {
 	const last = useRef<Start | null>(null);
 	useLayoutEffect(() => {
 		const el = p.box.current;
 		if (!el) return;
-		let down: { x: number; y: number } | null = null;
 		const move = (e: PointerEvent) => {
 			if (e.pointerType === "mouse")
 				last.current = { x: e.clientX, y: e.clientY, tap: false };
 		};
-		const press = (e: PointerEvent) => {
-			down = e.button === 0 ? { x: e.clientX, y: e.clientY } : null;
-		};
-		const lift = (e: PointerEvent) => {
-			if (!down) return;
-			const far = Math.hypot(e.clientX - down.x, e.clientY - down.y) > TAP_SLOP;
-			down = null;
-			if (!far) last.current = { x: e.clientX, y: e.clientY, tap: true };
-		};
+		const { press, lift } = tapListeners((e) => {
+			last.current = { x: e.clientX, y: e.clientY, tap: true };
+		});
 		el.addEventListener("pointermove", move);
 		el.addEventListener("pointerdown", press);
 		el.addEventListener("pointerup", lift);

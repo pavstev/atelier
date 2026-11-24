@@ -60,6 +60,47 @@ pub fn mean(v: &[f32]) -> f32 {
     v.iter().sum::<f32>() / v.len() as f32
 }
 
+/// A tone plane `w` by `h` of one tone `l` with one dark pixel (17.0) in the corner, so the tone
+/// is not the darkest.
+pub fn flat_tone(l: f32, w: usize, h: usize) -> Vec<f32> {
+    let mut v = vec![l; w * h];
+    v[0] = 17.0;
+    v
+}
+
+/// A tone plane `w` by `h` that ramps from 17 to 95 left to right.
+pub fn ramp_tone(w: usize, h: usize) -> Vec<f32> {
+    (0..w * h)
+        .map(|i| 17.0 + 78.0 * (i % w) as f32 / (w - 1) as f32)
+        .collect()
+}
+
+/// The mean of the `size` px box at `(x0, y0)` of a plane `w` wide.
+pub fn box_mean(v: &[f32], w: usize, (x0, y0): (usize, usize), size: usize) -> f32 {
+    let mut s = 0.0;
+    for y in y0..y0 + size {
+        for x in x0..x0 + size {
+            s += v[y * w + x];
+        }
+    }
+    s / (size * size) as f32
+}
+
+/// The mean and the largest gap between the 16 px box means of `shown` and `tone`, on a grid of
+/// boxes 8 px apart that keeps `margin` px from the border (a hold is cut short there).
+pub fn box_gaps(shown: &[f32], tone: &[f32], (w, h): (usize, usize), margin: usize) -> (f32, f32) {
+    let (mut sum, mut worst, mut n) = (0.0f32, 0.0f32, 0.0f32);
+    for y in (margin..=h - margin - 16).step_by(8) {
+        for x in (margin..=w - margin - 16).step_by(8) {
+            let gap = (box_mean(shown, w, (x, y), 16) - box_mean(tone, w, (x, y), 16)).abs();
+            sum += gap;
+            worst = worst.max(gap);
+            n += 1.0;
+        }
+    }
+    (sum / n, worst)
+}
+
 /// The gray byte (sRGB) of CIE L* `l`, 0 to 100.
 pub fn gray_for_l(l: impl Into<f64>) -> u8 {
     let l: f64 = l.into();

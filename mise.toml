@@ -76,3 +76,9 @@ run = "bash scripts/deploy.sh"
 [tasks.release]
 description = "The whole release in one run: check, e2e, built-app smoke test, deploy, live smoke test"
 run = "bash scripts/release.sh"
+
+[tasks."desktop:build"]
+description = "Build the Mac app (Tauri) to app/desktop/target/release/bundle/macos/Atelier.app"
+depends = ["web:build"]
+dir = "app/desktop"
+run = "cargo tauri build"

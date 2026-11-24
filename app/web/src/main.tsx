@@ -24,6 +24,21 @@ if ("caches" in window) {
 		.catch(() => {});
 }
 
+// In the Mac app (Tauri) the title bar is gone and the page draws up to the top edge (index.css).
+if ("__TAURI_INTERNALS__" in window) {
+	const root = document.documentElement;
+	root.dataset.shell = "mac";
+	// Full screen hides the window buttons, so the logo moves to the left (index.css). The window is
+	// a notch shorter than the screen, hence the 40 px.
+	const syncFull = () =>
+		root.toggleAttribute(
+			"data-full",
+			innerWidth === screen.width && innerHeight >= screen.height - 40,
+		);
+	addEventListener("resize", syncFull);
+	syncFull();
+}
+
 registerSw();
 guardChunkErrors();
 

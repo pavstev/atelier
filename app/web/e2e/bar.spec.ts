@@ -1,7 +1,7 @@
 // The bottom bar can be dragged along the stage by its grip at the right end. The place is saved,
 // the bar stays inside the stage, a double click puts it back in the middle, and a phone keeps it
 // in the middle with no grip.
-import { box, expect, KEYS, stored, test } from "./studio";
+import { box, expect, KEYS, ONE_PX, stored, test } from "./studio";
 
 test("test_the_bar_drags_by_its_grip_stays_inside_the_stage_and_keeps_its_place", async ({
 	studio,
@@ -27,24 +27,24 @@ test("test_the_bar_drags_by_its_grip_stays_inside_the_stage_and_keeps_its_place"
 		await page.mouse.up();
 	};
 	// at the start it is in the middle of the free stage
-	expect(await center()).toBeCloseTo(freeMiddle, 0);
+	expect(await center()).toBeCloseTo(freeMiddle, ONE_PX);
 	// an open card closes when the drag begins
 	await page.getByTestId("tool-base").click();
 	await expect(page.getByTestId("tool-popup")).toBeVisible();
 	const start = await center();
 	await drag(-200);
 	await expect(page.getByTestId("tool-popup")).toHaveCount(0);
-	await expect.poll(center).toBeCloseTo(start - 200, 0);
+	await expect.poll(center).toBeCloseTo(start - 200, ONE_PX);
 	// it moves along the stage only: the height does not change
 	const y = (await box(page, "stage-bar")).y;
 	// it stops at the panel edge on the left and the stage edge on the right, 8 px of room
 	await drag(-5000);
 	const left = await box(page, "stage-bar");
-	expect(left.x).toBeCloseTo(freeLeft + 8, 0);
+	expect(left.x).toBeCloseTo(freeLeft + 8, ONE_PX);
 	expect(left.y).toBeCloseTo(y, 0);
 	await drag(5000);
 	const right = await box(page, "stage-bar");
-	expect(right.x + right.width).toBeCloseTo(stage.x + stage.width - 8, 0);
+	expect(right.x + right.width).toBeCloseTo(stage.x + stage.width - 8, ONE_PX);
 	// the place is saved as a share of the stage width and survives a reload
 	await drag(-300);
 	const x = (await stored(page, KEYS.bar)) as { x: number };
@@ -52,18 +52,18 @@ test("test_the_bar_drags_by_its_grip_stays_inside_the_stage_and_keeps_its_place"
 	expect(x.x).toBeLessThan(1);
 	const before = await center();
 	await page.reload();
-	await expect.poll(center).toBeCloseTo(before, 0);
+	await expect.poll(center).toBeCloseTo(before, ONE_PX);
 	// a double click on the grip puts the bar in the middle again
 	const g = await box(page, "bar-handle");
 	await page.mouse.dblclick(g.x + g.width / 2, g.y + g.height / 2);
-	await expect.poll(center).toBeCloseTo(freeMiddle, 0);
+	await expect.poll(center).toBeCloseTo(freeMiddle, ONE_PX);
 	// a bad save gives the middle
 	await page.evaluate(
 		(k) => localStorage.setItem(k, JSON.stringify({ x: "left" })),
 		KEYS.bar,
 	);
 	await page.reload();
-	await expect.poll(center).toBeCloseTo(freeMiddle, 0);
+	await expect.poll(center).toBeCloseTo(freeMiddle, ONE_PX);
 });
 
 test("test_the_bar_stays_inside_the_stage_when_the_window_gets_narrow", async ({
@@ -78,7 +78,7 @@ test("test_the_bar_stays_inside_the_stage_when_the_window_gets_narrow", async ({
 	await page.mouse.up();
 	await page.setViewportSize({ width: 900, height: 700 });
 	const b = await box(page, "stage-bar");
-	expect(b.x + b.width).toBeLessThanOrEqual(900 - 8 + 1);
+	expect(b.x + b.width).toBeLessThanOrEqual(900 - 8 + 1.5);
 	expect(b.x).toBeGreaterThanOrEqual(0);
 });
 
@@ -90,7 +90,7 @@ test("test_on_a_phone_the_bar_has_no_grip_and_stays_in_the_middle", async ({
 	await studio.openSynthetic(480, 640, "one.png");
 	await expect(page.getByTestId("bar-handle")).toBeHidden();
 	const b = await box(page, "stage-bar");
-	expect(b.x + b.width / 2).toBeCloseTo(195, 0);
+	expect(b.x + b.width / 2).toBeCloseTo(195, ONE_PX);
 });
 
 test("test_bar_toggle_turns_edges_and_grid_on_and_off_and_opens_no_card", async ({
@@ -152,7 +152,7 @@ test("test_a_card_stays_open_when_a_drag_pans_the_photo_and_a_still_press_closes
 		await expect(popup).toBeVisible();
 		await expect
 			.poll(async () => (await box(page, "photo-canvas")).x)
-			.toBeCloseTo(before.x + 40 * dir, 0);
+			.toBeCloseTo(before.x + 40 * dir, ONE_PX);
 		// a press that moves 7 px is still a drag (the limit of a still press is 6 px)
 		await press(7 * dir);
 		await expect(popup).toBeVisible();

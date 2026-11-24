@@ -119,31 +119,12 @@ mod tests {
     use super::super::grades::PAPER;
     use super::super::paper::tooth;
     use super::*;
+    use crate::test_support::{box_gaps, flat_tone, ramp_tone};
 
-    /// The mean of the `size` px box at `(x0, y0)`.
-    fn box_at(v: &[f32], w: usize, (x0, y0): (usize, usize), size: usize) -> f32 {
-        let mut s = 0.0;
-        for y in y0..y0 + size {
-            for x in x0..x0 + size {
-                s += v[y * w + x];
-            }
-        }
-        s / (size * size) as f32
-    }
-
-    /// The mean and the largest gap between the 16 px box means of `shown` and `tone` over a grid
-    /// of boxes. The hold works on a 17 px window, so a 16 px box may be off by a little.
+    /// The box gaps over a grid that starts at the border. The hold works on a 17 px window, so a
+    /// 16 px box may be off by a little.
     fn gaps(shown: &[f32], tone: &[f32], w: usize, h: usize) -> (f32, f32) {
-        let (mut sum, mut worst, mut n) = (0.0f32, 0.0f32, 0.0f32);
-        for y in (0..=h - 16).step_by(8) {
-            for x in (0..=w - 16).step_by(8) {
-                let gap = (box_at(shown, w, (x, y), 16) - box_at(tone, w, (x, y), 16)).abs();
-                sum += gap;
-                worst = worst.max(gap);
-                n += 1.0;
-            }
-        }
-        (sum / n, worst)
+        box_gaps(shown, tone, (w, h), 0)
     }
 
     #[test]
@@ -167,9 +148,7 @@ mod tests {
     #[test]
     fn test_a_ramp_keeps_the_local_mean() {
         let (w, h) = (256, 128);
-        let tone: Vec<f32> = (0..w * h)
-            .map(|i| 17.0 + 78.0 * (i % w) as f32 / (w - 1) as f32)
-            .collect();
+        let tone = ramp_tone(w, h);
         for paper in [Paper::Smooth, Paper::Medium, Paper::Rough] {
             let t = tooth(w, h, paper, 45.0);
             let shown = draw(&tone, w, h, &t, 1.0, paper, None);
@@ -182,8 +161,7 @@ mod tests {
     fn test_a_flat_dark_patch_keeps_the_local_mean() {
         let (w, h) = (96, 96);
         for l in [26.0f32, 37.0, 60.0] {
-            let mut tone = vec![l; w * h];
-            tone[0] = 17.0;
+            let tone = flat_tone(l, w, h);
             let t = tooth(w, h, Paper::Medium, 45.0);
             let shown = draw(&tone, w, h, &t, 1.0, Paper::Medium, None);
             let (mean, worst) = gaps(&shown, &tone, w, h);

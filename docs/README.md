@@ -11,14 +11,14 @@ designs are deleted from main; `git log` keeps them.
 
 ## Current
 
-- [how-it-works/](how-it-works/README.md): how Values, Shapes, Edges and Grid draw.
+- [how-it-works/](how-it-works/README.md): how Values, Shapes, Pencil, Edges and Grid draw.
 - [web-app.md](web-app.md): what the app does, control by control, and how the web app is built.
-- [development/](development/README.md): [testing](development/testing.md),
-  [release](development/release.md) and the [bench](development/bench.md).
+- [testing](development/testing.md), [release](development/release.md), the
+  [bench](development/bench.md) and the [Mac app](development/mac-app.md).
 - [LEFTOVERS.md](LEFTOVERS.md): open work and known problems, with file pointers.
 - [design/brand.md](design/brand.md): the logo, its files and how to change it.
 - [design/2026-11-01-heroui-color-system.md](design/2026-11-01-heroui-color-system.md): the
-  Graphite palette, the radius and the Hero UI part map. The theme is
+  Graphite palette and its contrast numbers. The theme is
   [app/web/src/styles/atelier-theme.css](../app/web/src/styles/atelier-theme.css).
 - [research/2026-11-04-painting-value-science.md](research/2026-11-04-painting-value-science.md) and
   [research/2026-11-04-value-eval-spec.md](research/2026-11-04-value-eval-spec.md): the science

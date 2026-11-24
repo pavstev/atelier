@@ -1,2 +1,2 @@
 [alias]
-xtask = "run --package xtask --"
+refs = "test -q -p atelier-core --test tools_*"

@@ -11,9 +11,10 @@ Atelier is a photo study tool for painters: a Rust core (wasm) behind a React we
 | `crates/atelier-core/tests/` | the reference tests, their helpers, the reference pictures and fixtures | changing or blessing a reference |
 | `crates/atelier-core/examples/` | the bench (`bench.rs`: real photos, before and after sheets) and `edge_score.rs` (the Edges F-score) | running the bench |
 | `crates/atelier-wasm/` | the wasm edge: `Photo` (kept between draws, one call per layer) | changing what the page can call |
+| `app/desktop/` | the Mac app: a Tauri window around `app/web/dist` (`tauri.conf.json`, `src/main.rs`, icons); [docs/development/mac-app.md](docs/development/mac-app.md) | changing the Mac app |
 | `app/web/` | the web app: React 19, Hero UI v3, Tailwind v4, Vite; the layers worker holds the photo and draws | changing the page |
 | `app/web/src/` | `main.tsx` and `App.tsx` (the window), and the folders below | changing the page |
-| `app/web/src/features/photos/` | the photo list and its on-device store: `usePhotos.ts` (the photo on screen), `useDocsList.ts`, `addPhotos.ts`, `loadStored.ts`, `restoreSession.ts`, `missing.ts`, `search.ts`, `thumb.ts`, `fit.ts`, `decodeWorker.ts`, `decodeClient.ts`, `Files.tsx` (the tree), `FolderRow.tsx`, `PhotoRow.tsx`, `PhotoCard.tsx`, `MoveMenu.tsx`, `DeleteFolderDialog.tsx`, `drag.ts`, `useFolders.ts` (the folders and which are open) and `store/` (the IndexedDB store: `schema.ts`, `reducer.ts`, `idb.ts`; the folders: `folders.ts`, `tree.ts`) | changing the photo list |
+| `app/web/src/features/photos/` | the photo list and its on-device store: `usePhotos.ts` (the photo on screen), `useDocsList.ts`, `Files.tsx` (the tree), `useFolders.ts` (the folders and which are open), `decodeWorker.ts` (decode and tile off the main thread) and `store/` (the IndexedDB store and the folder tree) | changing the photo list |
 | `app/web/src/features/pencil/` | the Pencil base card: `PencilCard.tsx` (the Look, Effects and Pencils tabs), `GradeRow.tsx`, `knobs.ts` (the settings, start values and ranges), `grades.ts`, `explain.ts` (the Auto note), `usePencilAuto.ts`, `usePencilExtras.ts` | changing the Pencil card |
 | `app/web/src/features/stage/` | the middle: `StageArea.tsx`, `Stage.tsx`, `StageBar.tsx`, `useViewport.ts`, `useShortcuts.ts`, `lockZoom.ts`, `Swatches.tsx`, `LegendStrip.tsx` (the legend at the top center of the stage) | changing the stage or zoom |
 | `app/web/src/features/picker/` | the color picker: `spectral.ts` (Kubelka-Munk, the eye, CIEDE2000), `paints.ts` (the six paints; edit them for your tubes), `mix.ts` (the recipe search), `color.ts` (the shared color helpers: css, hex, ink, Munsell value), `sample.ts`, `Picker.tsx` | changing the picker |
@@ -30,7 +31,6 @@ Atelier is a photo study tool for painters: a Rust core (wasm) behind a React we
 | `app/web/public/` | favicons, app icons, share images, `manifest.webmanifest`, `_headers` | changing icons or the manifest |
 | `app/web/brand/` | the logo source for favicons and share images | changing the brand |
 | `app/web/scripts/` | the wasm build and brand scripts; the glue it writes is `app/web/wasm/` (committed at release) | changing the web build |
-| `xtask/` | `cargo xtask refs [--bless]` | changing the reference check |
 | `bench/pencil-eval/` | scores the Pencil looks on real photos with fixed metrics (MS-SSIM, tone error, range use, banding, grain mean), never shipped ([README](bench/pencil-eval/README.md)) | judging a Pencil change |
 | `bench/value-eval/` | scores Values and Shapes with fixed metrics, never shipped ([spec](docs/research/2026-11-04-value-eval-spec.md)) | judging a Values or Shapes change |
 | `scripts/` | check, deploy, release and docs-check shell scripts (`lib.sh` is their shared setup) | changing the check or deploy |

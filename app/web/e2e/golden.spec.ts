@@ -1,7 +1,7 @@
 // The golden pictures: a synthetic photo (drawn in the page, not a real photo) goes through every
 // layer and every preset or mode. Each layer picture is put on white, scaled to 128 px on the
 // long side and compared with e2e/golden/<layer>-<option>.png: the same size, and a mean
-// difference of at most 3.0 (the rule of `cargo xtask refs`). A missing golden fails.
+// difference of at most 3.0 (the rule of `cargo refs`). A missing golden fails.
 // `mise run web:golden:bless` writes again only the ones that fail; say in the commit why they moved.
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";

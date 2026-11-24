@@ -125,6 +125,27 @@ export async function box(page: Page, testid: string) {
 	return b;
 }
 
+/** `toBeCloseTo` precision for a bar whose left edge is a whole pixel: its center may be up to 1 px
+ * off the exact middle (10^0.35 / 2 is about 1.1 px). */
+export const ONE_PX = -0.35;
+
+/** Drags the center of an element (a test id) by `dx` and `dy` in `steps` mouse moves. */
+export async function dragBy(
+	page: Page,
+	testid: string,
+	dx: number,
+	dy = 0,
+	steps = 8,
+) {
+	const b = await box(page, testid);
+	const x = b.x + b.width / 2;
+	const y = b.y + b.height / 2;
+	await page.mouse.move(x, y);
+	await page.mouse.down();
+	await page.mouse.move(x + dx, y + dy, { steps });
+	await page.mouse.up();
+}
+
 /**
  * Reads a canvas (a test id) in the page and returns what `read` makes of its pixels. `read` runs
  * in the page, so it can use nothing from the spec, and only its small result comes back (a large
@@ -388,67 +409,74 @@ export class Studio {
 	 * Draws a synthetic photo in the page (no real photo, no random numbers) and opens it.
 	 * The scene is the same at any size.
 	 */
-	async openSynthetic(w = 480, h = 640, name = "synthetic.png") {
+	openSynthetic(w = 480, h = 640, name = "synthetic.png") {
+		return this.openCanvas(w, h, name, (g) => {
+			g.scale(g.canvas.width / 480, g.canvas.height / 640);
+			const sky = g.createLinearGradient(0, 0, 0, 640);
+			sky.addColorStop(0, "#26406b");
+			sky.addColorStop(0.55, "#d9a05b");
+			sky.addColorStop(1, "#3b2a1c");
+			g.fillStyle = sky;
+			g.fillRect(0, 0, 480, 640);
+			g.fillStyle = "#f6e7b4";
+			g.beginPath();
+			g.arc(340, 150, 55, 0, Math.PI * 2);
+			g.fill();
+			g.fillStyle = "#2d4a2b";
+			g.beginPath();
+			g.moveTo(0, 430);
+			g.bezierCurveTo(120, 330, 260, 460, 480, 380);
+			g.lineTo(480, 640);
+			g.lineTo(0, 640);
+			g.fill();
+			g.fillStyle = "#c98f6a";
+			g.beginPath();
+			g.ellipse(190, 340, 70, 90, 0, 0, Math.PI * 2);
+			g.fill();
+			g.fillStyle = "#1c1410";
+			g.beginPath();
+			g.ellipse(190, 290, 78, 52, 0, Math.PI, Math.PI * 2);
+			g.fill();
+			g.fillStyle = "#7a3b2e";
+			g.fillRect(110, 440, 160, 150);
+			g.strokeStyle = "#101010";
+			g.lineWidth = 6;
+			g.strokeRect(300, 420, 120, 160);
+			for (let i = 0; i < 40; i++) {
+				g.fillStyle = `rgba(255,255,255,${0.04 + (i % 5) * 0.01})`;
+				g.fillRect((i * 37) % 480, (i * 53) % 640, 30 + (i % 7) * 6, 3);
+			}
+		});
+	}
+
+	/**
+	 * Draws a picture in the page with `draw` and opens it as a PNG. `draw` runs in the page, so it
+	 * can use nothing from the spec; it is sent as text, like `readCanvas`. The name goes after the
+	 * picture's last chunk (a decoder ignores it), so photos with other names are other bytes, and
+	 * the pixels stay the same.
+	 */
+	async openCanvas(
+		w: number,
+		h: number,
+		name: string,
+		draw: (g: CanvasRenderingContext2D) => void,
+	) {
 		const prev = await this.stamp();
-		await this.page.evaluate(
-			async ([w, h, name]) => {
-				const c = document.createElement("canvas");
-				c.width = Number(w);
-				c.height = Number(h);
-				const g = c.getContext("2d");
-				if (!g) throw new Error("no 2d canvas");
-				g.scale(c.width / 480, c.height / 640);
-				const sky = g.createLinearGradient(0, 0, 0, 640);
-				sky.addColorStop(0, "#26406b");
-				sky.addColorStop(0.55, "#d9a05b");
-				sky.addColorStop(1, "#3b2a1c");
-				g.fillStyle = sky;
-				g.fillRect(0, 0, 480, 640);
-				g.fillStyle = "#f6e7b4";
-				g.beginPath();
-				g.arc(340, 150, 55, 0, Math.PI * 2);
-				g.fill();
-				g.fillStyle = "#2d4a2b";
-				g.beginPath();
-				g.moveTo(0, 430);
-				g.bezierCurveTo(120, 330, 260, 460, 480, 380);
-				g.lineTo(480, 640);
-				g.lineTo(0, 640);
-				g.fill();
-				g.fillStyle = "#c98f6a";
-				g.beginPath();
-				g.ellipse(190, 340, 70, 90, 0, 0, Math.PI * 2);
-				g.fill();
-				g.fillStyle = "#1c1410";
-				g.beginPath();
-				g.ellipse(190, 290, 78, 52, 0, Math.PI, Math.PI * 2);
-				g.fill();
-				g.fillStyle = "#7a3b2e";
-				g.fillRect(110, 440, 160, 150);
-				g.strokeStyle = "#101010";
-				g.lineWidth = 6;
-				g.strokeRect(300, 420, 120, 160);
-				for (let i = 0; i < 40; i++) {
-					g.fillStyle = `rgba(255,255,255,${0.04 + (i % 5) * 0.01})`;
-					g.fillRect((i * 37) % 480, (i * 53) % 640, 30 + (i % 7) * 6, 3);
-				}
-				const blob = await new Promise<Blob>((ok) =>
-					c.toBlob((b) => ok(b as Blob), "image/png"),
-				);
-				const input =
-					document.querySelector<HTMLInputElement>("input[type=file]");
-				if (!input) throw new Error("no file input");
-				const dt = new DataTransfer();
-				// the name goes after the picture's last chunk (a decoder ignores it), so photos with
-				// other names are other bytes, and the pixels stay the same
-				dt.items.add(
-					new File([blob, `|${name}`], String(name), { type: "image/png" }),
-				);
-				input.files = dt.files;
-				input.dispatchEvent(new Event("change", { bubbles: true }));
-			},
-			[w, h, name] as const,
-		);
+		await this.page.evaluate(`(async (draw, w, h, name) => {
+			const c = document.createElement("canvas");
+			c.width = w;
+			c.height = h;
+			const g = c.getContext("2d");
+			if (!g) throw new Error("no 2d canvas");
+			draw(g);
+			const blob = await new Promise((ok) => c.toBlob(ok, "image/png"));
+			const input = document.querySelector("input[type=file]");
+			if (!input) throw new Error("no file input");
+			const dt = new DataTransfer();
+			dt.items.add(new File([blob, "|" + name], name, { type: "image/png" }));
+			input.files = dt.files;
+			input.dispatchEvent(new Event("change", { bubbles: true }));
+		})(${String(draw)}, ${w}, ${h}, ${JSON.stringify(name)})`);
 		await this.page
 			.locator("[data-testid=facts] p", { hasText: name })
 			.waitFor({ timeout: 30_000 });

@@ -2,8 +2,8 @@
 //! how graphite sits on the paper tooth, and the hold that keeps the local mean at the tone.
 
 use super::grades::PAPER;
-use super::paper::scale;
 use crate::filters::box_mean;
+use crate::img::size_factor;
 
 /// The radius of the box of the hold, in px at a long side of 1024 (a 17 px window, close to the
 /// 16 px patch the tone is judged in).
@@ -74,7 +74,7 @@ pub(crate) fn lay(h: f32, p: f32, w: f32) -> f32 {
 /// never goes past full darkness, and the scale stays within `limit` (over 1) and its inverse: a
 /// bigger limit holds the tone better and may blacken a stroke that stands alone.
 pub(crate) fn hold_mean(dark: &mut [f32], target: &[f32], (w, h): (usize, usize), limit: f32) {
-    let radius = (HOLD_RADIUS * scale(w, h)) as usize;
+    let radius = (HOLD_RADIUS * size_factor(w, h)) as usize;
     let want = box_mean(target, w, h, radius);
     for _ in 0..HOLD_PASSES {
         let have = box_mean(dark, w, h, radius);

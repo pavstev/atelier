@@ -8,7 +8,7 @@ use atelier_core::render::{
     pencil_layer, pencil_suggest, prepare_work, shapes_layer, shapes_view, values_layer,
 };
 use common::support::PENCIL_START;
-use common::{FIXTURE, decode_png, over, work};
+use common::{FIXTURE, decode_png, over, srgb_to_linear, work};
 
 #[test]
 fn test_edges_layer_alpha_is_ink() {
@@ -229,15 +229,11 @@ fn test_edges_width_knob_adds_ink_in_every_mode() {
 
 /// The `OKLab` L of an sRGB byte color.
 fn ok_l(c: [u8; 3]) -> f64 {
-    let lin = |v: u8| {
-        let c = f64::from(v) / 255.0;
-        if c <= 0.04045 {
-            c / 12.92
-        } else {
-            ((c + 0.055) / 1.055).powf(2.4)
-        }
-    };
-    let (r, g, b) = (lin(c[0]), lin(c[1]), lin(c[2]));
+    let (r, g, b) = (
+        srgb_to_linear(c[0]),
+        srgb_to_linear(c[1]),
+        srgb_to_linear(c[2]),
+    );
     let l = (0.412_221_470_8 * r + 0.536_332_536_3 * g + 0.051_445_992_9 * b).cbrt();
     let m = (0.211_903_498_2 * r + 0.680_699_545_1 * g + 0.107_396_956_6 * b).cbrt();
     let s = (0.088_302_461_9 * r + 0.281_718_837_6 * g + 0.629_978_700_5 * b).cbrt();
@@ -369,41 +365,14 @@ fn test_masses_amount_picks_level() {
 }
 
 #[test]
-fn grid_group_three_bad_input() {
+fn test_bad_numbers_are_bad_input_kind() {
     let w = work();
-    assert!(matches!(
-        grid_layer(&w, 1, 6, 2, 3, GRID_CONTRAST, 0),
-        Err(Error::BadInput(_))
-    ));
-}
-
-#[test]
-fn grid_cells_seven_bad_input() {
-    let w = work();
-    assert!(matches!(
-        grid_layer(&w, 1, 7, 2, 2, GRID_CONTRAST, 0),
-        Err(Error::BadInput(_))
-    ));
-}
-
-#[test]
-fn empty_image_bad_input() {
-    let w = atelier_core::img::Rgb::new(0, 0, 3);
-    assert!(matches!(
-        grid_layer(&w, 1, 6, 2, 2, GRID_CONTRAST, 0),
-        Err(Error::BadInput(_))
-    ));
-    assert!(matches!(
-        edges_view(&w, 0, 50.0, 3, 0.0),
-        Err(Error::BadInput(_))
-    ));
-    assert!(matches!(shapes_view(&w, 0, 50.0), Err(Error::BadInput(_))));
-    assert!(matches!(pencil_auto(&w), Err(Error::BadInput(_))));
-    assert!(matches!(
-        pencil_layer(&w, 0, 255, &PENCIL_START),
-        Err(Error::BadInput(_))
-    ));
-    assert!(matches!(pencil_suggest(&w, 4), Err(Error::BadInput(_))));
+    for (cells, group) in [(6, 3), (7, 2)] {
+        assert!(matches!(
+            grid_layer(&w, 1, cells, 2, group, GRID_CONTRAST, 0),
+            Err(Error::BadInput(_))
+        ));
+    }
 }
 
 #[test]
@@ -435,5 +404,14 @@ fn malformed_image_bad_input_everywhere() {
         ));
         assert!(matches!(pencil_auto(w), Err(Error::BadInput(_))));
         assert!(matches!(pencil_suggest(w, 4), Err(Error::BadInput(_))));
+        assert!(matches!(
+            pencil_layer(w, 0, 255, &PENCIL_START),
+            Err(Error::BadInput(_))
+        ));
+        assert!(matches!(shapes_view(w, 0, 50.0), Err(Error::BadInput(_))));
+        assert!(matches!(
+            edges_view(w, 0, 50.0, 3, 0.0),
+            Err(Error::BadInput(_))
+        ));
     }
 }

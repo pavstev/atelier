@@ -10,16 +10,10 @@ extend-exclude = [
 [default.extend-words]
 # a variable in shapes.rs
 fo = "fo"
-# HED and DexiNed, edge nets named in AGENTS.md and docs/plans
+# HED, an edge net named in AGENTS.md
 HED = "HED"
-Ned = "Ned"
-# Serbian for gray, in the owner's answers quoted in docs/plans
-Sive = "Sive"
 # German "a", in the Kubelka and Munk 1931 title cited in docs/research
 Ein = "Ein"
 
 [default.extend-identifiers]
 PNGs = "PNGs"
-Livin4wheel = "Livin4wheel"
-mak_jp = "mak_jp"
-MAK = "MAK"

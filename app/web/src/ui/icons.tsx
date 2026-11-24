@@ -32,6 +32,7 @@ const ICONS = {
 	right: "M6 3l5 5-5 5",
 	folder: "M2 4.5h4l1.5 1.5H14v7H2z",
 	move: "M2.5 8h8M7.5 5l3 3-3 3M13.5 3.5v9",
+	legend: "M2.5 5h11v6h-11zM6.2 5v6M9.8 5v6",
 } as const;
 
 export type IconName = keyof typeof ICONS;

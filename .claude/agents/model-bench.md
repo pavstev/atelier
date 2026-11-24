@@ -30,7 +30,7 @@ You run one bench pass on the Atelier photo sets and write the numbers to the fi
 ## Rules
 
 - Photos and sheets stay out of git. Sheets go to `.agents/bench/sheets/`. Never read `in/`, `out/`, `bench-out/` or `target/`.
-- Never run `cargo xtask refs --bless` or `mise run web:golden:bless`. Never edit code.
+- Never run `ATELIER_BLESS=1 cargo refs` or `mise run web:golden:bless`. Never edit code.
 - Never stop a process you did not start. Never run `wrangler`.
 - If the same step fails twice for the same reason, stop and report `BLOCKED` with the output.
 

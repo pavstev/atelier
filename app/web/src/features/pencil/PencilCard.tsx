@@ -8,12 +8,13 @@ import { useState } from "react";
 import { LABELS } from "@/features/tools/settings";
 import { Knob, Segment } from "@/ui/fields";
 import GradeRow from "./GradeRow";
-import { GRADES, stepPencil } from "./grades";
+import { gradesIn, stepPencil } from "./grades";
 import {
 	AUTO_KEYS,
 	PENCIL_LOOKS,
 	PENCIL_RANGE,
 	type PencilLook,
+	pickAuto,
 	resetKnobs,
 } from "./knobs";
 import { type PencilExtras, SUGGEST_COUNTS } from "./usePencilExtras";
@@ -83,10 +84,7 @@ export default function PencilCard({ pencil: s, onChange, extras }: Props) {
 			onChange={(v) => change({ [key]: v })}
 		/>
 	);
-	const runAuto = () =>
-		extras.runAuto((a) =>
-			onChange(Object.fromEntries(AUTO_KEYS.map((k) => [k, a[k]]))),
-		);
+	const runAuto = () => extras.runAuto((a) => onChange(pickAuto(a)));
 
 	return (
 		<Tabs
@@ -229,20 +227,16 @@ export default function PencilCard({ pencil: s, onChange, extras }: Props) {
 							aria-label="Suggested pencils"
 							className="flex min-w-0 flex-1 flex-wrap gap-1"
 						>
-							{GRADES.flatMap((g, bit) =>
-								((extras.suggested ?? 0) >> bit) & 1
-									? [
-											<li
-												key={g.id}
-												data-testid="pencil-suggested-grade"
-												data-grade={g.id}
-												className="rounded-full border border-separator px-2 py-0.5 text-xs font-medium"
-											>
-												{g.id}
-											</li>,
-										]
-									: [],
-							)}
+							{gradesIn(extras.suggested).map((g) => (
+								<li
+									key={g.id}
+									data-testid="pencil-suggested-grade"
+									data-grade={g.id}
+									className="rounded-full border border-separator px-2 py-0.5 text-xs font-medium"
+								>
+									{g.id}
+								</li>
+							))}
 						</ul>
 						<Button
 							size="sm"

@@ -32,11 +32,9 @@ export {
 	canMoveInto,
 	childFolders,
 	countAll,
-	countIn,
 	flatFolders,
 	folderOf,
 	groupDocs,
 	pathOf,
 	photoIdsIn,
-	photosIn,
 } from "./tree";

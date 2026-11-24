@@ -35,8 +35,11 @@ fn pack(layer: &Layer) -> Vec<u8> {
     out
 }
 
+/// What a wasm method answers: the value, or a JS error.
+type JsResult<T> = std::result::Result<T, JsError>;
+
 /// Runs `f` and turns a core error into a JS error.
-fn run<T>(f: impl FnOnce() -> Result<T>) -> std::result::Result<T, JsError> {
+fn run<T>(f: impl FnOnce() -> Result<T>) -> JsResult<T> {
     f().map_err(|e| JsError::new(&e.to_string()))
 }
 
@@ -172,7 +175,7 @@ impl Photo {
     /// # Errors
     /// A length that does not fit the size.
     #[wasm_bindgen(constructor)]
-    pub fn new(rgba: &[u8], width: u32, height: u32) -> std::result::Result<Self, JsError> {
+    pub fn new(rgba: &[u8], width: u32, height: u32) -> JsResult<Self> {
         run(|| Self::from_rgba(rgba, width, height))
     }
 
@@ -189,7 +192,7 @@ impl Photo {
         amount: f64,
         line: u32,
         even: f64,
-    ) -> std::result::Result<Vec<u8>, JsError> {
+    ) -> JsResult<Vec<u8>> {
         run(|| {
             let (work, kept) = self.prepare_edges(long)?;
             edges_of(work, kept, mode, amount, line, even)
@@ -201,13 +204,7 @@ impl Photo {
     ///
     /// # Errors
     /// A `long`, `preset`, `detail` or `tint` out of range.
-    pub fn values(
-        &mut self,
-        long: u32,
-        preset: u32,
-        detail: f64,
-        tint: u32,
-    ) -> std::result::Result<Vec<u8>, JsError> {
+    pub fn values(&mut self, long: u32, preset: u32, detail: f64, tint: u32) -> JsResult<Vec<u8>> {
         run(|| values_of(self.prepare(long)?, preset, detail, tint))
     }
 
@@ -229,7 +226,7 @@ impl Photo {
         look: u32,
         mask: u32,
         numbers: &[f64],
-    ) -> std::result::Result<Vec<u8>, JsError> {
+    ) -> JsResult<Vec<u8>> {
         run(|| pencil_of(self.prepare(long)?, look, mask, numbers))
     }
 
@@ -239,7 +236,7 @@ impl Photo {
     ///
     /// # Errors
     /// A `long` out of range.
-    pub fn pencil_auto(&mut self, long: u32) -> std::result::Result<Vec<f64>, JsError> {
+    pub fn pencil_auto(&mut self, long: u32) -> JsResult<Vec<f64>> {
         run(|| Ok(render::pencil_auto(self.prepare(long)?)?.to_vec()))
     }
 
@@ -248,7 +245,7 @@ impl Photo {
     ///
     /// # Errors
     /// A `long` or `count` out of range.
-    pub fn pencil_suggest(&mut self, long: u32, count: u32) -> std::result::Result<u32, JsError> {
+    pub fn pencil_suggest(&mut self, long: u32, count: u32) -> JsResult<u32> {
         run(|| render::pencil_suggest(self.prepare(long)?, count))
     }
 
@@ -258,12 +255,7 @@ impl Photo {
     ///
     /// # Errors
     /// A number out of range.
-    pub fn shapes(
-        &mut self,
-        long: u32,
-        step: u32,
-        detail: f64,
-    ) -> std::result::Result<Vec<u8>, JsError> {
+    pub fn shapes(&mut self, long: u32, step: u32, detail: f64) -> JsResult<Vec<u8>> {
         run(|| shapes_of(self.prepare(long)?, step, detail))
     }
 
@@ -290,7 +282,7 @@ impl Photo {
         color: u32,
         center: u32,
         milli: u32,
-    ) -> std::result::Result<Vec<u8>, JsError> {
+    ) -> JsResult<Vec<u8>> {
         run(|| {
             grid_of(
                 self.prepare(long)?,

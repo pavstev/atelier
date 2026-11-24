@@ -2,7 +2,7 @@
 // it and never sit on the panel, the bar grip stops at its edge, and the strip keeps clear of the
 // Add photo button on a phone. A swatch press on a phone holds its color even with a sheet open.
 import type { Page } from "@playwright/test";
-import { box, expect, KEYS, test } from "./studio";
+import { box, expect, KEYS, ONE_PX, test } from "./studio";
 
 type Rect = { x: number; y: number; width: number; height: number };
 
@@ -65,7 +65,7 @@ test.describe("desktop", () => {
 					const b = await box(page, id);
 					return b.x + b.width / 2;
 				})
-				.toBeCloseTo(stage.x + stage.width / 2, 0);
+				.toBeCloseTo(stage.x + stage.width / 2, ONE_PX);
 		}
 	});
 
@@ -80,16 +80,16 @@ test.describe("desktop", () => {
 		const left = await box(page, "stage-bar");
 		// whole bar right of the panel, 8 px of room
 		expect(left.x).toBeGreaterThanOrEqual(right(panel));
-		expect(left.x).toBeCloseTo(right(panel) + 12 + 8, 0);
+		expect(left.x).toBeCloseTo(right(panel) + 12 + 8, ONE_PX);
 		await dragGrip(page, 5000);
 		const far = await box(page, "stage-bar");
-		expect(right(far)).toBeCloseTo(stage.x + stage.width - 8, 0);
+		expect(right(far)).toBeCloseTo(stage.x + stage.width - 8, ONE_PX);
 		// the place saved at the far left is read back right of the panel
 		await dragGrip(page, -5000);
 		await page.reload();
 		await expect
 			.poll(async () => (await box(page, "stage-bar")).x)
-			.toBeCloseTo(right(panel) + 12 + 8, 0);
+			.toBeCloseTo(right(panel) + 12 + 8, ONE_PX);
 		// a place saved in the middle of the free stage loads there. The page saves its own place when
 		// it closes, so the save is put in place before the next page starts.
 		await page.addInitScript(

@@ -260,8 +260,7 @@ test("test_zoom_and_position_of_a_photo_survive_a_reload", async ({
 	await studio.openSynthetic(480, 640, "view.png");
 	await studio.zoom("actual");
 	await expect(page.getByTestId("zoom-percent")).toHaveText("100%");
-	const stage = await page.getByTestId("stage").boundingBox();
-	if (!stage) throw new Error("no stage");
+	const stage = await box(page, "stage");
 	await page.mouse.move(stage.x + 300, stage.y + 300);
 	await page.mouse.down();
 	await page.mouse.move(stage.x + 340, stage.y + 280, { steps: 4 });
@@ -312,9 +311,8 @@ test("test_nothing_in_the_panel_is_resizable_and_the_list_fills_it", async ({
 	])
 		await expect(page.getByTestId(id)).toHaveCount(0);
 	// the list takes the panel's full height, less the panel's own spacing
-	const files = await page.getByTestId("files").boundingBox();
-	const list = await page.getByTestId("photo-scroll").boundingBox();
-	if (!files || !list) throw new Error("no boxes");
+	const files = await box(page, "files");
+	const list = await box(page, "photo-scroll");
 	expect(files.y + files.height - (list.y + list.height)).toBeLessThanOrEqual(
 		24,
 	);

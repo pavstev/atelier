@@ -15,7 +15,9 @@
 // - sRGB: IEC 61966-2-1 matrices and curve.
 // - CIEDE2000: Sharma, Wu and Dalal (2005). The tests check it against their published pairs.
 
-export type Rgb = readonly [number, number, number];
+import type { Rgb } from "../../draw/calls.ts";
+
+export type { Rgb };
 export type Lab = readonly [number, number, number];
 
 /** The wavelengths in nm. */

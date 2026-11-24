@@ -4,15 +4,17 @@
 // fourth would hide the name on a narrow panel; a touch screen also gets the pen, as it has no
 // double-click or F2). The row can be dragged onto another folder, and
 // photos and folders can be dropped on it (`drag.ts`).
-import { Input } from "@heroui/react";
-import { memo, useState } from "react";
+import { memo } from "react";
 import { Icon, IconButton } from "@/ui/icons";
 import { type DropCtx, dragProps, dropProps } from "./drag";
 import MoveMenu from "./MoveMenu";
+import {
+	ROW_ACTION as ACTION,
+	DELETE_ACTION,
+	RenameInput,
+	useRename,
+} from "./rename";
 import { type Folder, subtree } from "./store";
-
-const ACTION =
-	"rounded-(--radius-chip) transition-colors hover:bg-foreground/15";
 
 type Props = {
 	folder: Folder;
@@ -35,15 +37,13 @@ type Props = {
 
 const FolderRow = memo(function FolderRow(p: Props) {
 	const { folder: f } = p;
-	const [text, setText] = useState(f.name);
-	const done = (save: boolean) => {
-		p.onEditing(f.id, false);
-		const name = text.trim();
-		if (save && name && name !== f.name) p.onRename(f.id, name);
-		else setText(f.name);
-	};
+	const rename = useRename(
+		f.name,
+		(name) => p.onRename(f.id, name),
+		() => p.onEditing(f.id, false),
+	);
 	const startRename = () => {
-		setText(f.name);
+		rename.reset();
 		p.onEditing(f.id, true);
 	};
 	return (
@@ -63,20 +63,10 @@ const FolderRow = memo(function FolderRow(p: Props) {
 			{p.editing ? (
 				<>
 					<Icon name="folder" className="size-4 shrink-0" />
-					<Input
-						autoFocus
-						aria-label="Folder name"
-						data-testid="folder-name"
-						value={text}
-						maxLength={120}
-						className="min-w-0 flex-1"
-						onFocus={(e) => e.currentTarget.select()}
-						onChange={(e) => setText(e.target.value)}
-						onBlur={() => done(true)}
-						onKeyDown={(e) => {
-							if (e.key === "Enter") done(true);
-							if (e.key === "Escape") done(false);
-						}}
+					<RenameInput
+						label="Folder name"
+						testid="folder-name"
+						rename={rename}
 					/>
 				</>
 			) : (
@@ -144,7 +134,7 @@ const FolderRow = memo(function FolderRow(p: Props) {
 						icon="trash"
 						testid="folder-delete"
 						size="row"
-						className={`${ACTION} hover:bg-danger/20 hover:text-danger`}
+						className={DELETE_ACTION}
 						onPress={() => p.onDelete(f.id)}
 					/>
 				</span>

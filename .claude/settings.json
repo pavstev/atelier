@@ -10,7 +10,7 @@
   },
   "permissions": {
     "ask": [
-      "Bash(cargo xtask refs --bless*)",
+      "Bash(ATELIER_BLESS=1 *)",
       "Bash(mise run web:golden:bless*)"
     ],
     "deny": [

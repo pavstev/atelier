@@ -38,16 +38,50 @@ pub fn work() -> Rgb {
     prepare_work(&decode_png(FIXTURE), LONG).expect("prepare the fixture")
 }
 
+/// The color bytes of a layer, without its alpha.
+pub fn rgb_of(layer: &atelier_core::render::Layer) -> Rgb {
+    let data = layer
+        .rgba
+        .chunks_exact(4)
+        .flat_map(|p| [p[0], p[1], p[2]])
+        .collect();
+    Rgb::from_vec(layer.width, layer.height, 3, data)
+}
+
+/// A made-up picture with a pattern, so the filters have edges to find.
+pub fn pattern(w: usize, h: usize, channels: usize) -> Rgb {
+    let data = (0..w * h * channels)
+        .map(|i| ((i * 37) ^ (i / 3 * 11)) as u8)
+        .collect();
+    Rgb::from_vec(w, h, channels, data)
+}
+
+/// A gray picture: `f(x, y)` is the byte of every channel.
+pub fn gray(w: usize, h: usize, f: impl Fn(usize, usize) -> u8) -> Rgb {
+    let mut data = Vec::with_capacity(w * h * 3);
+    for y in 0..h {
+        for x in 0..w {
+            let v = f(x, y);
+            data.extend_from_slice(&[v, v, v]);
+        }
+    }
+    Rgb::from_vec(w, h, 3, data)
+}
+
+/// An sRGB byte as linear light, 0.0 to 1.0. Written out on purpose: the tests that use it are
+/// oracles that must not call the core's `srgb` module.
+pub fn srgb_to_linear(v: u8) -> f64 {
+    let c = f64::from(v) / 255.0;
+    if c <= 0.04045 {
+        c / 12.92
+    } else {
+        ((c + 0.055) / 1.055).powf(2.4)
+    }
+}
+
 /// A 3 channel PNG as pixels.
 pub fn decode_png(bytes: &[u8]) -> Rgb {
-    let mut reader = png::Decoder::new(std::io::Cursor::new(bytes))
-        .read_info()
-        .expect("read the PNG");
-    let mut buf = vec![0; reader.output_buffer_size().expect("PNG size")];
-    let info = reader.next_frame(&mut buf).expect("decode the PNG");
-    assert_eq!(info.color_type, png::ColorType::Rgb);
-    buf.truncate(info.buffer_size());
-    Rgb::from_vec(info.width as usize, info.height as usize, 3, buf)
+    support::decode(bytes).expect("decode the PNG")
 }
 
 /// An RGB picture as PNG bytes (8 bit, adaptive filter, fast deflate).

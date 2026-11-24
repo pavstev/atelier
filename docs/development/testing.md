@@ -8,7 +8,7 @@
 | `mise run check` | the same, plus `cargo deny`, `cargo shear`, `typos` and a frozen install of the web dependencies |
 | `bash scripts/test-files.sh FILES` | the tests for some Rust files |
 | `mise run web:e2e` | the browser tests |
-| `cargo xtask refs [--bless]` | the reference pictures |
+| `cargo refs` (`ATELIER_BLESS=1 cargo refs` blesses) | the reference pictures |
 | `bash scripts/docs-check.sh` | broken relative links in the Markdown files |
 
 Run `check:fast` while you work and `check` once before a pull request. The pre-commit hook checks
@@ -16,10 +16,12 @@ the files you staged. The pre-push hook runs `check`.
 
 ## Rust: one simple test per part
 
-`crates/atelier-core/tests/tools_*.rs` has one test per part (Values, Shapes, Edges, Grid). Each
-checks the size, the range and a loose match to a reference picture.
+`crates/atelier-core/tests/tools_reference.rs` has one test per part (Values, Shapes, Pencil, Edges,
+Grid). Each checks the size, the range and a loose match to a reference picture.
+`tools_layers.rs` holds the other checks of how a layer behaves. A new part gets a simple test in
+`tools_*.rs`.
 
-`cargo xtask refs` renders a synthetic photo through each layer at a long side of 128 px and
+`cargo refs` renders a synthetic photo through each layer at a long side of 128 px and
 compares it with `crates/atelier-core/tests/reference`. The size and range must match, and the mean
 difference must be 3.0 or less.
 
@@ -79,7 +81,7 @@ in `e2e/golden/` (128 px, mean difference at most 3.0).
 Bless only for a change you meant, and say in the commit why the pictures moved.
 
 ```bash
-cargo xtask refs --bless        # the Rust reference pictures
+ATELIER_BLESS=1 cargo refs      # the Rust reference pictures
 mise run web:golden:bless       # the browser goldens (rewrites only the ones that fail)
 ```
 

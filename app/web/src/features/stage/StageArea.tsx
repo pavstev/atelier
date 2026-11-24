@@ -11,11 +11,13 @@ import PickerLazy, { preloadPicker } from "@/features/picker/PickerLazy";
 import type { SizeState } from "@/features/size/useSize";
 import {
 	LAYOUT,
+	type Layers,
 	type Layout,
 	type Look,
 	PANEL_MAX,
 	PANEL_MIN,
-	type StageId,
+	type SetLayout,
+	type SetLook,
 } from "@/features/tools/settings";
 import { ICON_BUTTON, IconButton, Tip } from "@/ui/icons";
 import EdgeHandle from "./EdgeHandle";
@@ -27,8 +29,6 @@ import StageBar from "./StageBar";
 import { useSeePhoto } from "./seePhoto";
 import { useShortcuts } from "./useShortcuts";
 import { useViewport } from "./useViewport";
-
-type Layers = Record<StageId, { image: ImageData; opacity: number } | null>;
 
 /** The hidden facts the tests and screen readers read. */
 type Facts = {
@@ -45,7 +45,7 @@ export default function StageArea(p: {
 	size: SizeState;
 	layers: Layers;
 	look: Look;
-	onLook: (f: (s: Look) => Look) => void;
+	onLook: SetLook;
 	/** The Pencil levels once drawn; the picker names the grade of a spot from them. */
 	levels?: Level[] | null;
 	/** The level By pencil is drawn up to (an index into `levels`), or none. */
@@ -53,7 +53,7 @@ export default function StageArea(p: {
 	/** The legend of Values, Shapes or Pencil, shown in the strip at the top of the stage. */
 	legend?: ReactNode;
 	layout: Layout;
-	onLayout: (f: (s: Layout) => Layout) => void;
+	onLayout: SetLayout;
 	facts: Facts;
 	errors: string[];
 	onDismissError: () => void;
@@ -83,6 +83,9 @@ export default function StageArea(p: {
 		return () => clearTimeout(t);
 	}, [p.photoId]);
 	const [picking, setPicking] = useState(false);
+	// the Mac app keeps the legend out of the way until the bar button shows it
+	const mac = document.documentElement.dataset.shell === "mac";
+	const [legendOn, setLegendOn] = useState(false);
 	const [area, setArea] = useState(AREA_START);
 	// a color held from the legend turns the picker on
 	const [seen, setSeen] = useState<Fixed | null>(null);
@@ -175,7 +178,9 @@ export default function StageArea(p: {
 						onReset={() => widthOf(LAYOUT.widths.left)}
 					/>
 				)}
-				{photo && p.legend && <LegendStrip>{p.legend}</LegendStrip>}
+				{photo && p.legend && (!mac || legendOn) && (
+					<LegendStrip dock={mac}>{p.legend}</LegendStrip>
+				)}
 				{photo && layout.panels.left && (
 					<div className="absolute top-14 left-3 z-(--z-bar)">
 						<IconButton
@@ -208,6 +213,14 @@ export default function StageArea(p: {
 							setPicking(on);
 							if (!on) p.onPicked(null);
 						}}
+						legend={
+							mac && p.legend
+								? {
+										on: legendOn,
+										onToggle: () => setLegendOn((v) => !v),
+									}
+								: undefined
+						}
 					/>
 				)}
 				{photo && (

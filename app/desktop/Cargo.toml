@@ -1,0 +1,22 @@
+# The Mac app: a Tauri window around the built web app (app/web/dist). No Rust code of its own
+# beyond starting the window. Its own workspace, so it never touches the core's checks or lockfile.
+[package]
+name = "atelier-desktop"
+version = "0.1.0"
+edition = "2024"
+publish = false
+license = "MIT OR Apache-2.0"
+
+[workspace]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = ["macos-private-api"] }
+tauri-plugin-window-state = "2"
+
+[profile.release]
+lto = true
+codegen-units = 1
+strip = true

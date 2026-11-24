@@ -31,19 +31,23 @@ export type WorkerRequest =
 /** A good answer to a `load`: how many photos the worker holds now. */
 export type LoadAnswer = { id: number; ok: true; kind: "load"; held: number };
 
-/** A good answer to a `draw`: the picture, for Values and Shapes its tones or piles, and for
- * Pencil its tones, the share of each in percent and the marked level (By pencil). */
-export type DrawAnswer = {
+/** What a draw tells besides the picture: for Values and Shapes the tones or piles, and for Pencil
+ * its tones, the share of each in percent and the marked level (By pencil). */
+export type DrawExtras = {
+	tones?: Rgb[];
+	shares?: number[];
+	/** The index of the level By pencil is drawn up to; missing for every other look. */
+	mark?: number;
+};
+
+/** A good answer to a `draw`: the picture and its `DrawExtras`. */
+export type DrawAnswer = DrawExtras & {
 	id: number;
 	ok: true;
 	kind: "draw";
 	width: number;
 	height: number;
 	rgba: ArrayBuffer;
-	tones?: Rgb[];
-	shares?: number[];
-	/** The index of the level By pencil is drawn up to; missing for every other look. */
-	mark?: number;
 	ms: number;
 };
 

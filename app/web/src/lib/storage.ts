@@ -147,6 +147,20 @@ export function useSaved<T>(
 	}, [saver, value, wait]);
 }
 
+/** Calls `f` when another tab changes `key` (or clears the storage). */
+export function useStorageEvent(key: string, f: () => void) {
+	const latest = useEffectEvent(f);
+	useEffect(() => {
+		const on = (e: StorageEvent) => {
+			if (e.storageArea !== localStorage) return;
+			if (e.key !== null && e.key !== key) return;
+			latest();
+		};
+		window.addEventListener("storage", on);
+		return () => window.removeEventListener("storage", on);
+	}, [key]);
+}
+
 /** State that starts from `read()` (the saved value, cleaned) and is kept saved under `key`. */
 export function usePersisted<T>(key: string, read: () => T, wait = SAVE_MS) {
 	const [value, setValue] = useState(read);

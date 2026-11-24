@@ -283,3 +283,81 @@ aside.glass {
 		height: var(--title-h);
 	}
 }
+
+/* The Mac app (Tauri): no title bar, and a native sidebar. The window is see-through with the macOS
+ * "sidebar" material (tauri.conf.json), so the side panel is only a thin tint over it: flush with the
+ * left edge, full height, a hairline on its right. The stage is solid and starts right of the panel.
+ * The window buttons float at the top left, the photo list buttons (the slot
+ * `[data-testid="titlebar-tools"]`) sit in the same row at the right end of the panel, and the
+ * logo is centred over the stage. The top strip is see-through and only drags the window. */
+.mac-drag {
+	display: none;
+}
+html[data-shell="mac"] {
+	--title-h: 3rem;
+	--panel-gap: 0px;
+	--panel-top: 0px;
+}
+html[data-shell="mac"],
+html[data-shell="mac"] body,
+html[data-shell="mac"] #root > div {
+	background: transparent;
+}
+html[data-shell="mac"] main {
+	background: var(--background);
+}
+html[data-shell="mac"]:has(aside[data-testid="files"][data-collapsed="false"])
+	main {
+	margin-left: min(var(--left-w), 50vw);
+}
+html[data-shell="mac"] main > div:first-child {
+	--free-left: 0px;
+}
+html[data-shell="mac"] aside[data-testid="files"] {
+	border: 0;
+	border-right: 1px solid var(--glass-edge);
+	border-radius: 0;
+	box-shadow: none;
+	-webkit-backdrop-filter: none;
+	backdrop-filter: none;
+	background: oklch(0.2 0.01 260 / 0.3);
+	padding-top: var(--title-h);
+}
+html[data-shell="mac"] .mac-drag {
+	display: block;
+	position: fixed;
+	inset: 0 0 auto 0;
+	height: var(--title-h);
+	z-index: 3;
+}
+html[data-shell="mac"] [data-testid="logo"] {
+	top: calc((var(--title-h) - var(--logo-h)) / 2);
+	left: 50%;
+	transform: translateX(-50%);
+}
+html[data-shell="mac"][data-full] [data-testid="logo"] {
+	left: 1rem;
+	transform: none;
+}
+html[data-shell="mac"]:has(aside[data-testid="files"][data-collapsed="false"])
+	[data-testid="logo"] {
+	left: calc(min(var(--left-w), 50vw) + (100vw - min(var(--left-w), 50vw)) / 2);
+}
+html[data-shell="mac"][data-full]:has(
+		aside[data-testid="files"][data-collapsed="false"]
+	)
+	[data-testid="logo"] {
+	left: 1rem;
+	transform: none;
+}
+html[data-shell="mac"] .titlebar-tools {
+	position: fixed;
+	top: 0;
+	height: var(--title-h);
+	left: 6rem;
+	right: calc(100vw - min(var(--left-w), 50vw));
+	z-index: 4;
+	display: flex;
+	align-items: center;
+	padding-right: calc(var(--panel-pad) + 1px);
+}

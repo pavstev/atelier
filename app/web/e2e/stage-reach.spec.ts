@@ -2,7 +2,7 @@
 // double click and the pinch, the one thin scrollbar, no page bounce, the whole-photo tiles and
 // their quiet rebuild for photos saved by an earlier version.
 import type { Page } from "@playwright/test";
-import { box, expect, KEYS, store, stored, test } from "./studio";
+import { box, dragBy, expect, KEYS, store, stored, test } from "./studio";
 
 const percent = async (page: Page) =>
 	Number.parseInt(
@@ -21,9 +21,6 @@ test("test_the_photo_cannot_be_panned_more_than_500_px_off_the_stage", async ({
 	const { page } = studio;
 	await studio.openSynthetic(480, 640, "pan.png");
 	await studio.zoom("actual");
-	const { stage } = await boxes(page);
-	const x = stage.x + stage.width / 2;
-	const y = stage.y + stage.height / 2;
 	// pull the photo far to the right and down, then far to the left and up
 	for (const [dx, dy] of [
 		[300, 200],
@@ -31,20 +28,12 @@ test("test_the_photo_cannot_be_panned_more_than_500_px_off_the_stage", async ({
 		[300, 200],
 		[-300, -200],
 	] as const) {
-		await page.mouse.move(x, y);
-		await page.mouse.down();
-		await page.mouse.move(x + dx, y + dy, { steps: 3 });
-		await page.mouse.up();
+		await dragBy(page, "stage", dx, dy, 3);
 	}
 	let b = await boxes(page);
 	expect(b.photo.x - b.stage.x).toBeLessThanOrEqual(500.5);
 	expect(b.photo.y - b.stage.y).toBeLessThanOrEqual(500.5);
-	for (let i = 0; i < 6; i++) {
-		await page.mouse.move(x, y);
-		await page.mouse.down();
-		await page.mouse.move(x - 300, y - 200, { steps: 3 });
-		await page.mouse.up();
-	}
+	for (let i = 0; i < 6; i++) await dragBy(page, "stage", -300, -200, 3);
 	b = await boxes(page);
 	expect(
 		b.stage.x + b.stage.width - (b.photo.x + b.photo.width),

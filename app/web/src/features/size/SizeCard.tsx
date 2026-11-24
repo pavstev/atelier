@@ -3,8 +3,8 @@
 // and a "Real size" switch (with the screen width it needs). The choice is kept per photo (`useSize.ts`); the cut itself is made in
 // `useSize` before the layers see the photo. The width and height boxes always show the paper in cm;
 // typing in one turns the choice into Custom.
-import { Switch, ToggleButton, ToggleButtonGroup } from "@heroui/react";
-import { NumberBox, Row, Segment } from "@/ui/fields";
+import { ToggleButton, ToggleButtonGroup } from "@heroui/react";
+import { NumberBox, Row, Segment, Toggle } from "@/ui/fields";
 import {
 	type Choice,
 	CUSTOM,
@@ -142,20 +142,12 @@ export default function SizeCard(p: {
 					onChange={(i) => p.onChange((cur) => ({ ...cur, fit: i === 1 }))}
 				/>
 				<Row label="Real size">
-					<Switch
-						data-testid="paper-real"
-						aria-label="Real size"
-						isSelected={p.real}
-						onChange={(on) => {
-							p.onReal(on, shownWidthCm(c, photoW, photoH));
-						}}
-					>
-						<Switch.Content>
-							<Switch.Control>
-								<Switch.Thumb />
-							</Switch.Control>
-						</Switch.Content>
-					</Switch>
+					<Toggle
+						testid="paper-real"
+						label="Real size"
+						on={p.real}
+						onChange={(on) => p.onReal(on, shownWidthCm(c, photoW, photoH))}
+					/>
 				</Row>
 				{p.real && (
 					<>

@@ -18,5 +18,10 @@ against Tone.
 
 Same inputs give the same numbers. No randomness.
 
+Read the grain mean of a Lift picture against Tone with the same Lift (the tag `tonelift`, renamed
+`tone` in its own folder). Against plain Tone, the grain bias of a lifted picture is the lift itself
+(the marks make the lights lighter), not grain: the bias of `drawinglift` is 0.06 against `tone`
+and 0.00 against `tonelift`.
+
 To make the pictures: `cargo run -q --release -p atelier-core --example pencil_render -- DIR PHOTOS`
 renders each Pencil look and effect of every photo in `PHOTOS` into `DIR` in the layout above.

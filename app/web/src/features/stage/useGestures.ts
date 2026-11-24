@@ -10,6 +10,7 @@ import {
 	useEffectEvent,
 	useRef,
 } from "react";
+import { TAP_SLOP } from "@/ui/pointer";
 import { clampZoom, type View, zoomAround } from "./viewMath";
 
 type Ctl = {
@@ -32,8 +33,6 @@ type Point = { x: number; y: number };
 /** The wheel step: a trackpad pinch (Ctrl) is finer than a wheel turn. */
 const WHEEL_STEP = 0.0016;
 const PINCH_STEP = 0.01;
-/** A press that moves more than this, in px, is a drag and not a tap. */
-const TAP_SLOP = 8;
 /** Two taps within this time, in ms, and this distance, in px, are a double tap. */
 const DOUBLE_MS = 350;
 const DOUBLE_PX = 30;

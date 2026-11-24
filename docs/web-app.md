@@ -269,30 +269,9 @@ The app is dark only. The colors and sizes are in
 
 ## How it is built
 
-React 19, Hero UI v3 and Tailwind CSS v4 over the Rust core in wasm. The source in `app/web/src/`
-has these folders. Paths below are under `src/`.
-
-- `features/photos/`: the photo list on this device and the photo on screen.
-- `features/stage/`: the stage, the bottom bar, zoom and pan, shortcuts, the real size lock, the
-  legend strip and the color swatches.
-- `features/picker/`: the color picker: `spectral.ts` (the color science), `paints.ts` (the six
-  paints), `mix.ts` (the recipe of a color), `sample.ts` (the color the stage shows at a photo
-  pixel) and `Picker.tsx` (the card).
-- `features/pencil/`: the list of pencils in the core's bit order (`grades.ts`: names, hints, the
-  set a mask picks, the level nearest a color), the Pencils toggle row (`GradeRow.tsx`), the
-  settings and their ranges (`knobs.ts`), the Auto note (`explain.ts`) and the card (`PencilCard.tsx`).
-- `features/size/`: the Paper tool (was Size): the paper table and the cut (`paper.ts`), the cut of the pixels
-  (`crop.ts`), the choice per photo (`useSize.ts`) and the card (`SizeCard.tsx`, `SizePreview.tsx`).
-- `features/tools/`: the pop-up cards of the bottom bar and the settings (`settings.ts`: the start
-  values and ranges of every knob).
-- `draw/`: the layers worker, its client, the typed calls and the draw hook.
-- `ui/`: parts that know nothing about photos (fields, icons, the logo, `useFrameDrag.ts`: the drag
-  of the bar grip and the panel edge).
-- `lib/`: `keys.ts` (every saved key), `storage.ts` (load and save them) and small helpers.
-- `styles/`: `index.css` and the theme `atelier-theme.css`.
-
-`@/` is an alias for `src/`. The rule: `ui/` and `lib/` import no feature; a feature imports `ui/`,
-`lib/` and `draw/`; `App.tsx` joins the features.
+React 19, Hero UI v3 and Tailwind CSS v4 over the Rust core in wasm. The folders of
+`app/web/src/` are in [MAP.md](../MAP.md). Which folder may import which is in
+[ARCHITECTURE.md](../ARCHITECTURE.md#the-parts).
 
 ### The worker and the core
 
@@ -344,8 +323,8 @@ has these folders. Paths below are under `src/`.
 - Trouble is handled on purpose. An unreadable file store never empties the list. Stored files
   without a list entry are deleted after 10 minutes as orphans. A list that cannot be saved shows
   an error. Two tabs join their lists.
-- Every saved value is read through a cleaner. A missing or wrong value falls back to the start
-  value, and unknown keys are dropped, so an old save never stops the app.
+- Every saved value is read through a cleaner, so an old save never stops the app
+  ([ARCHITECTURE.md](../ARCHITECTURE.md#state)).
 
 ### Stage and zoom
 

@@ -1,11 +1,13 @@
 //! The edge strength map of the Edges layer: the photo's luma blurred with a Gaussian, the Sobel
-//! gradient magnitude of that, and the magnitude scaled by its 99th percentile to 0..1. One
+//! gradient magnitude of that, and the magnitude scaled by its 99th percentile to 0..1. The
+//! color gradient (`OKLab` a and b) counts too, so a color edge of equal brightness shows. One
 //! channel of bytes, the size of the photo. `trace.rs` thins and traces it.
 
 use crate::deblock;
 use crate::edges::field::blur;
 use crate::filters::{box_mean, percentile, sobel};
 use crate::img::Rgb;
+use crate::oklab::image_to_oklab;
 use crate::srgb::luma601;
 
 /// The Gaussian sigma in px at 1024 px of the long side. It scales with the photo.
@@ -14,6 +16,9 @@ const SIGMA: f32 = 2.0;
 const PERCENTILE: f64 = 0.99;
 /// The least scale, as a share of the top, so a nearly flat map is not blown up.
 const BINS: usize = 2048;
+/// How much the color gradient (`OKLab` a and b, 0..1 units) counts against the luma gradient
+/// (0..255 units, so `255 *` this), in the fine map.
+const CHROMA_GAIN: f32 = 4.0;
 
 /// The least ratio of the scale to the median gradient of the picture. A picture of noise only
 /// has a p99 of about 2.6 times its median (`NOISE_RATIO` or less): it gets the floor of
@@ -60,6 +65,25 @@ fn coarse_strength(luma: &[f32], fine: &[f32], w: usize, h: usize, sigma: f32) -
         .collect()
 }
 
+/// The color gradient of every pixel in luma units (0..255): the Sobel gradients of the blurred
+/// `OKLab` a and b planes, times `CHROMA_GAIN`, joined as the root of the sum of squares. `strength`
+/// takes the larger of this and the luma gradient, so a color edge of equal brightness shows and
+/// a luma edge stays as it was.
+fn chroma_gradient(work: &Rgb, sigma: f32) -> Vec<f32> {
+    let (w, h) = (work.width, work.height);
+    let lab = image_to_oklab(work);
+    let mut sq = vec![0.0_f32; w * h];
+    for axis in [1, 2] {
+        let plane: Vec<f32> = lab.iter().map(|c| c[axis]).collect();
+        let (gx, gy) = sobel(&blur(&plane, w, h, sigma), w, h);
+        for ((s, &x), &y) in sq.iter_mut().zip(&gx).zip(&gy) {
+            *s += x * x + y * y;
+        }
+    }
+    let gain = CHROMA_GAIN * 255.0;
+    sq.iter().map(|&s| gain * s.sqrt()).collect()
+}
+
 /// The least ratio of the scale to the median for a map with this p99 and median: `NOISE_FLOOR`
 /// for the narrow spread of noise, `NOISE_SPREAD` for a photo, a ramp between.
 fn noise_spread(p99: f32, median: f32) -> f32 {
@@ -96,7 +120,12 @@ pub(crate) fn strength(work: &Rgb) -> Rgb {
         .max(noise_spread(p99, median) * median)
         .max(top / BINS as f32);
     // the coarse scale finds the soft edges that the fine scale drowns in grain
-    let fine: Vec<f32> = mag.iter().map(|&m| (m / scale).min(1.0)).collect();
+    let chroma = chroma_gradient(work, sigma.max(0.5));
+    let fine: Vec<f32> = mag
+        .iter()
+        .zip(&chroma)
+        .map(|(&m, &c)| (m.max(c) / scale).min(1.0))
+        .collect();
     let coarse = coarse_strength(&luma, &fine, w, h, sigma.max(0.5));
     for ((o, &f), &c) in out.data.iter_mut().zip(&fine).zip(&coarse) {
         *o = (f.max(c) * 255.0).round().clamp(0.0, 255.0) as u8;

@@ -33,9 +33,6 @@
 *.p12
 *.log
 
-# --- Models: the web app ships `.pNN` parts (scripts/models-pack.sh), never a whole file ---
-*.onnx
-
 # --- Build output and caches ---
 target/
 build/
@@ -45,8 +42,6 @@ coverage/
 *.tsbuildinfo
 app/web/test-results/
 app/web/playwright-report/
-# the wasm glue is committed in app/web/wasm/ (made at release); this older path is not
-app/web/src/wasm/
 .venv/
 venv/
 __pycache__/

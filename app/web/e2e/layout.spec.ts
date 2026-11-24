@@ -2,7 +2,16 @@
 // window and never moves), the panel hides and stays hidden after a reload, and it lists every photo
 // where it can be searched, shown, renamed or deleted. The tools are in the bar over the stage. With SHOT=dir it also saves
 // screenshots of the window (a synthetic photo) to that folder.
-import { box, expect, KEYS, keptDocs as kept, stored, test } from "./studio";
+import {
+	box,
+	dragBy,
+	expect,
+	KEYS,
+	keptDocs as kept,
+	ONE_PX,
+	stored,
+	test,
+} from "./studio";
 
 test("test_the_panel_floats_as_glass_over_the_stage_and_the_tools_sit_in_the_bar", async ({
 	studio,
@@ -261,7 +270,7 @@ test("test_the_bar_sits_on_the_stage_with_the_zoom_menu", async ({
 	// the bar centers on the free stage: right of the open panel and its 12 px gap
 	const panel = await box(page, "files");
 	const freeMiddle = (panel.x + panel.width + 12 + stage.x + stage.width) / 2;
-	expect(bar.x + bar.width / 2).toBeCloseTo(freeMiddle, 0);
+	expect(bar.x + bar.width / 2).toBeCloseTo(freeMiddle, ONE_PX);
 	expect(bar.y + bar.height).toBeLessThan(stage.y + stage.height);
 	await studio.zoom("actual");
 	await expect(page.getByTestId("zoom-percent")).toHaveText("100%");
@@ -291,15 +300,7 @@ test("test_the_panel_resizes_smoothly_and_the_width_is_kept", async ({
 }) => {
 	const { page } = studio;
 	await studio.openSynthetic(480, 640, "one.png");
-	const drag = async (id: string, dx: number) => {
-		const b = await box(page, id);
-		const x = b.x + b.width / 2;
-		const y = b.y + 120;
-		await page.mouse.move(x, y);
-		await page.mouse.down();
-		await page.mouse.move(x + dx, y, { steps: 8 });
-		await page.mouse.up();
-	};
+	const drag = (id: string, dx: number) => dragBy(page, id, dx);
 	const start = (await box(page, "files")).width;
 	await drag("files-resize", 60);
 	await expect

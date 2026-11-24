@@ -5,8 +5,8 @@ Please read the [Code of Conduct](CODE_OF_CONDUCT.md) first.
 
 ## Set up
 
-You need [mise](https://mise.jdx.dev). It installs the pinned Rust toolchain, Node, pnpm and the
-wasm tools, and it installs the git hooks.
+You need [mise](https://mise.jdx.dev), Node and pnpm. mise installs Rust (from
+`rust-toolchain.toml`), the wasm tools and the git hooks.
 
 ```bash
 mise install
@@ -26,7 +26,7 @@ The tasks are in `mise.toml`.
 | While you work | `mise run check:fast` (fmt, clippy, Rust tests, web types, Biome) |
 | Before a pull request | `mise run check` |
 | For a core or web change | `mise run web:e2e` (headless Chromium; run `pnpm --dir app/web exec playwright install chromium` once, and put the test photo in `.agents/web-photos`: [how](docs/development/testing.md#the-test-photo)) |
-| Reference pictures | `cargo xtask refs` |
+| Reference pictures | `cargo refs` |
 | Broken doc links | `bash scripts/docs-check.sh` |
 
 The pre-commit hook checks the files you staged. The pre-push hook runs `mise run check`.

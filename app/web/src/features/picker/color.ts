@@ -1,8 +1,6 @@
 // Color text helpers: CSS and hex strings, the ink (black or white) that reads on a color, and the
 // Munsell value of a color. One home for the legend and the picker.
-import { labOfRgb } from "./spectral.ts";
-
-export type Rgb = readonly [number, number, number];
+import { labOfRgb, type Rgb } from "./spectral.ts";
 
 /** The CIE L* of each Munsell value V0 to V10. */
 const MUNSELL_L = [
@@ -30,7 +28,7 @@ export const ink = (t: readonly number[]): "#000" | "#fff" =>
 
 /** The Munsell value (0 to 10) of an sRGB color: the nearest L* in the table. */
 export function munsellValue(t: readonly number[]): number {
-	const l = labOfRgb(t as unknown as Rgb)[0];
+	const l = labOfRgb(t as Rgb)[0];
 	let best = 0;
 	for (let v = 1; v < MUNSELL_L.length; v++) {
 		if (

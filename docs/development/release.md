@@ -50,9 +50,10 @@ the wasm in mind: the page needs `'wasm-unsafe-eval'` to compile the Rust core.
 
 ## The service worker
 
-`vite build` also builds `/sw.js` (the plugin `app/web/scripts/swPlugin.ts`). The cache name holds
-a hash of the build, so every release makes a new cache and the old one is deleted when the new
-worker activates. `_headers` serves `/sw.js`, `/index.html` and the manifest with `no-cache`, so a
+`vite build` also builds `/sw.js` (the plugin `app/web/scripts/swPlugin.ts`), after the app, from
+the list of built files. The cache is named `atelier-shell-<version>`, where the version is the
+first 12 hex digits of a SHA-256 over the file list and bytes. So every release makes a new cache,
+and the old one is deleted when the new worker activates. `_headers` serves `/sw.js`, `/index.html` and the manifest with `no-cache`, so a
 release reaches users. The smoke test `PREVIEW=1 pnpm --dir app/web exec playwright test pwa-offline.spec.ts pwa-manifest.spec.ts pwa-share.spec.ts pwa-update.spec.ts`
 checks offline start, the automatic update and share on the built app.
 

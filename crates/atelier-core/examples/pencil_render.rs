@@ -12,7 +12,11 @@
 //! `.agents/web-photos` and `.agents/bench/unsplash` (PNG or JPEG; a JPEG is turned into a PNG with
 //! `sips`, in `OUT/.in`). Auto sets key, contrast and highlights from `pencil_auto`; every other
 //! knob is at its start and all eight pencils are in the set. Tags: `tone`, `drawing`, `hatch`,
-//! then `drawingsmudge`, `drawinglift`, `drawingcross`, `hatchsmudge`, `hatchlift`, `hatchcross`.
+//! `tonelift` (Tone with Lift 60, the reference for the grain of the lifted looks), then
+//! `drawingsmudge`, `drawinglift`, `drawingcross`, `hatchsmudge`, `hatchlift`, `hatchcross`.
+//! Three bench switches: `PENCIL_KNOBS=4=100,9=70` sets numbers by index after Auto, and
+//! `PENCIL_TAGS=hatch,tone` draws only those tags. `PENCIL_TIME=5` also prints the fastest of 5 runs
+//! of each tag, in ms.
 
 #![allow(clippy::print_stdout, reason = "the tool prints one line per photo")]
 
@@ -69,11 +73,22 @@ fn main() -> Res<()> {
             base[KEY] = auto[0];
             base[CONTRAST] = auto[1];
             base[HIGHLIGHTS] = auto[2];
+            // a bench override: `PENCIL_KNOBS=4=100,9=70` sets numbers by index after Auto
+            if let Ok(spec) = std::env::var("PENCIL_KNOBS") {
+                for pair in spec.split(',').filter(|p| !p.is_empty()) {
+                    let (i, v) = pair.split_once('=').ok_or("PENCIL_KNOBS: use i=v,i=v")?;
+                    base[i.parse::<usize>()?] = v.parse()?;
+                }
+            }
             let mut jobs: Vec<(String, u32, [f64; 14])> = vec![
                 ("tone".into(), TONE, base),
                 ("drawing".into(), DRAWING, base),
                 ("hatch".into(), HATCH, base),
             ];
+            // Tone with the eraser: the fair reference for the grain of the lifted looks
+            let mut tone_lift = base;
+            tone_lift[LIFT] = EFFECT;
+            jobs.push(("tonelift".into(), TONE, tone_lift));
             for (look_tag, look) in [("drawing", DRAWING), ("hatch", HATCH)] {
                 for (effect, slot) in [("smudge", SMUDGE), ("lift", LIFT), ("cross", CROSS)] {
                     let mut numbers = base;
@@ -81,7 +96,24 @@ fn main() -> Res<()> {
                     jobs.push((format!("{look_tag}{effect}"), look, numbers));
                 }
             }
+            // a bench filter: `PENCIL_TAGS=hatch,tone` draws only those tags
+            if let Ok(tags) = std::env::var("PENCIL_TAGS") {
+                jobs.retain(|(tag, _, _)| tags.split(',').any(|t| t == tag));
+            }
             for (tag, look, numbers) in jobs {
+                // a bench timer: `PENCIL_TIME=5` prints the fastest of 5 runs per tag, in ms
+                if let Some(runs) = std::env::var("PENCIL_TIME")
+                    .ok()
+                    .and_then(|n| n.parse::<u32>().ok())
+                {
+                    let mut best = f64::MAX;
+                    for _ in 0..runs {
+                        let start = std::time::Instant::now();
+                        pencil_layer(&work, look, 255, &numbers)?;
+                        best = best.min(start.elapsed().as_secs_f64() * 1000.0);
+                    }
+                    println!("time {tag} {name} {best:.0} ms");
+                }
                 let layer = pencil_layer(&work, look, 255, &numbers)?.layer;
                 let rgb = Image::from_vec(
                     layer.width,

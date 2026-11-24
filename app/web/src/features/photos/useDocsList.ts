@@ -3,8 +3,14 @@
 // outlives a render always reads the newest list. It is saved by the one saver (`useSaved`) and
 // when the page is hidden, and it is joined with what another tab saved (`mergeDocs`), on the `storage`
 // event and before each save.
-import { useCallback, useEffect, useRef, useState } from "react";
-import { KEYS, loadText, SAVE_MS, useSaved } from "@/lib/storage";
+import { useCallback, useRef } from "react";
+import {
+	KEYS,
+	loadText,
+	SAVE_MS,
+	useSaved,
+	useStorageEvent,
+} from "@/lib/storage";
 import {
 	type Doc,
 	type DocsAction,
@@ -12,16 +18,13 @@ import {
 	mergeDocs,
 	readDocs,
 } from "./store";
+import { useRefReducer } from "./useRefReducer";
 
 export function useDocsList(onSaveFail: () => void) {
-	const [docs, setDocsState] = useState<Doc[]>(readDocs);
-	const docsRef = useRef(docs);
-	const apply = useCallback((a: DocsAction) => {
-		const next = docsReducer(docsRef.current, a);
-		if (next === docsRef.current) return;
-		docsRef.current = next;
-		setDocsState(next);
-	}, []);
+	const [docs, docsRef, apply] = useRefReducer<Doc[], DocsAction>(
+		readDocs,
+		docsReducer,
+	);
 	const patch = useCallback(
 		(id: string, change: Partial<Doc>) => apply({ type: "patch", id, change }),
 		[apply],
@@ -53,16 +56,10 @@ export function useDocsList(onSaveFail: () => void) {
 		onFail: onSaveFail,
 	});
 	// another tab saved the list: join it at once
-	useEffect(() => {
-		const on = (e: StorageEvent) => {
-			if (e.storageArea !== localStorage) return;
-			if (e.key !== null && e.key !== KEYS.docs) return;
-			const merged = joinStored(docsRef.current);
-			if (merged !== docsRef.current) apply({ type: "set", list: merged });
-		};
-		window.addEventListener("storage", on);
-		return () => window.removeEventListener("storage", on);
-	}, [joinStored, apply]);
+	useStorageEvent(KEYS.docs, () => {
+		const merged = joinStored(docsRef.current);
+		if (merged !== docsRef.current) apply({ type: "set", list: merged });
+	});
 
 	return { docs, docsRef, apply, patch };
 }

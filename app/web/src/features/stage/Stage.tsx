@@ -2,7 +2,7 @@
 // zoomable and movable frame. With no photo it is a drop zone.
 import { Button } from "@heroui/react";
 import { useEffect, useRef, useState } from "react";
-import { PAPER, STAGE_IDS, type StageId } from "@/features/tools/settings";
+import { type Layers, PAPER, STAGE_IDS } from "@/features/tools/settings";
 import { useFileDrop } from "@/ui/useFileDrop";
 import { downscale, smoothTarget } from "./smooth";
 import type { useViewport } from "./useViewport";
@@ -10,7 +10,7 @@ import type { useViewport } from "./useViewport";
 type Props = {
 	photo: ImageData | null;
 	/** The picture and opacity (percent) of each layer that is on and drawn. */
-	layers: Record<StageId, { image: ImageData; opacity: number } | null>;
+	layers: Layers;
 	/** The Paper base: white in place of the photo, until the photo button is held. */
 	paper: boolean;
 	/** The photo button is held: every layer is hidden. */

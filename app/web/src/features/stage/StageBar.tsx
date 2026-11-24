@@ -67,6 +67,8 @@ export default function StageBar(p: {
 	/** A color just held from the legend: the open card gives way to the picker card. */
 	picked: unknown;
 	onPicking: (on: boolean) => void;
+	/** The Mac app: a button shows or hides the legend strip (`LegendStrip`, at the right edge). */
+	legend?: { on: boolean; onToggle: () => void };
 }) {
 	const [open, setOpen] = useState<Open>(null);
 	const { lock } = p;
@@ -146,7 +148,8 @@ export default function StageBar(p: {
 			ref={frame}
 			data-testid="stage-bar-frame"
 			style={{ "--bar-left": barLeft(place.x) } as React.CSSProperties}
-			className="absolute bottom-5 left-1/2 z-(--z-bar) max-w-[calc(100%-1rem)] -translate-x-1/2 md:left-(--bar-left)"
+			// the left edge is a whole pixel (the centre rounded, half the width rounded down), so the 1 px edge stays crisp
+			className="absolute bottom-5 left-[round(50%,1px)] z-(--z-bar) max-w-[calc(100%-1rem)] -translate-x-[round(down,calc(var(--bar-w,0px)/2),1px)] md:left-[round(var(--bar-left),1px)]"
 		>
 			<div
 				data-testid="stage-bar"
@@ -350,6 +353,19 @@ export default function StageBar(p: {
 						p.onPicking(!p.picking);
 					}}
 				/>
+				{p.legend && (
+					<IconButton
+						icon="legend"
+						label="Legend"
+						tip="Show or hide the legend"
+						testid="tool-legend"
+						pressed={p.legend.on}
+						placement="top"
+						className="touch-none rounded-full select-none"
+						data-bar-button
+						onPress={p.legend.onToggle}
+					/>
+				)}
 				<span className="h-5 w-px bg-separator max-md:hidden" />
 				<BarHandle
 					frame={frame}

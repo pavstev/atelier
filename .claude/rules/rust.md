@@ -1,7 +1,6 @@
 ---
 paths:
   - "crates/**"
-  - "xtask/**"
   - "Cargo.toml"
 ---
 
@@ -45,9 +44,9 @@ reference pictures must stay.
 
 ## Work rules
 
-- One module: `cargo test -q -p atelier-core --lib <module>::`. Reference tests: `cargo xtask refs`
+- One module: `cargo test -q -p atelier-core --lib <module>::`. Reference tests: `cargo refs`
   (`tests/tools_reference.rs` and `tests/tools_layers.rs`; the shared helpers are in `tests/common/mod.rs`).
-- A meant pixel change: `cargo xtask refs --bless`, and say in the commit why the pictures moved.
+- A meant pixel change: `ATELIER_BLESS=1 cargo refs`, and say in the commit why the pictures moved.
   Never edit the reference pictures by hand.
 - Clippy stays clean (`-D warnings`). No `allow` without a comment that says why.
 - What a call takes and its ranges: the `//!` of `render.rs`.

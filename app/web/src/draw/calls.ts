@@ -3,8 +3,8 @@ import type { PencilLook } from "@/features/pencil/knobs";
 
 export type LayerId = "edges" | "shapes" | "values" | "pencil" | "grid";
 
-/** A color as red, green and blue, 0 to 255. */
-export type Rgb = [number, number, number];
+/** A color as red, green and blue, 0 to 255. The one color type of the app (the picker reads it too). */
+export type Rgb = readonly [number, number, number];
 
 /** The knobs of a Pencil draw: the saved Pencil settings without the look and the pencils. The core
  * reads them as one array of numbers (`pencilNumbers`). */

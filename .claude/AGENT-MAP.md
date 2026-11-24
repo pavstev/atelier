@@ -5,7 +5,7 @@
 ## Jobs
 | Job | Dispatch, in order | Check |
 |---|---|---|
-| Change what a layer draws | `/view-change` skill, then `worker` for big edits | `mise run check:fast`, then `cargo xtask refs` |
+| Change what a layer draws | `/view-change` skill, then `worker` for big edits | `mise run check:fast`, then `cargo refs` |
 | Bench run on real photos | `/tool-bench` skill -> `model-bench` (long run) -> `tool-rater` (many photos) | sheets in `.agents/bench/sheets/` |
 | Release to the live site | `/ship` skill -> `live-checker` | `bash scripts/live-check.sh <sha>` |
 | Final review | `code-reviewer` (opus, high) | `mise run check` before a push |

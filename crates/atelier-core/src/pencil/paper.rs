@@ -58,12 +58,6 @@ impl Paper {
     }
 }
 
-/// The factor that scales px sizes tuned for a long side of 1024 to a bigger picture. A smaller
-/// picture keeps the sizes, so a tiny test picture does not alias.
-pub(crate) fn scale(w: usize, h: usize) -> f32 {
-    size_factor(w, h)
-}
-
 /// A hash of two integers, from -1 to 1. Uniform, so its mean is zero. The only hash of the Pencil
 /// view: a pixel, a lattice point or a stroke id.
 pub(crate) fn hash(x: i32, y: i32) -> f32 {
@@ -152,7 +146,7 @@ fn rank(v: &[f32]) -> Vec<f32> {
 pub(crate) fn tooth(w: usize, h: usize, paper: Paper, angle_deg: f32) -> Vec<f32> {
     let a = angle_deg.to_radians();
     let dir = (libm::cosf(a), libm::sinf(a));
-    let cell = paper.cell() * scale(w, h);
+    let cell = paper.cell() * size_factor(w, h);
     let mut raw = vec![0f32; w * h];
     for (k, &(mult, weight)) in OCTAVES.iter().enumerate() {
         let size = cell * mult;
@@ -161,7 +155,7 @@ pub(crate) fn tooth(w: usize, h: usize, paper: Paper, angle_deg: f32) -> Vec<f32
             *r += weight * n;
         }
     }
-    let radius = (FLATTEN_RADIUS * scale(w, h)) as usize;
+    let radius = (FLATTEN_RADIUS * size_factor(w, h)) as usize;
     let base = box_mean(&raw, w, h, radius);
     for (r, b) in raw.iter_mut().zip(&base) {
         *r -= b;
@@ -246,7 +240,7 @@ mod tests {
 
     #[test]
     fn test_scale_follows_the_long_side_and_never_shrinks() {
-        assert!((scale(2048, 100) - 2.0).abs() < 1e-6);
-        assert!((scale(64, 64) - 1.0).abs() < 1e-6);
+        assert!((size_factor(2048, 100) - 2.0).abs() < 1e-6);
+        assert!((size_factor(64, 64) - 1.0).abs() < 1e-6);
     }
 }
