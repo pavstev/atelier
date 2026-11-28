@@ -1,4 +1,4 @@
-//! Tool bench: renders the four layers (Edges, Shapes, Values, Grid) for every photo in a folder,
+//! Tool bench: renders the three layers (Shapes, Values, Grid) for every photo in a folder,
 //! the way the web app does (a 1024 px work picture, the start values of `DEFAULTS` in
 //! `app/web/src/features/tools/settings.ts`), and puts each photo's layers in one row. Two tags stack into a
 //! before and after sheet. The photos and the pictures stay out of git: keep both under `.agents/`.
@@ -11,69 +11,47 @@
 //! `IN` holds PNG or JPEG photos (a JPEG is turned into a PNG with `sips`, in `OUT/.in-upright`, and
 //! turned upright by its EXIF Orientation).
 //! `render` writes `OUT/TAG-<layer>-<photo>.png` and `OUT/row-TAG-<photo>.png`. A see-through layer is shown the way the app
-//! stacks it: Edges as ink on white paper, Grid over the work picture, Shapes and Values opaque.
+//! stacks it: Grid over the work picture, Shapes and Values opaque.
 //! `NAME` keeps only the photos whose file name holds it. `compare` writes
 //! `OUT/cmp-BEFORE-AFTER-<photo>.png`.
 //!
-//! Env vars override the start values of one run: `BENCH_EDGES_MODE` (0 to 3), `BENCH_EDGES_AMOUNT`
-//! (0 to 100), `BENCH_EDGES_WIDTH` (1 to 10), `BENCH_EDGES_EVEN` (0 to 100), `BENCH_SHAPES_STEP` (0 to 3), `BENCH_SHAPES_DETAIL` (0 to 100),
-//! `BENCH_VALUES_PRESET` (0 to 5), `BENCH_VALUES_DETAIL` (0 to 100), `BENCH_VALUES_TINT` (0 or 1),
-//! `BENCH_GRID_MODE` (0 to 2), `BENCH_GRID_CELLS` (3 to 50, one of the Grid steps),
-//! `BENCH_GRID_WIDTH` (1 to 16), `BENCH_GRID_GROUP` (2 or 4) and `BENCH_GRID_COLOR` (`0xRRGGBB` as a
-//! plain number, or 16777216 for Contrast). Unset means the constant. A bad
-//! value prints one error line and exits with a non-zero code.
+//! Env vars override the start values of one run: `BENCH_SHAPES_STEP` (0 to 3), `BENCH_SHAPES_DETAIL` (0 to 100),
+//! `BENCH_VALUES_PRESET` (0 to 3), `BENCH_VALUES_DETAIL` (0 to 100) and `BENCH_GRID_CELLS` (the
+//! squares across the width, 1 to 500). Unset means the constant. A bad value prints one error
+//! line and exits with a non-zero code.
 
 #![allow(clippy::print_stdout, reason = "a bench prints one line per photo")]
 
 mod support;
 
 use atelier_core::img::{Image, Rgb};
-use atelier_core::render::{
-    GRID_CONTRAST, edges_layer, grid_layer, prepare_work, shapes_layer, values_layer,
-};
+use atelier_core::render::{grid_layer, prepare_work, shapes_layer, values_layer};
 use std::path::{Path, PathBuf};
-use support::{EDGES_EVEN, EDGES_WIDTH, Res, decode, over, photos, png_bytes, stem};
+use support::{Res, decode, over, photos, png_bytes, stem};
 
 /// The long side of the work picture (`WORK_LONG_SIDE` in
 /// `app/web/src/coreClient.ts`).
 const WORK_PX: u32 = 1024;
-/// The start values of the layers (`DEFAULTS` in `app/web/src/features/tools/settings.ts`; the
-/// Edges width and Even are in `support`).
-const EDGES_MODE: u32 = 0;
-const EDGES_AMOUNT: f64 = 67.0;
+/// The start values of the layers (`DEFAULTS` in `app/web/src/features/tools/settings.ts`).
 const SHAPES_STEP: u32 = 3;
 const SHAPES_DETAIL: f64 = 50.0;
 const VALUES_PRESET: u32 = 1;
 const VALUES_DETAIL: f64 = 50.0;
-const VALUES_TINT: u32 = 0;
-const GRID_MODE: u32 = 2;
 const GRID_CELLS: u32 = 6;
-const GRID_WIDTH: u32 = 2;
-const GRID_GROUP: u32 = 2;
-const GRID_COLOR: u32 = GRID_CONTRAST;
 /// The height of one picture in a row, in px.
 const ROW_PX: usize = 300;
 /// The gap between pictures in a row or a sheet, in px.
 const GAP: usize = 6;
 /// The layers, in the order of a row.
-const LAYERS: [&str; 4] = ["edges", "shapes", "values", "grid"];
+const LAYERS: [&str; 3] = ["shapes", "values", "grid"];
 
 /// The values of one run: the constants above, or what the `BENCH_*` env vars say.
 struct Knobs {
-    edges_mode: u32,
-    edges_amount: f64,
-    edges_width: u32,
-    edges_even: f64,
     shapes_step: u32,
     shapes_detail: f64,
     values_preset: u32,
     values_detail: f64,
-    values_tint: u32,
-    grid_mode: u32,
     grid_cells: u32,
-    grid_width: u32,
-    grid_group: u32,
-    grid_color: u32,
 }
 
 /// The env var `name` as a number in `lo..=hi`, or `default` when it is unset.
@@ -94,20 +72,11 @@ where
 impl Knobs {
     fn from_env() -> Res<Self> {
         Ok(Self {
-            edges_mode: knob_env("BENCH_EDGES_MODE", EDGES_MODE, 0, 3)?,
-            edges_amount: knob_env("BENCH_EDGES_AMOUNT", EDGES_AMOUNT, 0.0, 100.0)?,
-            edges_width: knob_env("BENCH_EDGES_WIDTH", EDGES_WIDTH, 1, 10)?,
-            edges_even: knob_env("BENCH_EDGES_EVEN", EDGES_EVEN, 0.0, 100.0)?,
             shapes_step: knob_env("BENCH_SHAPES_STEP", SHAPES_STEP, 0, 3)?,
             shapes_detail: knob_env("BENCH_SHAPES_DETAIL", SHAPES_DETAIL, 0.0, 100.0)?,
-            values_preset: knob_env("BENCH_VALUES_PRESET", VALUES_PRESET, 0, 5)?,
+            values_preset: knob_env("BENCH_VALUES_PRESET", VALUES_PRESET, 0, 3)?,
             values_detail: knob_env("BENCH_VALUES_DETAIL", VALUES_DETAIL, 0.0, 100.0)?,
-            values_tint: knob_env("BENCH_VALUES_TINT", VALUES_TINT, 0, 1)?,
-            grid_mode: knob_env("BENCH_GRID_MODE", GRID_MODE, 0, 2)?,
-            grid_cells: knob_env("BENCH_GRID_CELLS", GRID_CELLS, 3, 50)?,
-            grid_width: knob_env("BENCH_GRID_WIDTH", GRID_WIDTH, 1, 16)?,
-            grid_group: knob_env("BENCH_GRID_GROUP", GRID_GROUP, 2, 4)?,
-            grid_color: knob_env("BENCH_GRID_COLOR", GRID_COLOR, 0, GRID_CONTRAST)?,
+            grid_cells: knob_env("BENCH_GRID_CELLS", GRID_CELLS, 1, 500)?,
         })
     }
 }
@@ -165,19 +134,11 @@ fn render(dir: &Path, out: &Path, tag: &str, only: Option<&str>) -> Res<()> {
     Ok(())
 }
 
-/// The four layers of `work` as pictures, in the order of `LAYERS`, with the start values of the
+/// The three layers of `work` as pictures, in the order of `LAYERS`, with the start values of the
 /// web app.
 fn draw(work: &Rgb, k: &Knobs) -> Res<Vec<Rgb>> {
-    let paper = Rgb::filled(work.width, work.height, &[255, 255, 255]);
-    let edges = edges_layer(
-        work,
-        k.edges_mode,
-        k.edges_amount,
-        k.edges_width,
-        k.edges_even,
-    )?;
     let (shapes, piles) = shapes_layer(work, k.shapes_step, k.shapes_detail)?;
-    let (values, tones) = values_layer(work, k.values_preset, k.values_detail, k.values_tint)?;
+    let (values, tones) = values_layer(work, k.values_preset, k.values_detail)?;
     let hex = |c: &[[u8; 3]]| {
         c.iter()
             .map(|p| format!("#{:02x}{:02x}{:02x}", p[0], p[1], p[2]))
@@ -185,17 +146,8 @@ fn draw(work: &Rgb, k: &Knobs) -> Res<Vec<Rgb>> {
             .join(" ")
     };
     eprintln!("  piles {}  tones {}", hex(&piles), hex(&tones));
-    let grid = grid_layer(
-        work,
-        k.grid_mode,
-        k.grid_cells,
-        k.grid_width,
-        k.grid_group,
-        k.grid_color,
-        0,
-    )?;
+    let grid = grid_layer(work, k.grid_cells * 1000)?;
     Ok(vec![
-        over(&paper, &edges),
         over(work, &shapes),
         over(work, &values),
         over(work, &grid),

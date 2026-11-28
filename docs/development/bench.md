@@ -8,7 +8,7 @@ goes into git.
 
 `crates/atelier-core/examples/bench.rs` calls the same typed layer calls as the web app, with the app's
 start values, on a 1024 px work picture. It needs no browser. For each photo it makes one row:
-Edges, Shapes, Values, Grid.
+Shapes, Values, Grid.
 
 ```bash
 cargo run -q --release -p atelier-core --example bench -- render IN OUT before
@@ -24,16 +24,6 @@ top of the bench too.
 
 The first release build takes about 2 minutes.
 
-## Edges score
-
-`examples/edge_score.rs` draws Edges for each photo of a folder and saves the ink as a gray PNG.
-`scripts/edge_score.py` scores those pictures against the BSDS500 boundaries and prints the
-F-score. Get the BSDS500 data from the Berkeley segmentation group.
-
-```bash
-cargo run -q --release -p atelier-core --example edge_score -- IN OUT [MODE] [AMOUNT]
-```
-
 ## Values and Shapes scorer
 
 `bench/value-eval/score.py` scores Values and Shapes sheets with fixed metrics, judged the way an
@@ -46,9 +36,3 @@ uv run --with numpy --with scipy --with pillow python -I bench/value-eval/score.
 ```
 
 The same inputs give the same numbers. There is no randomness.
-
-## Pencil scorer
-
-`bench/pencil-eval/score.py` scores the Pencil looks on real photos (MS-SSIM, tone error, range
-use, banding and grain). `examples/pencil_render.rs` makes its pictures. How to run both:
-[bench/pencil-eval/README.md](../../bench/pencil-eval/README.md).

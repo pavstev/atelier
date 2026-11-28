@@ -23,8 +23,8 @@ file -> browser decoder -> RGBA pixels -> layers worker (wasm Photo) -> layer pi
 
 | Part | Where | Job |
 |---|---|---|
-| Core | `crates/atelier-core` | All pixel work: Values, Shapes, Pencil, Edges, Grid. Pencil is a folder, `pencil/`, with one module per idea (grades, tone, local contrast, deep darks, the paper tooth, Drawing, Hatch, the effects Smudge, Lift and Cross, By pencil, Auto and Suggest; the table is in `.claude/rules/rust.md`). Deterministic, no clock, no randomness. A number out of range is `Error::BadInput`, never a panic. |
-| Wasm edge | `crates/atelier-wasm` | `Photo`, kept between draws, and one call per layer, over wasm-bindgen. The JS glue is built into `app/web/wasm/`. Pencil takes its knobs as one array of 14 numbers (`Photo::pencil`, answer with a mark byte for By pencil) and has two more calls: `pencil_auto` (the numbers Auto reads and sets) and `pencil_suggest` (the mask of the best 3 to 6 pencils). |
+| Core | `crates/atelier-core` | All pixel work: Values, Shapes, Grid. Deterministic, no clock, no randomness. A number out of range is `Error::BadInput`, never a panic. |
+| Wasm edge | `crates/atelier-wasm` | `Photo`, kept between draws, and one call per layer, over wasm-bindgen. The JS glue is built into `app/web/wasm/`. |
 | Worker | `app/web/src/draw/worker.ts` | Holds the wasm and the photo. Draws on request. |
 | Client | `app/web/src/draw/coreClient.ts`, `calls.ts`, `useLayers.ts` | Sends typed calls to the worker and hands the pictures to the stage. |
 | Stage | `app/web/src/features/stage/` | The canvases, zoom and pan, the bottom bar, shortcuts. |
@@ -41,19 +41,18 @@ The import rule: `ui/` and `lib/` import no feature. A feature imports `ui/`, `l
 
 The order is fixed, bottom first:
 
-1. **Base.** One of Photo, Values, Shapes, Paper (white, no photo) or Pencil (a gray picture in graphite tones).
-2. **Edges.** See-through lines, traced from the core's own edge map (a blurred Sobel gradient). Off while the base is Pencil.
-3. **Grid.** See-through lines.
+1. **Base.** One of Photo, Values or Shapes.
+2. **Grid.** See-through lines.
 
 Each layer has an on/off switch (the base is always there), an opacity and its own knobs. How each
 part draws is in [docs/how-it-works/](docs/how-it-works/).
 
 ## State
 
-- **The look** (base, Edges, Grid and their knobs) is saved in `localStorage` as one record.
+- **The look** (base, Grid and their knobs) is saved in `localStorage` as one record.
 - **The layout** (the panel width, the panel hidden) is a second record, so a panel drag never
   rewrites the knobs.
-- **Photos.** The file of each photo is in IndexedDB. The list, tiles and previews are small
+- **Photos.** The file of each photo is in IndexedDB. The list and previews are small
   records next to it. Zoom and pan are saved for each photo.
 - Every saved value is read back through a cleaner. A missing, wrong or old value falls back to
   the start value, and unknown keys are dropped. An old save never stops the app.
@@ -64,8 +63,8 @@ Every key is in `app/web/src/lib/keys.ts`.
 
 `app/web/scripts/build-wasm.sh` (via `mise run web:wasm`) builds `crates/atelier-wasm` and writes
 the JS glue into `app/web/wasm/`. The site is static files served by a Cloudflare Worker with
-static assets, plus a tiny script for `POST /share` (`app/web/src/edge/worker.ts`). The page's security headers are in `app/web/public/_headers`. When the glue is
-committed and how a deploy skips Rust: [docs/development/release.md](docs/development/release.md).
+static assets only (no Worker script). The page's security headers are in
+`app/web/public/_headers`. When the glue is committed and how a deploy skips Rust: [docs/development/release.md](docs/development/release.md).
 
 ## Tests
 
@@ -78,6 +77,6 @@ See [docs/development/testing.md](docs/development/testing.md).
 ## The offline shell
 
 A hand-written service worker, `/sw.js` (`app/web/src/sw/`), precaches the whole build, so the app
-starts with no network. The worker answers only same-origin GET and `POST /share`. Photos and
+starts with no network. The worker answers only same-origin GET. Photos and
 models are never in its cache. What it does: [docs/web-app.md](docs/web-app.md#install-and-offline).
 How it is built: [docs/development/release.md](docs/development/release.md#the-service-worker).

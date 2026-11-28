@@ -74,18 +74,6 @@ impl<T: Copy + Default> Image<T> {
     }
 }
 
-/// Neighbor offsets: the four side neighbors first, then the diagonals.
-pub(crate) const NB: [(isize, isize); 8] = [
-    (0, -1),
-    (1, 0),
-    (0, 1),
-    (-1, 0),
-    (1, -1),
-    (1, 1),
-    (-1, 1),
-    (-1, -1),
-];
-
 /// The factor for the sizes in px that were tuned at a long side of 1024: 1 up to that side, then
 /// the long side over 1024, so a big picture looks like the screen. They never shrink.
 pub(crate) fn size_factor(w: usize, h: usize) -> f32 {
@@ -101,21 +89,6 @@ pub(crate) fn neighbors4(i: usize, w: usize, h: usize) -> [Option<usize>; 4] {
         (x + 1 < w).then(|| i + 1),
         (y + 1 < h).then(|| i + w),
     ]
-}
-
-/// The neighbors of pixel `i` that lie in a `w` by `h` image, in [`NB`] order (sides first). Each
-/// item is the index `k` in [`NB`], the offset `dx`, `dy` and the pixel index `j`.
-pub(crate) fn neighbors8(
-    i: usize,
-    w: usize,
-    h: usize,
-) -> impl Iterator<Item = (usize, isize, isize, usize)> {
-    let (x, y) = ((i % w) as isize, (i / w) as isize);
-    NB.iter().enumerate().filter_map(move |(k, &(dx, dy))| {
-        let (nx, ny) = (x + dx, y + dy);
-        (nx >= 0 && ny >= 0 && nx < w as isize && ny < h as isize)
-            .then(|| (k, dx, dy, ny as usize * w + nx as usize))
-    })
 }
 
 impl Image<u8> {

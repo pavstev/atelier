@@ -53,12 +53,7 @@ async function overlay(page: Page, on: boolean) {
 	}, on);
 }
 
-const BUTTONS = [
-	"photo-add",
-	"photo-search-toggle",
-	"photo-sort",
-	"photo-layout",
-];
+const BUTTONS = ["photo-add", "photo-search-toggle", "photo-sort"];
 
 test("test_the_photo_buttons_move_into_the_title_bar_and_back", async ({
 	studio,
@@ -83,13 +78,13 @@ test("test_the_photo_buttons_move_into_the_title_bar_and_back", async ({
 	const logo = await box(page, "logo");
 	const files = await box(page, "files");
 	const add = await box(page, "photo-add");
-	const layout = await box(page, "photo-layout");
+	const sort = await box(page, "photo-sort");
 	expect(add.y + add.height / 2).toBeCloseTo(logo.y + logo.height / 2, 0);
 	expect(add.x).toBeGreaterThan(logo.x + logo.width);
-	expect(layout.y + layout.height).toBeLessThanOrEqual(files.y);
+	expect(sort.y + sort.height).toBeLessThanOrEqual(files.y);
 	expect(files.y).toBeGreaterThan(logo.y + logo.height);
 	// the last button ends at the panel's right edge
-	expect(files.x + files.width - (layout.x + layout.width)).toBeLessThan(20);
+	expect(files.x + files.width - (sort.x + sort.width)).toBeLessThan(20);
 
 	// the buttons still work from the bar
 	await page.getByTestId("photo-search-toggle").click();

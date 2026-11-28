@@ -1,8 +1,8 @@
-// The stage: the bare photo (or white Paper) with one see-through canvas for the base, Edges and Grid, in a
+// The stage: the bare photo with one see-through canvas for the base and Grid, in a
 // zoomable and movable frame. With no photo it is a drop zone.
 import { Button } from "@heroui/react";
 import { useEffect, useRef, useState } from "react";
-import { type Layers, PAPER, STAGE_IDS } from "@/features/tools/settings";
+import { type Layers, STAGE_IDS } from "@/features/tools/settings";
 import { useFileDrop } from "@/ui/useFileDrop";
 import { downscale, smoothTarget } from "./smooth";
 import type { useViewport } from "./useViewport";
@@ -11,8 +11,6 @@ type Props = {
 	photo: ImageData | null;
 	/** The picture and opacity (percent) of each layer that is on and drawn. */
 	layers: Layers;
-	/** The Paper base: white in place of the photo, until the photo button is held. */
-	paper: boolean;
 	/** The photo button is held: every layer is hidden. */
 	hold: boolean;
 	viewport: ReturnType<typeof useViewport>;
@@ -43,7 +41,7 @@ function useSettled(want: { width: number; height: number } | null) {
 
 /**
  * One canvas of the stage at the picture's own size. With `smooth` set (the photo and the base, not
- * the thin lines of Edges and Grid) a second, smaller canvas holds a smoothly halved copy; it is shown
+ * the thin lines of the Grid) a second, smaller canvas holds a smoothly halved copy; it is shown
  * in place of the full canvas while the picture is shown below half its size (`smooth.ts`). The full
  * canvas stays in the page with all its pixels. `shownWidth` is the CSS width of the whole picture.
  */
@@ -113,7 +111,6 @@ function Paint({
 export default function Stage({
 	photo,
 	layers,
-	paper,
 	hold,
 	viewport,
 	onOpen,
@@ -143,7 +140,6 @@ export default function Stage({
 					style={{
 						width: photo.width,
 						height: photo.height,
-						background: paper && !hold ? PAPER : undefined,
 						transform: `translate(${v.x}px, ${v.y}px) scale(${v.zoom})`,
 					}}
 				>
@@ -153,10 +149,7 @@ export default function Stage({
 						label="Photo"
 						smooth="smooth-photo"
 						shownWidth={photo.width * v.zoom}
-						style={{
-							zIndex: 0,
-							visibility: paper && !hold ? "hidden" : "visible",
-						}}
+						style={{ zIndex: 0 }}
 					/>
 					{STAGE_IDS.map((id, z) => {
 						const l = layers[id];

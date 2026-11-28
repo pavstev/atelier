@@ -27,11 +27,11 @@ test("test_the_panel_floats_as_glass_over_the_stage_and_the_tools_sit_in_the_bar
 	expect(files.x).toBeCloseTo(12, 1);
 	expect(files.y).toBeCloseTo(12, 1);
 	expect(files.height).toBeCloseTo((view?.height ?? 0) - 24, 1);
-	// the panel holds only the photo list; the three tools are buttons in the bar over the stage
+	// the panel holds only the photo list; the tools are buttons in the bar over the stage
 	await expect(page.getByTestId("files").getByTestId("tool-base")).toHaveCount(
 		0,
 	);
-	for (const id of ["base", "edges", "grid"])
+	for (const id of ["base", "grid"])
 		await expect(
 			page.getByTestId("stage-bar").getByTestId(`tool-${id}`),
 		).toBeVisible();
@@ -356,7 +356,7 @@ test("test_logo_sits_on_the_panel_and_moves_to_the_window_corner_when_it_is_hidd
 	await expect(logo.locator("svg")).toBeVisible();
 });
 
-test("test_color_legend_is_in_the_strip_and_real_size_is_in_the_zoom_menu", async ({
+test("test_color_legend_is_in_the_strip_and_not_in_a_card", async ({
 	studio,
 }) => {
 	const { page } = studio;
@@ -368,19 +368,6 @@ test("test_color_legend_is_in_the_strip_and_real_size_is_in_the_zoom_menu", asyn
 	await expect(
 		page.getByTestId("tool-popup").getByTestId("legend"),
 	).toHaveCount(0);
-	// the real size is in the zoom menu; with no screen width it opens the Paper card
-	await page.keyboard.press("Escape");
-	await expect(page.getByTestId("tool-popup")).toHaveCount(0);
-	await studio.zoom("real");
-	await expect(
-		page.locator("[data-testid=tool-popup][data-tool=size]"),
-	).toBeVisible();
-	await expect(page.getByTestId("paper-real").locator("input")).toBeChecked();
-	await expect(page.getByTestId("screen-width")).toBeVisible();
-	await expect(page.getByTestId("zoom-menu")).toHaveAttribute(
-		"data-locked",
-		"true",
-	);
 });
 
 test("test_the_bar_and_the_strip_stay_inside_a_narrow_stage", async ({
@@ -464,11 +451,11 @@ test("test_segment_labels_fit_in_the_base_card", async ({ studio }) => {
 		const dir = process.env.SHOT_FIXED;
 		if (dir) await page.screenshot({ path: `${dir}/fixed-${name}.png` });
 	};
-	for (const base of ["pencil", "shapes"] as const) {
+	for (const base of ["values", "shapes"] as const) {
 		await studio.base(base);
 		const radios = page.getByRole("radio");
 		const n = await radios.count();
-		expect(n).toBeGreaterThan(3);
+		expect(n).toBeGreaterThanOrEqual(3);
 		const info = await page.evaluate(() =>
 			[...document.querySelectorAll("[role=radio]")].map((el) => {
 				const r = el.getBoundingClientRect();

@@ -1,5 +1,5 @@
 // The golden pictures: a synthetic photo (drawn in the page, not a real photo) goes through every
-// layer and every preset or mode. Each layer picture is put on white, scaled to 128 px on the
+// layer and every preset or step. Each layer picture is put on white, scaled to 128 px on the
 // long side and compared with e2e/golden/<layer>-<option>.png: the same size, and a mean
 // difference of at most 3.0 (the rule of `cargo refs`). A missing golden fails.
 // `mise run web:golden:bless` writes again only the ones that fail; say in the commit why they moved.
@@ -17,11 +17,7 @@ const GOLDEN_LONG_SIDE = 128;
 /** The start value of every knob the cases touch. Setting a knob to its start value draws nothing. */
 const START: Record<string, number> = {
 	"values-preset": LOOK.values.preset,
-	"values-tint": LOOK.values.tint,
 	"shapes-step": LOOK.shapes.step,
-	"edges-mode": LOOK.edges.mode,
-	"edges-amount": LOOK.edges.amount,
-	"grid-mode": LOOK.grid.mode,
 };
 
 type Step = { name: string; set: [string, number][] };
@@ -36,21 +32,13 @@ const sweep = (
 /** Every case: the layer that is drawn, how to turn it on, and the pictures to compare. */
 const CASES: {
 	layer: LayerId;
-	on: BaseKind | "edges" | "grid";
+	on: BaseKind | "grid";
 	steps: Step[];
 }[] = [
 	{
 		layer: "base",
 		on: "values",
-		steps: [
-			...sweep("values", [0, 1, 2, 3, 4, 5], (i) => [["values-preset", i]]),
-			// Tint 0 is the start; the preset goes back to the start value first.
-			{
-				name: "values-tint-0",
-				set: [["values-preset", LOOK.values.preset]],
-			},
-			{ name: "values-tint-1", set: [["values-tint", 1]] },
-		],
+		steps: sweep("values", [0, 1, 2, 3], (i) => [["values-preset", i]]),
 	},
 	{
 		layer: "base",
@@ -58,23 +46,10 @@ const CASES: {
 		steps: sweep("shapes-step", [0, 1, 2, 3], (i) => [["shapes-step", i]]),
 	},
 	{
-		layer: "edges",
-		on: "edges",
-		steps: [
-			...sweep("edges-mode", [0, 1, 2, 3], (m) => [
-				["edges-mode", m],
-				["edges-amount", LOOK.edges.amount],
-			]),
-			...sweep("edges-amount", [0, 33, 100], (a) => [
-				["edges-mode", 0],
-				["edges-amount", a],
-			]),
-		],
-	},
-	{
 		layer: "grid",
 		on: "grid",
-		steps: sweep("grid", [0, 1, 2], (i) => [["grid-mode", i]]),
+		// Grid has no mode to sweep: one picture at the start values.
+		steps: [{ name: "grid", set: [] }],
 	},
 ];
 
@@ -165,7 +140,7 @@ for (const c of CASES) {
 	}) => {
 		const { page } = studio;
 		await studio.openSynthetic();
-		if (c.on === "edges" || c.on === "grid") await studio.layer(c.on, true);
+		if (c.on === "grid") await studio.layer(c.on, true);
 		else await studio.base(c.on);
 		const now = { ...START };
 		for (const step of c.steps) {

@@ -1,6 +1,6 @@
 // The left panel: the photo list, full height. The first row holds the logo (fixed to the window
 // corner in `App.tsx`) and, on its right, the icon buttons: add (photos or a new folder), search,
-// sort and the list or tiles switch. In an installed app with a title bar overlay (a wide window)
+// and sort. In an installed app with a title bar overlay (a wide window)
 // those buttons sit in the title bar instead, level with the logo, and the panel starts under the
 // bar. Under it one tree of the photos on this device, which scrolls inside itself: folders first
 // (`FolderRow`, by name, open or closed), then the photos of that level (`PhotoRow`, in the chosen
@@ -149,7 +149,6 @@ export default function Files(p: Props) {
 		() => countAll(p.folders, groups),
 		[p.folders, groups],
 	);
-	const tiles = view.layout === "tiles";
 
 	/** A new folder inside `parent` ("" is the top), its name ready to type. */
 	const newFolder = (parent: string) => {
@@ -226,7 +225,6 @@ export default function Files(p: Props) {
 		<PhotoRow
 			key={d.id}
 			d={d}
-			tile={tiles}
 			active={d.id === p.activeId}
 			terms={terms}
 			folders={p.folders}
@@ -239,15 +237,7 @@ export default function Files(p: Props) {
 		/>
 	);
 	const photoList = (list: Doc[], testid: string, where = false) => (
-		<ul
-			data-testid={testid}
-			data-layout={view.layout}
-			className={
-				tiles
-					? "grid grid-cols-[repeat(auto-fill,minmax(5.5rem,6.5rem))] justify-start gap-1"
-					: "flex flex-col"
-			}
-		>
+		<ul data-testid={testid} className="flex flex-col">
 			{list.map((d) =>
 				photoItem(d, where ? pathOf(p.folders, folderOf(d, p.folders)) : ""),
 			)}
@@ -370,12 +360,6 @@ export default function Files(p: Props) {
 					</Dropdown.Menu>
 				</Dropdown.Popover>
 			</Dropdown>
-			<IconButton
-				label={tiles ? "Show as a list" : "Show as tiles"}
-				icon={tiles ? "list" : "grid"}
-				testid="photo-layout"
-				onPress={() => change({ layout: tiles ? "list" : "tiles" })}
-			/>
 		</>
 	);
 

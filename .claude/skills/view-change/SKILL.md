@@ -1,6 +1,6 @@
 ---
 name: view-change
-description: Change what one part (Values, Shapes, Pencil, Edges or Grid) draws (a preset, a knob, a range, a new mode) in Atelier, across the Rust core, the wasm edge and the web app, with honest reference pictures. Use for any change to a part's output or its options.
+description: Change what one part (Values, Shapes or Grid) draws (a preset, a knob, a range, a new mode) in Atelier, across the Rust core, the wasm edge and the web app, with honest reference pictures. Use for any change to a part's output or its options.
 ---
 
 # Change what a part draws
@@ -9,14 +9,14 @@ A part's output is a contract between Rust and the web app. Touch every file, in
 
 ## Files
 
-1. The module in `crates/atelier-core/src` (`values`, `shapes`, `pencil/`, `grid` or `edges/`) (see `.claude/rules/rust.md` for which one).
+1. The module in `crates/atelier-core/src` (`values`, `shapes` or `grid`) (see `.claude/rules/rust.md` for which one).
 2. `crates/atelier-core/src/render.rs`: the typed call and its range checks.
 3. `crates/atelier-core/tests/tools_reference.rs`: the cases of the part, when a preset is added or
    removed.
 4. `crates/atelier-wasm/src/lib.rs`: the method of the part on `Photo` for the page.
 5. `app/web/src`: `draw/calls.ts` (the typed call), `features/tools/settings.ts` (`LOOK` and
-   `callFor`; the Base is Photo, Values, Shapes, Paper or Pencil), `draw/worker.ts` (the call into wasm)
-   and `features/tools/Panel.tsx` (the controls; Pencil has its own `features/pencil/PencilCard.tsx` and `knobs.ts`).
+   `callFor`; the Base is Photo, Values or Shapes), `draw/worker.ts` (the call into wasm)
+   and `features/tools/Panel.tsx` (the controls).
 6. `docs/web-app.md`, the controls list, when a user can see the change. A new control follows the widget rule in `DESIGN.md`.
 
 Read little. A change needs about 600 lines: the rules (AGENTS.md, `rust.md`), the typed call

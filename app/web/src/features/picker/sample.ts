@@ -1,21 +1,14 @@
-// The color the stage shows at one photo pixel: the photo (or white Paper), then the base, Edges and
-// Grid layers over it in order, each by its own see-through and opacity. It follows `Stage.tsx`, so
-// the picker reads what the eye sees, in any base. While the photo button is held it is the bare photo.
-import { type Layers, PAPER, STAGE_IDS } from "@/features/tools/settings";
+// The color the stage shows at one photo pixel: the photo, then the base and Grid layers over it in
+// order, each by its own see-through and opacity. It follows `Stage.tsx`, so the picker reads what
+// the eye sees, in any base. While the photo button is held it is the bare photo.
+import { type Layers, STAGE_IDS } from "@/features/tools/settings";
 import type { Rgb } from "./mix";
 import { encodeOf, linearOf } from "./spectral";
-
-const PAPER_RGB: Rgb = [
-	Number.parseInt(PAPER.slice(1, 3), 16),
-	Number.parseInt(PAPER.slice(3, 5), 16),
-	Number.parseInt(PAPER.slice(5, 7), 16),
-];
 
 /** The shown color at photo pixel (x, y), or null when the point is off the photo. */
 export function colorAt(
 	photo: ImageData,
 	layers: Layers,
-	paper: boolean,
 	hold: boolean,
 	x: number,
 	y: number,
@@ -23,12 +16,12 @@ export function colorAt(
 	if (!(x >= 0 && y >= 0 && x < photo.width && y < photo.height)) return null;
 	const px = Math.floor(x);
 	const py = Math.floor(y);
-	let c: number[];
-	if (paper && !hold) c = [...PAPER_RGB];
-	else {
-		const i = (py * photo.width + px) * 4;
-		c = [photo.data[i] ?? 0, photo.data[i + 1] ?? 0, photo.data[i + 2] ?? 0];
-	}
+	const i = (py * photo.width + px) * 4;
+	const c = [
+		photo.data[i] ?? 0,
+		photo.data[i + 1] ?? 0,
+		photo.data[i + 2] ?? 0,
+	];
 	if (hold) return [c[0] as number, c[1] as number, c[2] as number];
 	for (const id of STAGE_IDS) {
 		const l = layers[id];
@@ -60,13 +53,12 @@ export function colorAt(
 export function colorAround(
 	photo: ImageData,
 	layers: Layers,
-	paper: boolean,
 	hold: boolean,
 	x: number,
 	y: number,
 	r: number,
 ): Rgb | null {
-	const center = colorAt(photo, layers, paper, hold, x, y);
+	const center = colorAt(photo, layers, hold, x, y);
 	if (!center || r < 1) return center;
 	// at most 9 by 9 samples across the disk
 	const step = Math.max(1, r / 4);
@@ -75,7 +67,7 @@ export function colorAround(
 	for (let dy = -r; dy <= r + 1e-9; dy += step)
 		for (let dx = -r; dx <= r + 1e-9; dx += step) {
 			if (dx * dx + dy * dy > r * r + 1e-9) continue;
-			const c = colorAt(photo, layers, paper, hold, x + dx, y + dy);
+			const c = colorAt(photo, layers, hold, x + dx, y + dy);
 			if (!c) continue;
 			for (let k = 0; k < 3; k++)
 				sum[k] = (sum[k] as number) + linearOf(c[k] as number);

@@ -5,7 +5,7 @@
 # Atelier
 
 **Study a photo like a painter.**<br>
-Flat values, paint shapes, clean lines and a grid over your own photo. It runs in your browser, and your photos never leave it.
+Flat values, paint shapes and a grid over your own photo. It runs in your browser, and your photos never leave it.
 
 [![Live](https://img.shields.io/badge/live-atelier.stevanpavlovic.com-7D8FF0?style=flat-square&labelColor=16181D)](https://atelier.stevanpavlovic.com)
 [![Rust](https://img.shields.io/badge/Rust-core-16181D?style=flat-square&logo=rust&logoColor=E8EAF2)](crates/atelier-core)
@@ -19,7 +19,7 @@ Flat values, paint shapes, clean lines and a grid over your own photo. It runs i
 
 <br>
 
-<img src="docs/design/assets/hero.png" width="860" alt="Atelier showing the Mona Lisa as Values, with Edges, a Grid and the Base card open">
+<img src="docs/design/assets/hero.png" width="860" alt="Atelier showing the Mona Lisa as Values, with a Grid and the Base card open">
 
 </div>
 
@@ -43,13 +43,10 @@ Then open http://localhost:5173/. More commands: [CONTRIBUTING.md](CONTRIBUTING.
 
 | | |
 |---|---|
-| 🌗 **Values** | The photo in 2 to 5 flat tones, each named as a Munsell value (V1 dark to V9 light). Six presets, from Notan to Families. Press a tone to see it big, to match a paint chip. |
+| 🌗 **Values** | The photo in 2 to 5 flat tones, each named as a Munsell value (V1 dark to V9 light). Four presets: Notan, Three, Five and Families. Press a tone to see it big, to match a paint chip. |
 | 🎨 **Shapes** | The photo cut into the shapes you paint, in the order you paint them: shadows, halftones, lights, accents. Each step lists the piles of paint to mix. |
-| ✍️ **Pencil** | The photo as a smooth gray picture in the tones of your graphite pencils (4H to 9B, drop any you do not own), a little simplified so it is easy to draw. Four looks (Tone, Drawing, Hatch and By pencil) with knobs for key, contrast, highlights, deep darks, local contrast and paper texture. Auto sets the key and contrast from the photo, and Suggest picks the best 3 to 6 pencils for it. The legend says how much of each pencil to use. Only the Grid works over it. |
-| ✏️ **Edges** | A line drawing traced from the photo: Lines, Transfer, Masses or Sketch (graphite strokes). Big forms get heavy lines, detail gets light ones. |
-| 📐 **Grid** | Thirds, a square grid or both, to copy proportions. Contrast lines stay visible on any part of the photo. |
-| 📏 **Real size** | Lock the zoom to a width in cm and hold a brush or a canvas next to the screen. |
-| 🗂️ **Your photo list** | Every photo you add stays in the list, with its own zoom. Folders, search, sort, list or tiles. |
+| 📐 **Grid** | Squares of a whole number of cm on your paper, to copy proportions. Contrast lines stay visible on any part of the photo. |
+| 🗂️ **Your photo list** | Every photo you add stays in the list, with its own zoom. Folders, search, sort. |
 | 🔒 **Private by design** | The photo is decoded and drawn on your device. No upload, no analytics, no account. |
 | 🦀 **One Rust core** | All pixel work is Rust compiled to wasm. The same photo gives the same bytes every time. |
 
@@ -60,9 +57,9 @@ The bottom bar holds everything.
 | Control | What it does |
 |---|---|
 | **See photo** | Tap it, or tap `Space`, to keep the bare photo on; hold to peek. |
-| **Base** | Photo, Values, Shapes, Paper (only the lines on white) or Pencil. |
-| **Edges**, **Grid** | Turn a see-through layer on and set it. One card opens at a time; `Esc` closes it. |
-| **Zoom** | Fit, 100%, 200% or Real size. A double click toggles Fit and 100%. |
+| **Base** | Photo, Values or Shapes. |
+| **Grid** | Turn the see-through grid on and set it. One card opens at a time; `Esc` closes it. |
+| **Zoom** | Fit, 100% or 200%. A double click toggles Fit and 100%. |
 | Arrow keys | Move the photo 10 px, or 100 px with `Shift`. |
 | `[` | Hide or show the photo list. |
 
@@ -78,11 +75,11 @@ See [SECURITY.md](SECURITY.md).
 
 | Part | Job |
 |---|---|
-| [`crates/atelier-core`](crates/atelier-core) | All pixel work in Rust: values, shapes, the edge map and the grid. Deterministic. |
+| [`crates/atelier-core`](crates/atelier-core) | All pixel work in Rust: values, shapes and the grid. Deterministic. |
 | [`crates/atelier-wasm`](crates/atelier-wasm) | The core compiled to wasm for the browser. |
 | [`app/web`](app/web) | React 19, Hero UI v3, Tailwind v4 and Vite. A web worker holds the photo and draws each layer, so the page never freezes. |
 
-The layers sit in a fixed order: one base, then Edges, then Grid on top. The full picture:
+The layers sit in a fixed order: one base, then Grid on top. The full picture:
 [ARCHITECTURE.md](ARCHITECTURE.md). How each part draws: [docs/how-it-works/](docs/how-it-works/).
 
 ## 📚 Docs

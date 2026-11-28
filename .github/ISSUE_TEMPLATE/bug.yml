@@ -13,7 +13,7 @@ body:
     id: steps
     attributes:
       label: Steps to repeat it
-      placeholder: "1. Open a photo\n2. Press Edges in the bottom bar\n3. ..."
+      placeholder: "1. Open a photo\n2. Press Grid in the bottom bar\n3. ..."
     validations:
       required: true
   - type: input

@@ -1,4 +1,4 @@
-// A counter of saves that are running (adding photos, the share intake). The page does not reload for
+// A counter of saves that are running (adding photos, the launch intake). The page does not reload for
 // a new version while it is above zero, so a photo is never lost half way. `onIdle` runs a function
 // once, when the count is back at zero (at once when it already is).
 

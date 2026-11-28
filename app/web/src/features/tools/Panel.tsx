@@ -1,21 +1,12 @@
-// The controls of the three tools, one body each: Base, Edges and Grid. `StageBar` shows a body in a
+// The controls of the three tools, one body each: Base and Grid. `StageBar` shows a body in a
 // pop-up card over the bottom bar (a bottom sheet on a phone). `ToolHead` is the top row of a card:
-// its name and, for Edges and Grid, the on/off switch. A body is three groups split by thin lines:
+// its name and, for Grid, the on/off switch. A body is three groups split by thin lines:
 // Opacity first, the main choice at full width, then its settings one line each.
-import { lazy, Suspense } from "react";
-import type { PencilExtras } from "@/features/pencil/usePencilExtras";
 import { GRID_CM } from "@/features/size/paper";
-import { Choice, ColorField, Knob, Row, Segment, Toggle } from "@/ui/fields";
+import { Choice, Knob, Segment, Toggle } from "@/ui/fields";
 import { BASE_NAMES, baseIndex } from "./baseName";
 import {
 	BASES,
-	EDGES_MODE,
-	EDGES_WIDTH_MAX,
-	GRID_CELLS,
-	GRID_GROUPS,
-	GRID_MODE,
-	GRID_UNIT,
-	GRID_WIDTH_MAX,
 	LABELS,
 	type Look,
 	OPACITY_MIN,
@@ -23,20 +14,14 @@ import {
 	type StageId,
 } from "./settings";
 
-// The Pencil card is the biggest body, and only the Pencil base needs it: its own chunk.
-const PencilCard = lazy(() => import("@/features/pencil/PencilCard"));
-
 type Props = {
 	look: Look;
 	onLook: SetLook;
 };
 
-/** What one tool card takes: its tool, the look and its setter, and what the Pencil card holds. */
+/** What one tool card takes: its tool, the look and its setter. */
 export type ToolCardProps = Props & {
 	id: StageId;
-	extras: PencilExtras;
-	/** A paper is set (a photo is open), so the Grid can count in cm. */
-	paper: boolean;
 };
 
 /** Changes the settings of one part of the look. */
@@ -45,12 +30,12 @@ const setter =
 	<K extends keyof Look>(id: K, v: Partial<Look[K]>) =>
 		p.onLook((s) => ({ ...s, [id]: { ...s[id], ...v } }));
 
-/** The top row of a tool card: its name and (Edges, Grid) the on/off switch. The mode shows in the
+/** The top row of a tool card: its name and (Grid) the on/off switch. The mode shows in the
  * main choice right below, so the head does not repeat it. */
 export function ToolHead(p: Props & { id: StageId }) {
 	const s = p.look;
 	const set = setter(p);
-	const title = { base: "Base", edges: "Edges", grid: "Grid" }[p.id];
+	const title = { base: "Base", grid: "Grid" }[p.id];
 	return (
 		<div className="flex min-h-(--icon-btn-bar) items-center gap-2">
 			<h2 className="min-w-0 flex-1 text-sm font-medium">{title}</h2>
@@ -59,7 +44,7 @@ export function ToolHead(p: Props & { id: StageId }) {
 					testid={`layer-${p.id}`}
 					label={`Show ${title}`}
 					on={s[p.id].on}
-					onChange={(on) => set(p.id as "edges" | "grid", { on })}
+					onChange={(on) => set(p.id, { on })}
 				/>
 			)}
 		</div>
@@ -69,8 +54,7 @@ export function ToolHead(p: Props & { id: StageId }) {
 /** A thin line between the groups of a card. */
 const Rule = () => <div className="my-0.5 h-px bg-separator" />;
 
-/** The controls of one tool: Opacity first, then the main choice at full width, then its settings.
- * `extras` is what the Pencil card holds for the photo (Auto note, suggestion). */
+/** The controls of one tool: Opacity first, then the main choice at full width, then its settings. */
 export function ToolBody(p: ToolCardProps) {
 	const s = p.look;
 	const set = setter(p);
@@ -92,13 +76,7 @@ export function ToolBody(p: ToolCardProps) {
 		/>
 	);
 	const dim = p.id !== "base" && !s[p.id].on;
-	const thirds = s.grid.mode === GRID_MODE.thirds;
-	// Grid in cm needs a paper (a photo on it); without one the Grid counts cells
-	const byCm = p.paper && s.grid.unit === GRID_UNIT.cm;
-	const toned =
-		s.base.kind === "values" ||
-		s.base.kind === "shapes" ||
-		s.base.kind === "pencil";
+	const toned = s.base.kind === "values" || s.base.kind === "shapes";
 	return (
 		<div
 			data-testid="tools"
@@ -129,12 +107,6 @@ export function ToolBody(p: ToolCardProps) {
 								label="Detail"
 								{...bind("values", "detail")}
 							/>
-							<Segment
-								testid="values-tint"
-								label="Tint"
-								options={LABELS.valuesTint}
-								{...bind("values", "tint")}
-							/>
 						</>
 					)}
 					{s.base.kind === "shapes" && (
@@ -153,138 +125,17 @@ export function ToolBody(p: ToolCardProps) {
 							/>
 						</>
 					)}
-					{s.base.kind === "pencil" && (
-						<Suspense fallback={<div aria-hidden className="min-h-64" />}>
-							<PencilCard
-								pencil={s.pencil}
-								onChange={(v) => set("pencil", v)}
-								extras={p.extras}
-							/>
-						</Suspense>
-					)}
-				</>
-			)}
-			{p.id === "edges" && (
-				<>
-					{opacity("edges")}
-					<Rule />
-					<Segment
-						bare
-						testid="edges-mode"
-						label="Mode"
-						options={LABELS.edgesMode}
-						{...bind("edges", "mode")}
-					/>
-					<Rule />
-					<Knob
-						testid="edges-amount"
-						label="Amount"
-						step={1}
-						{...bind("edges", "amount")}
-					/>
-					<Knob
-						testid="edges-width"
-						label="Width"
-						min={1}
-						max={EDGES_WIDTH_MAX}
-						step={1}
-						{...bind("edges", "width")}
-					/>
-					{s.edges.mode === EDGES_MODE.lines && (
-						<Knob
-							testid="edges-even"
-							label="Even"
-							step={1}
-							{...bind("edges", "even")}
-						/>
-					)}
 				</>
 			)}
 			{p.id === "grid" && (
 				<>
 					{opacity("grid")}
 					<Rule />
-					<Segment
-						bare
-						testid="grid-mode"
-						label="Mode"
-						options={LABELS.gridMode}
-						{...bind("grid", "mode")}
-					/>
-					<Rule />
-					{p.paper && (
-						<Segment
-							testid="grid-unit"
-							label="Count by"
-							options={LABELS.gridUnit}
-							value={byCm ? GRID_UNIT.cm : GRID_UNIT.cells}
-							onChange={(unit) => set("grid", { unit })}
-							disabled={thirds}
-						/>
-					)}
-					{byCm ? (
-						<Knob
-							testid="grid-step"
-							label="Step, cm"
-							steps={GRID_CM}
-							{...bind("grid", "cm")}
-							disabled={thirds}
-						/>
-					) : (
-						<Choice
-							testid="grid-cells"
-							label="Cells"
-							options={GRID_CELLS.map(String)}
-							value={Math.max(0, GRID_CELLS.indexOf(s.grid.cells))}
-							onChange={(i) =>
-								set("grid", { cells: GRID_CELLS[i] ?? s.grid.cells })
-							}
-							disabled={thirds}
-						/>
-					)}
-					<Segment
-						testid="grid-group"
-						label="Heavy lines"
-						options={LABELS.gridGroup}
-						value={Math.max(0, GRID_GROUPS.indexOf(s.grid.group))}
-						onChange={(i) =>
-							set("grid", { group: GRID_GROUPS[i] ?? s.grid.group })
-						}
-						disabled={thirds}
-					/>
-					<Row label="Center">
-						<Toggle
-							testid="grid-center"
-							label="Center the grid on the photo"
-							on={s.grid.center}
-							disabled={thirds}
-							onChange={(center) => set("grid", { center })}
-						/>
-					</Row>
 					<Knob
-						testid="grid-width"
-						label="Width"
-						min={1}
-						max={GRID_WIDTH_MAX}
-						step={1}
-						{...bind("grid", "width")}
-					/>
-					<Segment
-						testid="grid-paint"
-						label="Color"
-						options={LABELS.gridPaint}
-						value={s.grid.contrast ? 0 : 1}
-						onChange={(i) => set("grid", { contrast: i === 0 })}
-						after={
-							!s.grid.contrast && (
-								<ColorField
-									bare
-									testid="grid-color"
-									label="Line color"
-									{...bind("grid", "color")}
-								/>
-							)
-						}
+						testid="grid-step"
+						label="Step, cm"
+						steps={GRID_CM}
+						{...bind("grid", "cm")}
 					/>
 				</>
 			)}

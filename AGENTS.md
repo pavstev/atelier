@@ -32,10 +32,10 @@ compares it with `crates/atelier-core/tests/reference` (size, range, a mean diff
 ## Rules
 
 - The Rust core stays the home of pixel work. The photo worker decodes a photo and the page hands
-  its RGBA pixels to the layers worker. Edges draws from the core's own edge map (`edges/map.rs`, a blurred Sobel).
+  its RGBA pixels to the layers worker.
 - One simple test per part in `crates/atelier-core/tests/tools_*.rs`.
 - Browser tests run headless Chromium with Playwright. No Firefox, no WebKit, no visible window.
-- One base, then Edges, then Grid, in a fixed order, bottom first. Edges and Grid are see-through.
+- One base, then Grid, in a fixed order, bottom first. Grid is see-through.
 - A number out of range is `Error::BadInput`, never a panic.
 - No photo, and no picture made from one, goes into git. Bench output goes to `.agents/bench/`.
   One exception (owner, 2026-11-07): `docs/design/assets/hero.png`, the README picture, shows the
@@ -58,9 +58,9 @@ and what stays out.
 |---|---|---|
 | 2026-11-06 | Three shortcuts: hold Space to see the photo, the arrow keys move the photo, `[` hides the side panel. | Every other shortcut. |
 | 2026-11-13 | A color picker in the bottom bar. It reads the shown picture and gives a mix of white, yellow, red, lake blue, phthalo blue and black (`app/web/src/features/picker/`). | Mixbox, a color list, a color picker panel. |
-| 2026-11-14 | Pencil, as a Base choice: the photo as a gray picture in the tones of the graphite grades 4H to 9B (`crates/atelier-core/src/pencil/`). Its looks: Tone, Drawing, Hatch, By pencil. Hatch is a texture of the tone; By pencil is a view of the tone by pencil. | The old Line drawing and Pencil model tools, the Stroke order, a Sketch look inside Pencil (Edges is the line tool). |
-| 2026-11-23 | Sketch, as a fourth Edges mode: the Lines chains drawn as graphite strokes (`crates/atelier-core/src/edges/trace/sketch.rs`). | The old Sketch look of Pencil, a Looseness knob, a hatch angle for Edges. |
-| 2026-11-17 | The PWA (dropped 2026-11-06): an offline service worker, install, Open with and Share (`app/web/src/sw/`, `app/web/src/pwa/`). The worker never touches a photo or a model. | Push and sync. |
+| 2026-11-14 | (Cut again 2026-11-28.) Pencil, as a Base choice: the photo as a gray picture in the tones of the graphite grades 4H to 9B (`crates/atelier-core/src/pencil/`). Its looks: Tone, Drawing, Hatch, By pencil. Hatch is a texture of the tone; By pencil is a view of the tone by pencil. | The old Line drawing and Pencil model tools, the Stroke order, a Sketch look inside Pencil. |
+| 2026-11-23 | (Cut again 2026-11-28 with Edges.) Sketch, as a fourth Edges mode: the Lines chains drawn as graphite strokes (`crates/atelier-core/src/edges/trace/sketch.rs`). | The old Sketch look of Pencil, a Looseness knob, a hatch angle for Edges. |
+| 2026-11-17 | The PWA (dropped 2026-11-06): an offline service worker, install, Open with (`app/web/src/sw/`, `app/web/src/pwa/`). The worker never touches a photo or a model. | Push and sync, the Share target (cut 2026-11-28). |
 | 2026-11-17 | The paper frame: the Paper tool (once called Size) in the bottom bar (`app/web/src/features/size/`). It picks a paper or canvas and can cut the photo to its shape. | The old canvas sizes, the materials, the 18 x 24 cm idea as a workspace. |
 | 2026-11-24 | A Mac app: a Tauri window around the web app (`app/desktop/`, [docs/development/mac-app.md](docs/development/mac-app.md)), with a see-through sidebar and no title bar. | The native Swift app, a second UI, Mac-only features beyond the window. |
 
@@ -91,3 +91,23 @@ and what stays out.
 - **2026-11-17:** the Pencil Zones look (flat tones, one per pencil). Look id 2 is `BadInput`.
 - **2026-11-17:** the zoom lock card. Real size is a switch in the Paper card and an item of the
   zoom menu.
+- **2026-11-28:** Edges (Lines, Transfer, Masses, Sketch), its width/even knobs, the edge map, the
+  F-score tool and the Shapes outline view; the owner removed the layer and the code that only it
+  used. Tag `edges-last` is NOT made; git history of main before this commit keeps it.
+- **2026-11-28:** a cut for a small, standard app (a painter review found these unused). Not coming
+  back:
+  - the Pencil base, all of it (the Rust `pencil/`, its calls, card, legend levels, saved settings,
+    tests, pictures, `docs/how-it-works/pencil.md` and `bench/pencil-eval/`);
+  - from Values: the Shadow family and Light family presets and the Umber tint (the presets are
+    Notan, Three, Five, Families; the tones are gray);
+  - the Paper base (the bases are Photo, Values, Shapes; the Paper tool stays);
+  - from Grid: Thirds, Both, the cell list, the heavy line groups, Center, the width slider and the
+    one color mode (the Grid is squares by cm, with On, Opacity and the cm step; Contrast lines,
+    width 2, squares from the top left corner);
+  - Real size (the switch, the zoom menu item, Unlock, the lock state, the saved screen width);
+  - the Android Share target (the manifest `share_target`, the service worker share route, the
+    `?shared=1` intake and the Cloudflare `POST /share` Worker; `wrangler.jsonc` is static assets
+    only). Open with and the launch queue stay;
+  - the bottom bar grip (the bar is fixed at the bottom center);
+  - the tile view of the photo list (rows, the hover card and the sorts stay);
+  - Edges, as in the line above.

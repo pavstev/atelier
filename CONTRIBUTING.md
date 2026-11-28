@@ -39,8 +39,7 @@ moved. The commands are in
 
 - **The Rust core is the home of pixel work.** The page decodes a photo and hands RGBA pixels to the
   worker. Do not draw layers in TypeScript.
-- **Layer order is fixed** ([ARCHITECTURE.md](ARCHITECTURE.md#the-layers)): one base, then Edges,
-  then Grid.
+- **Layer order is fixed** ([ARCHITECTURE.md](ARCHITECTURE.md#the-layers)): one base, then Grid.
 - **A number out of range is `Error::BadInput`,** never a panic.
 - **Same input, same bytes.** No clock, no randomness, no hash map order in the core.
 - **One simple test per part** in `crates/atelier-core/tests/tools_*.rs`.

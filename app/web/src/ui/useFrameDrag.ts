@@ -1,4 +1,4 @@
-// One horizontal drag on a handle, shared by the bar grip and the side panel edge. The hook owns the
+// One horizontal drag on a handle, used by the side panel edge. The hook owns the
 // pointer capture, the grabbing cursor and the listeners; the caller gets the distance from the
 // start (`onMove`, `onEnd`) or a cancel (`onCancel`, which means restore, never end). A move is
 // handed on once per frame, so the caller can paint without a React render.

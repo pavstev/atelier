@@ -1,6 +1,6 @@
 //! atelier-core: all pixel work of Atelier. Runs native and in wasm; the web app calls it through `atelier-wasm`.
 //!
-//! A photo goes in, layers of it come out: values, shapes, a graphite pencil study, edges and a grid.
+//! A photo goes in, layers of it come out: values, shapes and a grid.
 //!
 //! # Examples
 //!
@@ -16,13 +16,11 @@
 #![forbid(unsafe_code)]
 
 mod deblock;
-mod edges;
 pub mod error;
 mod filters;
 mod grid;
 pub mod img;
 mod oklab;
-mod pencil;
 mod photo;
 pub mod render;
 mod resize;

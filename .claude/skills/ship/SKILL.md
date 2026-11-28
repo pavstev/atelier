@@ -22,7 +22,7 @@ runs no checks, so the pre-push hook runs them first. The dashboard settings are
 5. Wait with Monitor, never a manual poll: loop `curl -s https://atelier.stevanpavlovic.com/version.txt`
    every 20 s until it equals the pushed sha, and print the seconds since the push. End the loop
    after 25 minutes with a TIMEOUT line.
-6. Run `bash scripts/live-check.sh` (it checks the sha, the home page, the icons and the share
+6. Run `bash scripts/live-check.sh` (it checks the sha, the home page, the icons and the social
    images). Say which commit is live. Do not say "live" before this passes.
 7. A failed build: the dashboard has the log (Worker `atelier`, Deployments, Builds). Read the
    last 40 lines only. A common cause is a missing tool on the build image: fix `ci-build.sh`.

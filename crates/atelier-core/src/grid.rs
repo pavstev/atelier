@@ -1,20 +1,16 @@
-//! The Grid layer: the rule of thirds, a grid or both, as lines on a clear picture.
+//! The Grid layer: squares by count across the width, as lines on a clear picture.
 //!
-//! The lines cover the whole photo at its own size: nothing is cropped. The thirds are two
-//! lines across and two down. The grid has exactly `cells` squares across the width, the same
-//! square size down the height, a heavier line round each block of 2 x 2 or 4 x 4 cells and no
-//! labels. Without `center` the squares start at the top left corner. With `center` a heavy
-//! line runs through the middle of the photo each way and the squares grow out from there, so
-//! the part squares sit at all four edges, the same on both sides. The count across the width may
-//! be fine (`layer_milli`, in thousandths of a square): a grid of whole cm on a paper is a count
-//! like 7.5, so the last square at the right and the bottom is a part one. Both draws the grid and the
-//! thirds on top, as heavy lines. The line width is a knob.
+//! The lines cover the whole photo at its own size: nothing is cropped. The grid has `milli /
+//! 1000` squares across the width (a count in thousandths, so a grid of whole cm on a paper is a
+//! count like 7.5), the same square size down the height, and no labels. The squares start at the
+//! top left corner, so a count that is not whole leaves a part square at the right and the
+//! bottom. Every line is as wide as [`LINE_WIDTH`] says, all alike: no heavy lines, no thirds.
 //!
-//! Every line is one color, with no halo: a color picked in the app, or [`CONTRAST`], where each
-//! pixel of a line takes the hue of the photo round it turned half way round (`OKLab`), in black or
-//! white. The tone, dark on a light patch and light on a dark one, is held along a line: it turns
-//! only where the smoothed patch lightness leaves a band round the split. A line thinner than 1 px is drawn 1 px
-//! wide and see-through in step, so the thinnest lines stay thin on screen.
+//! Every line is a Contrast line: each pixel of it takes the hue of the photo round it turned half
+//! way round (`OKLab`), in black or white. The tone, dark on a light patch and light on a dark one,
+//! is held along a line: it turns only where the smoothed patch lightness leaves a band round the
+//! split. A line thinner than 1 px is drawn 1 px wide and see-through in step, so the thinnest
+//! lines stay thin on screen.
 //!
 //! Same input, same bytes: integer line positions, no antialiasing.
 
@@ -23,26 +19,15 @@ use crate::filters::box_mean;
 use crate::img::Rgb;
 use crate::oklab::{self, Ok3};
 
-/// The cell counts across the width the grid takes, in slider order (`GRID_CELLS` in
-/// `app/web/src/features/tools/settings.ts`).
-pub const CELL_STEPS: [usize; 13] = [3, 4, 6, 8, 9, 10, 12, 18, 20, 24, 30, 40, 50];
-/// Thousandths in one cell: the fine count of a grid is `cells * MILLI`.
-pub const MILLI: usize = 1000;
-/// The fewest and the most squares across the width a fine count takes, in thousandths: 0.1 to
+/// Thousandths in one square: the count of a grid is `squares * MILLI`.
+const MILLI: usize = 1000;
+/// The fewest and the most squares across the width a count takes, in thousandths: 0.1 to
 /// 500 squares (`GRID_MILLI_MIN` and `GRID_MILLI_MAX` in `app/web/src/features/size/paper.ts`).
 /// A grid of cm on a paper needs a count that is not whole, e.g. 30 cm in steps of 4 cm is 7.5.
-pub const MILLI_MIN: usize = 100;
-pub const MILLI_MAX: usize = 500_000;
-/// The widest line, in px at a long side of 2048, so 1 is half a px on the 1024 px screen
-/// picture (`GRID_WIDTH_MAX` in `app/web/src/features/tools/settings.ts`).
-pub const MAX_WIDTH: usize = 16;
-/// A heavy line closes a block of this many cells each way, 2 x 2 or 4 x 4 (`GRID_GROUPS` in
-/// `app/web/src/features/tools/settings.ts`).
-pub const GROUPS: [usize; 2] = [2, 4];
-/// The color value that asks for Contrast lines; 0 to `0xFFFFFF` is one sRGB color as
-/// `0xRRGGBB` (`GRID_CONTRAST` in
-/// `app/web/src/features/tools/settings.ts`).
-pub const CONTRAST: u32 = 1 << 24;
+const MILLI_MIN: usize = 100;
+const MILLI_MAX: usize = 500_000;
+/// The line width, in px at a long side of 2048, so 2 is 1 px on the 1024 px screen picture.
+const LINE_WIDTH: usize = 2;
 /// A patch with an `OKLab` L above this gets a dark Contrast line, else a light one. It is where
 /// the dark and the light line read equally well on a gray.
 const CONTRAST_SPLIT: f32 = 0.5;
@@ -90,106 +75,41 @@ fn mark(mask: &mut [u8], i: usize, a: u8) {
 }
 
 /// The line positions along a side of `len` px for squares of `w / cells` px, where `milli` is
-/// `cells` in thousandths (a whole count is `1000 * cells`). Each is a pair of the position and
-/// the line count from the line the heavy lines count from: the start of the side, or with
-/// `center` the line through its middle (counted both ways). The ends of the side are not lines.
-/// Integers only: line `j` is at `(len m + 2000 j w) / (2 m)`, rounded down, with `center` (so
-/// the middle line is on pixel `len / 2`) and at `(2000 j w + m) / (2 m)` without, where `m` is
-/// `milli`. For a whole count this is the same position as `(len c + 2 j w) / (2 c)`.
-fn line_spots(len: usize, w: usize, milli: usize, center: bool) -> Vec<(usize, usize)> {
+/// `cells` in thousandths (a whole count is `1000 * cells`). The ends of the side are not lines.
+/// Integers only: line `j` is at `(2000 j w + m) / (2 m)`, rounded down, where `m` is `milli`.
+/// For a whole count this is the same position as `(2 j w + c) / (2 c)`.
+fn line_spots(len: usize, w: usize, milli: usize) -> Vec<usize> {
     let (len, w, m) = (len as i64, w as i64, milli as i64);
-    let (mid, round) = if center { (len * m, 0) } else { (0, m) };
-    // no more than `len` lines fit each way, so the range ends
-    let reach = if center { len } else { 0 };
-    (-reach..=len)
-        .filter_map(|j| {
-            let num = mid + 2 * MILLI as i64 * j * w + round;
-            let at = num.div_euclid(2 * m);
-            (num >= 0 && at > 0 && at + 1 < len).then_some((at as usize, j.unsigned_abs() as usize))
-        })
+    // no more than `len` lines fit, so the range ends
+    (1..=len)
+        .map(|j| (2 * MILLI as i64 * j * w + m) / (2 * m))
+        .filter(|&at| at > 0 && at + 1 < len)
+        .map(|at| at as usize)
         .collect()
 }
 
-/// The alpha mask of the grid on a `size` picture: `milli / 1000` squares across the width,
-/// `thin` lines and on every `group`th line `heavy`. Every line spans the whole picture.
-fn grid_mask(
-    size: (usize, usize),
-    milli: usize,
-    thin: Line,
-    heavy: Line,
-    group: usize,
-    center: bool,
-) -> Vec<u8> {
+/// The alpha mask of the grid on a `size` picture: `milli / 1000` squares across the width, every
+/// line `line` wide. Every line spans the whole picture.
+fn grid_mask(size: (usize, usize), milli: usize, line: Line) -> Vec<u8> {
     let (w, h) = size;
     let mut mask = vec![0u8; w * h];
-    let line_at = |k: usize| if k.is_multiple_of(group) { heavy } else { thin };
-    for (at, k) in line_spots(w, w, milli, center) {
-        let l = line_at(k);
-        let x0 = at.saturating_sub(l.px / 2);
+    for at in line_spots(w, w, milli) {
+        let x0 = at.saturating_sub(line.px / 2);
         for y in 0..h {
-            for x in x0..(x0 + l.px).min(w) {
-                mark(&mut mask, y * w + x, l.alpha);
+            for x in x0..(x0 + line.px).min(w) {
+                mark(&mut mask, y * w + x, line.alpha);
             }
         }
     }
-    for (at, k) in line_spots(h, w, milli, center) {
-        let l = line_at(k);
-        let y0 = at.saturating_sub(l.px / 2);
-        for y in y0..(y0 + l.px).min(h) {
+    for at in line_spots(h, w, milli) {
+        let y0 = at.saturating_sub(line.px / 2);
+        for y in y0..(y0 + line.px).min(h) {
             for x in 0..w {
-                mark(&mut mask, y * w + x, l.alpha);
+                mark(&mut mask, y * w + x, line.alpha);
             }
         }
     }
     mask
-}
-
-/// Marks a `l.px` by `l.px` square whose top left corner is `(x - px / 2, y - px / 2)`.
-fn dot(mask: &mut [u8], size: (usize, usize), at: (i64, i64), l: Line) {
-    let (w, h) = (size.0 as i64, size.1 as i64);
-    let half = (l.px / 2) as i64;
-    for y in (at.1 - half).max(0)..(at.1 - half + l.px as i64).min(h) {
-        for x in (at.0 - half).max(0)..(at.0 - half + l.px as i64).min(w) {
-            mark(mask, (y * w + x) as usize, l.alpha);
-        }
-    }
-}
-
-/// A line from `a` to `b` (Bresenham, integers only) drawn with an `l` brush.
-fn segment(mask: &mut [u8], size: (usize, usize), a: (i64, i64), b: (i64, i64), l: Line) {
-    let (dx, dy) = ((b.0 - a.0).abs(), -(b.1 - a.1).abs());
-    let (sx, sy) = (
-        if a.0 < b.0 { 1 } else { -1 },
-        if a.1 < b.1 { 1 } else { -1 },
-    );
-    let (mut x, mut y, mut err) = (a.0, a.1, dx + dy);
-    loop {
-        dot(mask, size, (x, y), l);
-        if (x, y) == b {
-            break;
-        }
-        let e2 = 2 * err;
-        if e2 >= dy {
-            err += dy;
-            x += sx;
-        }
-        if e2 <= dx {
-            err += dx;
-            y += sy;
-        }
-    }
-}
-
-/// The rule of thirds into `mask`: two lines across and two down, corner to corner.
-fn thirds_into(mask: &mut [u8], size: (usize, usize), l: Line) {
-    let (w, h) = size;
-    let (last_x, last_y) = (w as i64 - 1, h as i64 - 1);
-    for num in [1, 2] {
-        let x = scaled(w as u64, num, 3) as i64;
-        let y = scaled(h as u64, num, 3) as i64;
-        segment(mask, size, (x, 0), (x, last_y), l);
-        segment(mask, size, (0, y), (last_x, y), l);
-    }
 }
 
 /// The Contrast line color on a patch of `bg`: the hue turned half way round (a and b negated)
@@ -364,8 +284,8 @@ fn line_tones(mask: &[u8], l: &[f32], size: (usize, usize)) -> Vec<bool> {
         pos_step: w,
     };
     let (hrun, vrun) = (rows.run_lengths(mask), cols.run_lengths(mask));
-    // shorter than a line is the cut through a line the other way (a heavy line is under long / 64
-    // px thick)
+    // shorter than a line is the cut through a line the other way (a line is under long / 64 px
+    // thick)
     let long = ((w.max(h) / 16).max(8)) as u32;
     // the columns first: their crossings are then filled by the rows
     segment_tones(&cols, (&vrun, &hrun), long, mask, l, &mut dark);
@@ -387,25 +307,7 @@ fn patch_means(work: &Rgb) -> [Vec<f32>; 3] {
     planes.map(|plane| box_mean(&plane, w, h, reach))
 }
 
-/// What [`layer`] draws with.
-struct Setup {
-    size: (usize, usize),
-    thin: Line,
-    heavy: Line,
-}
-
-/// `cells` as the count the grid takes: one of [`CELL_STEPS`]. The one home of that range.
-///
-/// # Errors
-/// [`Error::BadInput`] for any other number.
-pub fn cells_of(cells: u32) -> Result<usize> {
-    CELL_STEPS
-        .into_iter()
-        .find(|&c| c == cells as usize)
-        .ok_or_else(|| Error::bad("cells must be 3, 4, 6, 8, 9, 10, 12, 18, 20, 24, 30, 40 or 50"))
-}
-
-/// `milli` as the fine count the grid takes: [`MILLI_MIN`] to [`MILLI_MAX`]. The one home of that
+/// `milli` as the count the grid takes: [`MILLI_MIN`] to [`MILLI_MAX`]. The one home of that
 /// range.
 ///
 /// # Errors
@@ -421,111 +323,30 @@ pub fn milli_of(milli: u32) -> Result<usize> {
     }
 }
 
-/// `group` as the count the grid takes: one of [`GROUPS`]. The one home of that range.
-///
-/// # Errors
-/// [`Error::BadInput`] for any other number.
-pub fn group_of(group: u32) -> Result<usize> {
-    GROUPS
-        .into_iter()
-        .find(|&g| g == group as usize)
-        .ok_or_else(|| Error::bad("grid group must be 2 or 4"))
+/// The line of a picture of this size: [`LINE_WIDTH`] px at a long side of 2048, in steps of 1/256
+/// px, so a bigger picture keeps the look of the screen.
+fn line_for(size: (usize, usize)) -> Line {
+    line_of((size.0.max(size.1) * LINE_WIDTH) as u64 / 8)
 }
 
-/// The checks and the numbers [`layer`] needs: the size and the thin and heavy lines.
-fn setup(work: &Rgb, mode: u8, width: usize, color: u32) -> Result<Setup> {
-    if mode >= 3 {
-        return Err(Error::bad("grid mode must be 0 to 2"));
-    }
-    if !(1..=MAX_WIDTH).contains(&width) {
-        return Err(Error::bad("grid width must be 1 to 16"));
-    }
-    if color > CONTRAST {
-        return Err(Error::bad("grid color must be 0xRRGGBB or Contrast"));
-    }
+/// The grid on a clear RGBA picture of the work size: `milli / 1000` squares across the width (see
+/// the module comment), Contrast lines `LINE_WIDTH * long / 2048` px wide, where `long` is the
+/// long side. A pixel is clear (alpha 0) exactly where no line reaches. `milli` comes from
+/// [`milli_of`], and `work` is a checked RGB picture.
+pub fn layer(work: &Rgb, milli: usize) -> Vec<u8> {
     let size = (work.width, work.height);
-    // `width` px at a long side of 2048, in steps of 1/256 px, so a bigger picture keeps the look
-    // of the screen
-    let n = (size.0.max(size.1) * width) as u64 / 8;
-    Ok(Setup {
-        size,
-        thin: line_of(n),
-        heavy: line_of(2 * n),
-    })
-}
-
-/// The guide lines on a clear RGBA picture of the work size. `mode` 0 draws the thirds, 1 the grid
-/// of exactly `cells` squares across the width (rows from the top, or with `center` in the
-/// middle), 2 both (the grid, and the thirds on top as heavy
-/// lines). A line is `width * long / 2048` px wide, where `long` is the long side (see the module
-/// comment for lines under 1 px), and the line after every `group` cells is twice that. `color`
-/// is `0xRRGGBB` or [`CONTRAST`]. A pixel is clear (alpha 0) exactly where no line reaches.
-///
-/// # Errors
-/// [`Error::BadInput`] for a mode of 3 or more, `width` outside 1 to [`MAX_WIDTH`], or `color`
-/// above [`CONTRAST`]. `work` is a checked RGB picture, and `cells` and `group` come from
-/// [`cells_of`] and [`group_of`].
-// The render calls go through `layer_milli`; the whole count form stays for the unit tests.
-#[cfg(test)]
-pub fn layer(
-    work: &Rgb,
-    mode: u8,
-    cells: usize,
-    width: usize,
-    group: usize,
-    color: u32,
-    center: bool,
-) -> Result<Vec<u8>> {
-    layer_milli(work, mode, cells * MILLI, width, group, color, center)
-}
-
-/// [`layer`] with the squares across the width counted in thousandths: `milli` 7500 is 7.5
-/// squares, so a square size that does not divide the width (a grid of cm on a paper) is drawn
-/// with the part square at the right and bottom edge. A whole count `c` is `c * MILLI`, and draws
-/// the same bytes as [`layer`]. `milli` comes from [`milli_of`].
-///
-/// # Errors
-/// The same as [`layer`].
-pub fn layer_milli(
-    work: &Rgb,
-    mode: u8,
-    milli: usize,
-    width: usize,
-    group: usize,
-    color: u32,
-    center: bool,
-) -> Result<Vec<u8>> {
-    let Setup { size, thin, heavy } = setup(work, mode, width, color)?;
-    let mask = if mode == 0 {
-        let mut m = vec![0u8; size.0 * size.1];
-        thirds_into(&mut m, size, thin);
-        m
-    } else {
-        let mut m = grid_mask(size, milli, thin, heavy, group, center);
-        if mode == 2 {
-            thirds_into(&mut m, size, heavy);
-        }
-        m
-    };
+    let mask = grid_mask(size, milli, line_for(size));
     // Contrast colors are worked out on the line pixels only
-    let means = (color == CONTRAST).then(|| {
-        let m = patch_means(work);
-        let dark = line_tones(&mask, &m[0], size);
-        (m, dark)
-    });
-    let one = color.to_be_bytes();
+    let m = patch_means(work);
+    let dark = line_tones(&mask, &m[0], size);
     let mut out = vec![0u8; size.0 * size.1 * 4];
     for (i, (px, &a)) in out.chunks_exact_mut(4).zip(&mask).enumerate() {
         if a > 0 {
-            let c = means
-                .as_ref()
-                .map_or([one[1], one[2], one[3]], |([l, ca, cb], dark)| {
-                    complement([l[i], ca[i], cb[i]], dark[i])
-                });
+            let c = complement([m[0][i], m[1][i], m[2][i]], dark[i]);
             px.copy_from_slice(&[c[0], c[1], c[2], a]);
         }
     }
-    Ok(out)
+    out
 }
 
 #[cfg(test)]
@@ -533,48 +354,31 @@ mod tests {
     use super::*;
     use crate::img::Image;
 
-    /// The picked color the tests draw with.
-    const RED: [u8; 3] = [230, 30, 30];
-    const RED_RGB: u32 = 0x00E6_1E1E;
-
-    /// The layer laid over the photo, by the "over" rule: the picture the grid shows, in red at
-    /// width 8 (1 to 2 px on these small photos) and group 2 x 2.
-    fn view(work: &Rgb, mode: u8, cells: usize) -> Result<Rgb> {
-        Ok(over(work, &layer(work, mode, cells, 8, 2, RED_RGB, false)?))
-    }
-
-    fn over(work: &Rgb, layer: &[u8]) -> Rgb {
-        let mut out = work.clone();
-        for (px, l) in out.data.chunks_exact_mut(3).zip(layer.chunks_exact(4)) {
-            let a = u32::from(l[3]);
-            for (v, &t) in px.iter_mut().zip(&l[..3]) {
-                *v = ((u32::from(*v) * (255 - a) + u32::from(t) * a + 127) / 255) as u8;
-            }
-        }
-        out
+    /// The layer of a flat photo or `work` with `cells` squares across the width.
+    fn cells_layer(work: &Rgb, cells: usize) -> Vec<u8> {
+        layer(work, cells * MILLI)
     }
 
     fn flat(w: usize, h: usize, v: u8) -> Rgb {
         Image::filled(w, h, &[v, v, v])
     }
 
-    /// The pixels a layer covers.
-    fn ink(layer: &[u8]) -> usize {
-        layer.chunks_exact(4).filter(|p| p[3] > 0).count()
+    /// Is the pixel `(x, y)` of a layer `w` px wide on a line?
+    fn lit(layer: &[u8], w: usize, x: usize, y: usize) -> bool {
+        layer[(y * w + x) * 4 + 3] > 0
     }
 
-    /// The number of runs of pixels that differ from `v`, along a row (`along_x`) or a column.
-    fn runs(img: &Rgb, v: u8, at: usize, along_x: bool) -> usize {
-        let len = if along_x { img.width } else { img.height };
+    /// The number of runs of line pixels along a row (`along_x`) or a column.
+    fn runs(layer: &[u8], (w, h): (usize, usize), at: usize, along_x: bool) -> usize {
+        let len = if along_x { w } else { h };
         let mut n = 0;
         let mut inside = false;
         for i in 0..len {
-            let p = if along_x {
-                img.pixel(i, at)
+            let on = if along_x {
+                lit(layer, w, i, at)
             } else {
-                img.pixel(at, i)
+                lit(layer, w, at, i)
             };
-            let on = p[0] != v;
             if on && !inside {
                 n += 1;
             }
@@ -608,21 +412,19 @@ mod tests {
     }
 
     #[test]
-    fn test_thirds_line_width_follows_the_size() {
-        // width 4 is 1 px at 512 and 2 px at 1024: count the line pixels on the top row
-        let row = |w: usize, h: usize| {
-            ink(&layer(&flat(w, h, 120), 0, 6, 4, 2, RED_RGB, false).unwrap()[..w * 4])
+    fn test_line_width_follows_the_size() {
+        // 2 px at a long side of 2048, so 1 px on the 1024 px screen picture and half see-through
+        // at 512
+        assert_eq!(line_for((2048, 1024)), Line { px: 2, alpha: 255 });
+        assert_eq!(line_for((1024, 768)), Line { px: 1, alpha: 255 });
+        assert_eq!(line_for((512, 384)), Line { px: 1, alpha: 128 });
+        assert!(line_for((100, 80)).px >= 1);
+        // a bigger picture has wider lines: count the line pixels on the top of a column
+        let col = |w: usize, h: usize| {
+            let out = cells_layer(&flat(w, h, 120), 6);
+            (0..w).filter(|&x| lit(&out, w, x, 3)).count()
         };
-        assert_eq!((row(512, 256), row(1024, 512)), (2, 4));
-    }
-
-    #[test]
-    fn test_a_picked_color_is_the_only_color() {
-        let out = layer(&flat(240, 180, 120), 2, 8, 4, 2, 0x0012_3456, false).unwrap();
-        assert!(ink(&out) > 0);
-        for p in out.chunks_exact(4).filter(|p| p[3] > 0) {
-            assert_eq!(&p[..3], &[0x12, 0x34, 0x56]);
-        }
+        assert_eq!((col(1024, 512), col(2048, 1024)), (5, 10));
     }
 
     #[test]
@@ -634,7 +436,7 @@ mod tests {
                 work.data[(y * 240 + x) * 3..][..3].copy_from_slice(&[230; 3]);
             }
         }
-        let out = layer(&work, 1, 8, 8, 2, CONTRAST, false).unwrap();
+        let out = cells_layer(&work, 8);
         let at = |x: usize, y: usize| &out[(y * 240 + x) * 4..][..4];
         // the horizontal line at 30 px down, far from the middle
         assert!(at(20, 30)[3] > 0 && at(220, 30)[3] > 0);
@@ -667,136 +469,65 @@ mod tests {
     }
 
     #[test]
-    fn test_view_thirds_lines_at_thirds() {
-        // a square photo: the whole photo, not a crop
-        let out = view(&flat(300, 300, 120), 0, 8).unwrap();
-        assert_eq!((out.width, out.height), (300, 300));
-        assert_eq!(out.pixel(100, 10), &RED);
-        assert_eq!(out.pixel(200, 10), &RED);
-        assert_eq!(out.pixel(50, 10), &[120; 3]);
-        assert_eq!(out.pixel(100, 100), &RED);
-        assert_eq!(out.pixel(50, 200), &RED);
-        assert_eq!(out.pixel(50, 150), &[120; 3]);
-        // two lines across, two down, one pixel wide, crossing twice each
-        let marked = out.data.chunks_exact(3).filter(|p| p == &RED).count();
-        assert_eq!(marked, 2 * 300 + 2 * 300 - 4);
-    }
-
-    #[test]
-    fn test_view_grid_cells_count() {
+    fn test_grid_cells_count() {
         let work = flat(480, 360, 120);
         for cells in [4, 8, 12] {
-            let out = view(&work, 1, cells).unwrap();
-            assert_eq!((out.width, out.height), (480, 360));
+            let out = cells_layer(&work, cells);
+            assert_eq!(out.len(), 480 * 360 * 4);
             // a row and a column away from the lines: cells - 1 lines across, 3 * cells / 4 - 1 down
-            assert_eq!(runs(&out, 120, 7, true), cells - 1, "across, {cells} cells");
+            let size = (480, 360);
             assert_eq!(
-                runs(&out, 120, 7, false),
+                runs(&out, size, 7, true),
+                cells - 1,
+                "across, {cells} cells"
+            );
+            assert_eq!(
+                runs(&out, size, 7, false),
                 cells * 3 / 4 - 1,
                 "down, {cells} cells"
             );
         }
-        // the line after every 2 or 4 cells is heavier, never the third
-        let (thin, heavy) = (line_of(256), line_of(512));
-        for (group, at_heavy) in [(2, 80), (4, 160)] {
-            let mask = grid_mask((480, 360), 12 * MILLI, thin, heavy, group, false);
-            let width_at = |x: usize| {
-                (x.saturating_sub(4)..x + 4)
-                    .filter(|&i| mask[7 * 480 + i] > 0)
-                    .count()
-            };
-            assert_eq!(width_at(40), 1, "group {group}");
-            assert_eq!(width_at(120), 1, "group {group}");
-            assert_eq!(width_at(at_heavy), 2, "group {group}");
-        }
     }
 
     #[test]
-    fn test_line_width_follows_the_knob() {
-        // `width` px at a long side of 2048, scaled with the long side
-        for width in 1..=MAX_WIDTH {
-            let at = |w: usize, h: usize| setup(&flat(w, h, 120), 1, width, 0).unwrap();
-            let big = at(2048, 1024);
-            assert_eq!(
-                big.thin,
-                Line {
-                    px: width,
-                    alpha: 255
-                },
-                "width {width} at 2048"
-            );
-            assert_eq!(big.heavy.px, 2 * width, "width {width} at 2048");
-            assert!(at(100, 80).thin.px >= 1, "width {width} at 100");
-        }
-        // under 1 px: 1 px and see-through in step; the thinnest line on the screen picture
-        let screen = |width| setup(&flat(1024, 768, 120), 1, width, 0).unwrap().thin;
-        assert_eq!(screen(1), Line { px: 1, alpha: 128 });
-        assert_eq!(screen(2), Line { px: 1, alpha: 255 });
-        assert_eq!(screen(4), Line { px: 2, alpha: 255 });
-        let ink_at = |width| ink(&layer(&flat(512, 384, 120), 1, 8, width, 2, 0, false).unwrap());
-        assert!(ink_at(12) > ink_at(4), "a wider line covers more");
-    }
-
-    #[test]
-    fn test_view_both_has_heavy_thirds() {
+    fn test_all_lines_are_alike() {
+        // no heavy line: every line has the width of the first one, and nothing but the grid is
+        // drawn (no thirds): the lit pixels of a row away from the lines are the vertical lines only
         let work = flat(480, 360, 120);
-        let both = layer(&work, 2, 8, 8, 2, RED_RGB, false).unwrap();
-        let grid = layer(&work, 1, 8, 8, 2, RED_RGB, false).unwrap();
-        assert!(ink(&both) > ink(&grid));
-        // the grid lines are still there, and the two thirds lines across
-        assert_eq!(runs(&over(&work, &both), 120, 7, true), 7 + 2);
+        let out = cells_layer(&work, 12);
+        let width_at = |x: usize| (x - 4..x + 4).filter(|&i| lit(&out, 480, i, 7)).count();
+        let line = line_for((480, 360));
+        for x in [40, 80, 120, 160, 240] {
+            assert_eq!(width_at(x), line.px, "line at {x}");
+        }
+        assert!(out.chunks_exact(4).all(|p| p[3] == 0 || p[3] == line.alpha));
+        // 11 lines each way across the 480 wide, 8 down the 360 high: the thirds would add more
+        let count = (0..480 * 360).filter(|&i| out[i * 4 + 3] > 0).count();
+        assert_eq!(count, 11 * 360 + 8 * 480 - 11 * 8);
     }
 
     #[test]
-    fn test_view_covers_the_whole_photo() {
-        // The picture keeps its size and every line runs edge to edge.
+    fn test_covers_the_whole_photo() {
+        // The layer keeps the size and every line runs edge to edge.
         for (w, h) in [(401, 299), (299, 401), (360, 360)] {
-            let work = flat(w, h, 100);
-            for mode in 0..3 {
-                let out = view(&work, mode, 6).unwrap();
-                assert_eq!((out.width, out.height), (w, h), "mode {mode}");
-            }
-            // thirds: the first vertical line touches the top and the bottom row
-            let x = scaled(w as u64, 1, 3);
-            let thirds = view(&work, 0, 6).unwrap();
-            assert_ne!(thirds.pixel(x, 0), &[100; 3], "{w} x {h} top");
-            assert_ne!(thirds.pixel(x, h - 1), &[100; 3], "{w} x {h} bottom");
-            // grid: a horizontal line touches the left and the right column
-            let grid = view(&work, 1, 6).unwrap();
-            let y = (w + 3) / 6;
-            assert_ne!(grid.pixel(0, y), &[100; 3], "{w} x {h} left");
-            assert_ne!(grid.pixel(w - 1, y), &[100; 3], "{w} x {h} right");
+            let out = cells_layer(&flat(w, h, 100), 6);
+            assert_eq!(out.len(), w * h * 4, "{w} x {h}");
+            // a vertical line touches the top and the bottom row
+            let x = (0..w).find(|&x| lit(&out, w, x, 0)).expect("a line");
+            assert!(lit(&out, w, x, h - 1), "{w} x {h} bottom");
+            // a horizontal line touches the left and the right column
+            let y = (0..h).find(|&y| lit(&out, w, 0, y)).expect("a line");
+            assert!(lit(&out, w, w - 1, y), "{w} x {h} right");
         }
     }
 
     #[test]
-    fn test_view_bad_cells() {
-        let work = flat(120, 90, 100);
-        for cells in [0, 2, 5, 7, 11, 13, 14, 16, 25, 60, 100] {
-            assert!(cells_of(cells).is_err(), "{cells} cells");
+    fn test_bad_milli() {
+        for milli in [0, 1, 99, 500_001, u32::MAX] {
+            assert!(milli_of(milli).is_err(), "{milli}");
         }
-        for cells in CELL_STEPS {
-            assert_eq!(cells_of(cells as u32).unwrap(), cells);
-            assert!(view(&work, 1, cells).is_ok(), "{cells} cells");
-            assert!(view(&work, 0, cells).is_ok(), "{cells} cells, thirds");
-        }
-        assert!(view(&work, 3, 8).is_err());
-        for width in [0, 17, 100] {
-            assert!(
-                layer(&work, 1, 8, width, 2, 0, false).is_err(),
-                "width {width}"
-            );
-        }
-        for group in [0, 1, 3, 5, 8] {
-            assert!(group_of(group).is_err(), "group {group}");
-        }
-        assert_eq!(group_of(4).unwrap(), 4);
-        assert!(layer(&work, 1, 8, 2, 2, CONTRAST, false).is_ok());
-        for color in [CONTRAST + 1, u32::MAX] {
-            assert!(
-                layer(&work, 1, 8, 2, 2, color, false).is_err(),
-                "color {color}"
-            );
+        for milli in [100, 7500, 500_000] {
+            assert_eq!(milli_of(milli).unwrap(), milli as usize);
         }
     }
 
@@ -804,12 +535,9 @@ mod tests {
     fn test_cells_fit_the_width_exactly() {
         // a tall photo: 18 cells across the width are 18 whole squares, 17 lines, none cut
         let work = flat(360, 480, 120);
-        let out = view(&work, 1, 18).unwrap();
-        assert_eq!(runs(&out, 120, 7, true), 17, "across");
-        let spots: Vec<usize> = line_spots(360, 360, 18 * MILLI, false)
-            .iter()
-            .map(|s| s.0)
-            .collect();
+        let out = cells_layer(&work, 18);
+        assert_eq!(runs(&out, (360, 480), 7, true), 17, "across");
+        let spots = line_spots(360, 360, 18 * MILLI);
         assert_eq!(spots.len(), 17);
         assert!(
             spots.iter().enumerate().all(|(i, &x)| x == 20 * (i + 1)),
@@ -818,28 +546,13 @@ mod tests {
     }
 
     #[test]
-    fn test_center_puts_a_heavy_line_in_the_middle() {
-        // 300 x 210, 9 cells of 33.3 px: with center a line with count 0 (a heavy one) runs
-        // through the middle each way, and the lines sit the same on both sides of it
-        for (len, cells) in [(300, 9), (210, 9), (300, 18), (211, 12)] {
-            let spots = line_spots(len, 300, cells * MILLI, true);
-            let zero: Vec<usize> = spots.iter().filter(|s| s.1 == 0).map(|s| s.0).collect();
-            assert_eq!(zero, vec![len / 2], "{len} px, {cells} cells");
-            for &(at, k) in &spots {
-                assert!(
-                    spots
-                        .iter()
-                        .any(|&(b, m)| m == k && (at + b).abs_diff(len) <= 1),
-                    "{len} px, {cells} cells: line {k} at {at} has no twin"
-                );
-            }
-        }
-        // without center the squares start at the top left: the first line is one square in
-        assert_eq!(line_spots(210, 300, 9 * MILLI, false)[0], (33, 1));
-        // an even count still fills the width exactly with center on
+    fn test_squares_start_at_the_top_left() {
+        // 9 squares across 300 px: the first line is one square in, and the rows use the same size
+        assert_eq!(line_spots(210, 300, 9 * MILLI)[0], 33);
+        // 7.5 squares of 40 px: the last square at the right is a half one, no line at the edge
         assert_eq!(
-            line_spots(300, 300, 18 * MILLI, true).len(),
-            line_spots(300, 300, 18 * MILLI, false).len()
+            line_spots(300, 300, 7500),
+            [40, 80, 120, 160, 200, 240, 280]
         );
     }
 }

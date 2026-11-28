@@ -22,7 +22,8 @@ The facts live in the public docs. Read the one you need. This file adds only wh
 - A new test id follows the patterns in `DESIGN.md`. Find a real id with `rg data-testid app/web/src`.
 - Real photos stay in `.agents/web-photos/` (ignored).
 - Cloudflare: Worker `atelier` on `atelier.stevanpavlovic.com`, account id pinned in
-  `wrangler.jsonc`. Never another account. No helper runs `wrangler`.
+  `wrangler.jsonc`. Never another account. No helper runs `wrangler`. The Worker is static assets
+  only: no Worker script, no `POST /share`.
 - The Workers Build settings live only in the dashboard (Worker `atelier`, Settings, Builds):
   the build and deploy commands from `release.md`, preview builds off, build caching on, and the
   variable `PNPM_VERSION=12.9.1`.

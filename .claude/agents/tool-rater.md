@@ -1,6 +1,6 @@
 ---
 name: tool-rater
-description: Use to score the Atelier layer sheets made by the tool bench (before and after rows of Edges, Shapes, Values and Grid) like a painter would, and list what is still wrong with a cause guess per problem. Read-only on code; writes one report file the caller names.
+description: Use to score the Atelier layer sheets made by the tool bench (before and after rows of Shapes, Values and Grid) like a painter would, and list what is still wrong with a cause guess per problem. Read-only on code; writes one report file the caller names.
 tools: Read, Glob, Grep, Write
 model: sonnet
 effort: high
@@ -18,8 +18,7 @@ sheets from `crates/atelier-core/examples/bench.rs` and a report path.
 
 ## The sheets
 
-- `row-<tag>-<photo>.png`: the four layers of one photo, left to right: Edges, Shapes, Values,
-  Grid.
+- `row-<tag>-<photo>.png`: the three layers of one photo, left to right: Shapes, Values, Grid.
 - `cmp-<before>-<after>-<photo>.png`: the `row` sheets of two tags stacked, before on top.
 - `<tag>-<layer>-<photo>.png` is one layer.
 
@@ -28,11 +27,9 @@ folder you were given and the code.
 
 ## What a good layer is
 
-- Edges (ink on white paper): clean outlines of the big shapes. No closed loop round a whole
-  face, no boxes, no wiggles from JPEG blocks.
 - Shapes: the big masses a painter blocks in. Small subjects (a lemon, a cup) keep their own shape.
 - Values: a few calm value masses. A face keeps one light side and one shadow side.
-- Grid: even lines over the whole picture, thirds and cells, thin and straight. Nothing else.
+- Grid: even squares over the whole picture, from the top left corner, thin and straight. Nothing else.
 
 ## Score
 

@@ -1,15 +1,14 @@
 ---
 name: tool-bench
-description: Run real photos through the Atelier parts (Values, Shapes, Edges, Grid) with the core alone, the way the web app does, and make before and after sheets; also scores Edges on BSDS500. Use to check a change on real photos, to find the cause of a bad part, or before a rating round. Faster than the app and needs no browser.
+description: Run real photos through the Atelier parts (Values, Shapes, Grid) with the core alone, the way the web app does, and make before and after sheets. Use to check a change on real photos, to find the cause of a bad part, or before a rating round. Faster than the app and needs no browser.
 ---
 
 # Tool bench
 
 The reference tests (`cargo refs`) use one synthetic picture. A real photo shows more. The
 bench (`crates/atelier-core/examples/bench.rs`) calls the same typed layer calls as the web app
-(`values_layer`, `shapes_layer`, `edges_layer`, `grid_layer`), with the start values of `LOOK`
+(`values_layer`, `shapes_layer`, `grid_layer`), with the start values of `LOOK`
 in `app/web/src/features/tools/settings.ts`, on a 1024 px work picture. It needs no browser.
-Pencil is not in the bench: score a Pencil change with `bench/pencil-eval/` (its README).
 
 ## Rules
 
@@ -23,7 +22,7 @@ Pencil is not in the bench: score a Pencil change with `bench/pencil-eval/` (its
 
 ## What a run draws
 
-Per photo, one row: Edges, Shapes, Values, Grid, left to right. The file names and how each layer
+Per photo, one row: Shapes, Values, Grid, left to right. The file names and how each layer
 is shown are in the `//!` of `bench.rs`.
 
 ## Steps
@@ -39,7 +38,7 @@ is shown are in the `//!` of `bench.rs`.
    one photo only.
    `BENCH_*` env vars override the start values for one run; the list is in the `//!` of
    `crates/atelier-core/examples/bench.rs`. For example
-   `BENCH_EDGES_MODE=1 cargo run -q --release -p atelier-core --example bench -- render IN OUT after-m1`.
+   `BENCH_VALUES_PRESET=2 cargo run -q --release -p atelier-core --example bench -- render IN OUT after-m1`.
 3. Stack them:
    `cargo run -q --release -p atelier-core --example bench -- compare .agents/bench/sheets before after`.
    Each `.agents/bench/sheets/cmp-before-after-<photo>.png` has the before rows on top and the after rows
@@ -51,18 +50,6 @@ is shown are in the `//!` of `bench.rs`.
 6. For a scored round on many photos, call the `tool-rater` agent with the sheet folder and a
    report path (for example `.agents/reports/<date>-rating.md`).
 7. For the real browser path (the worker, the page), run `mise run web:e2e`.
-
-## Edges score
-
-`examples/edge_score.rs` draws Edges for each photo of a folder at its own long side and saves the
-ink as a gray PNG. `scripts/edge_score.py` scores those pictures against the BSDS500 boundaries
-(data in `.agents/bench/bsds`) and prints the F-score:
-
-```bash
-cargo run -q --release -p atelier-core --example edge_score -- IN OUT [MODE] [AMOUNT]
-```
-
-Outputs stay under `.agents/`. Run the script on `OUT` as its header says.
 
 ## What to report
 

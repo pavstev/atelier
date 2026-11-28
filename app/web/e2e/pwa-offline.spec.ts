@@ -14,7 +14,7 @@ test("offline_reload_draws", async ({ studio, page, context }) => {
 	await context.setOffline(true);
 	await page.reload();
 	await studio.open(MAIN_PHOTO);
-	await studio.layer("edges", true);
-	expect((await studio.stats("layer-canvas-edges")).max).toBeGreaterThan(0);
+	await studio.layer("grid", true);
+	expect((await studio.stats("layer-canvas-grid")).max).toBeGreaterThan(0);
 	await context.setOffline(false);
 });

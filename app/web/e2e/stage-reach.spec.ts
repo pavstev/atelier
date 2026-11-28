@@ -1,6 +1,6 @@
 // The reach of the stage and the side panel: the pan limit (500 px of empty stage at most), the
-// double click and the pinch, the one thin scrollbar, no page bounce, the whole-photo tiles and
-// their quiet rebuild for photos saved by an earlier version.
+// double click and the pinch, the one thin scrollbar, no page bounce, the whole-photo list previews
+// and their quiet rebuild for photos saved by an earlier version, and the list as rows only.
 import type { Page } from "@playwright/test";
 import { box, dragBy, expect, KEYS, store, stored, test } from "./studio";
 
@@ -43,9 +43,7 @@ test("test_the_photo_cannot_be_panned_more_than_500_px_off_the_stage", async ({
 	).toBeLessThanOrEqual(500.5);
 });
 
-test("test_a_double_click_toggles_fit_and_100_percent_and_the_lock_stops_it", async ({
-	studio,
-}) => {
+test("test_a_double_click_toggles_fit_and_100_percent", async ({ studio }) => {
 	const { page } = studio;
 	await studio.openSynthetic(480, 640, "dbl.png");
 	const fit = await percent(page);
@@ -55,12 +53,6 @@ test("test_a_double_click_toggles_fit_and_100_percent_and_the_lock_stops_it", as
 	await expect(page.getByTestId("zoom-percent")).toHaveText("100%");
 	await stage.dblclick({ position: { x: 700, y: 250 } });
 	await expect(page.getByTestId("zoom-percent")).toHaveText(`${fit}%`);
-	// locked: the zoom stays
-	await studio.zoom("real");
-	await page.keyboard.press("Escape");
-	const locked = await percent(page);
-	await stage.dblclick({ position: { x: 700, y: 250 } });
-	expect(await percent(page)).toBe(locked);
 });
 
 test("test_two_fingers_pinch_the_photo_larger", async ({ studio }) => {
@@ -115,7 +107,7 @@ test("test_one_thin_scrollbar_for_the_list_and_no_page_bounce", async ({
 	expect(info.body).toBe("none");
 });
 
-test("test_list_tiles_show_the_whole_photo_and_old_tiles_are_made_again", async ({
+test("test_list_previews_show_the_whole_photo_and_old_ones_are_made_again", async ({
 	studio,
 }) => {
 	const { page } = studio;
@@ -125,7 +117,7 @@ test("test_list_tiles_show_the_whole_photo_and_old_tiles_are_made_again", async 
 	await expect
 		.poll(async () => (await docs()).every((d: { tile: boolean }) => d.tile))
 		.toBe(true);
-	// the tile is square and the picture inside keeps the photo's shape
+	// the preview box is square and the picture inside keeps the photo's shape
 	const tile = await page
 		.getByTestId("photo-row")
 		.nth(0)
@@ -157,33 +149,25 @@ test("test_list_tiles_show_the_whole_photo_and_old_tiles_are_made_again", async 
 		.toBe(true);
 });
 
-test("test_the_layout_button_shows_tiles_and_the_choice_is_kept", async ({
+test("test_the_list_has_rows_only_and_an_old_tiles_choice_is_ignored", async ({
 	studio,
 }) => {
 	const { page } = studio;
 	await studio.openSynthetic(480, 640, "one.png");
 	await studio.openSynthetic(640, 320, "two.png");
-	const list = page.getByTestId("photos");
-	await expect(list).toHaveAttribute("data-layout", "list");
+	await expect(page.getByTestId("photo-layout")).toHaveCount(0);
 	const rowH = (await page.getByTestId("photo-row").first().boundingBox())
 		?.height;
-	await page.getByTestId("photo-layout").click();
-	await expect(list).toHaveAttribute("data-layout", "tiles");
-	// a tile is taller than a row and its picture is square
-	const tile = await page.getByTestId("photo-row").first().boundingBox();
-	expect(tile?.height).toBeGreaterThan((rowH ?? 0) * 1.5);
-	// the pen and the bin, the open button and the hover card still work in tiles
+	expect(rowH).toBeLessThan(48);
+	// a saved "tiles" layout of an earlier version still gives rows
+	await store(page, KEYS.list, { sort: "newest", layout: "tiles" });
+	await page.reload();
+	await expect(page.getByTestId("photo-row")).toHaveCount(2);
+	await expect(page.getByTestId("photo-layout")).toHaveCount(0);
+	expect(
+		(await page.getByTestId("photo-row").first().boundingBox())?.height,
+	).toBeCloseTo(rowH ?? 0, 0);
+	// the open button still shows the photo
 	await page.getByTestId("photo-row").nth(1).getByTestId("photo-open").click();
 	await expect(page.getByTestId("facts")).toContainText("one.png");
-	// a reload keeps the choice
-	await page.reload();
-	await expect(page.getByTestId("photos")).toHaveAttribute(
-		"data-layout",
-		"tiles",
-	);
-	await page.getByTestId("photo-layout").click();
-	await expect(page.getByTestId("photos")).toHaveAttribute(
-		"data-layout",
-		"list",
-	);
 });

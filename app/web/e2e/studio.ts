@@ -168,47 +168,17 @@ export function readCanvas<T>(
 /** The photo the layer specs draw. */
 export const MAIN_PHOTO = join(PHOTOS_DIR, "mona-lisa-2400.jpg");
 
-/** The stacked layers: the base (Values or Shapes), Edges and Grid. */
+/** The stacked layers: the base (Values or Shapes) and Grid. */
 export type LayerId = StageId;
 export type BaseKind = Look["base"]["kind"];
 
 type Stats = { w: number; h: number; hash: number; min: number; max: number };
 
-/** The tool whose card holds a control: Edges, Grid, or the Base card for the rest. */
+/** The tool whose card holds a control: Grid, or the Base card for the rest. */
 function toolOf(testid: string): LayerId {
 	const id = testid.replace(/^(layer|opacity)-/, "");
-	if (id.startsWith("edges")) return "edges";
 	if (id.startsWith("grid")) return "grid";
 	return "base";
-}
-
-/** The three tabs of the Pencil card. */
-export type PencilTab = "look" | "effects" | "pencils";
-
-/** The tab each control of the Pencil card lives in; the ones not listed are in Look. */
-export const TAB_OF: Record<string, PencilTab> = {
-	"pencil-smudge": "effects",
-	"pencil-lift": "effects",
-	"pencil-cross": "effects",
-	"pencil-darks": "effects",
-	"pencil-local": "effects",
-	"pencil-grain": "effects",
-	"pencil-paper": "effects",
-	"pencil-hatch-angle": "effects",
-	"pencil-hatch-density": "effects",
-	"pencil-suggest-count": "pencils",
-	"pencil-suggest": "pencils",
-	"pencil-grades": "pencils",
-};
-
-/** Opens the Base card and one of its Pencil tabs. */
-export async function openTab(studio: Studio, name: PencilTab) {
-	await studio.tool("base");
-	await studio.page.getByTestId(`pencil-tab-${name}`).click();
-	await expect(studio.page.getByTestId(`pencil-tab-${name}`)).toHaveAttribute(
-		"aria-selected",
-		"true",
-	);
 }
 
 export class Studio {
@@ -300,7 +270,7 @@ export class Studio {
 	}
 
 	/** Picks an item of the zoom menu. */
-	async zoom(item: "fit" | "actual" | "200" | "real" | "unlock") {
+	async zoom(item: "fit" | "actual" | "200") {
 		await this.page.locator("[data-testid=zoom-menu]").click();
 		await this.page.locator(`[data-testid=zoom-${item}]`).click();
 	}
@@ -311,8 +281,8 @@ export class Studio {
 		return this.page.locator(`[data-testid=${testid}] input`).isChecked();
 	}
 
-	/** Turns Edges or Grid on or off. On waits for its picture. Does nothing if it is already so. */
-	async layer(id: "edges" | "grid", on: boolean) {
+	/** Turns Grid on or off. On waits for its picture. Does nothing if it is already so. */
+	async layer(id: "grid", on: boolean) {
 		if ((await this.isOn(`layer-${id}`)) === on) return;
 		const click = () => this.page.locator(`[data-testid=layer-${id}]`).click();
 		if (on) {
@@ -328,12 +298,12 @@ export class Studio {
 		}
 	}
 
-	/** Presses the main part of the Edges or Grid bar button (not its chevron). It opens no card. */
-	toggle(id: "edges" | "grid") {
+	/** Presses the main part of the Grid bar button (not its chevron). It opens no card. */
+	toggle(id: "grid") {
 		return this.page.locator(`[data-testid=toggle-${id}]`).click();
 	}
 
-	/** Picks the base: Photo and Paper draw nothing, Values and Shapes wait for their picture. */
+	/** Picks the base: Photo draws nothing, Values and Shapes wait for their picture. */
 	async base(kind: BaseKind) {
 		await this.tool("base");
 		const pick = () =>
@@ -343,7 +313,7 @@ export class Studio {
 				.nth(BASES.findIndex((b) => b.id === kind))
 				.click();
 		const canvas = this.page.locator("[data-testid=layer-canvas-base]");
-		if (kind === "photo" || kind === "paper") {
+		if (kind === "photo") {
 			await pick();
 			await canvas.waitFor({ state: "detached", timeout: 10_000 });
 			return;
@@ -354,12 +324,10 @@ export class Studio {
 
 	/**
 	 * Sets a knob. A slider gets the value itself. A row of buttons or a list gets the index of
-	 * its option. A `pencil-*` knob first gets its tab of the Pencil card (`TAB_OF`).
-	 * Waits for the layer to draw again.
+	 * its option. Waits for the layer to draw again.
 	 */
 	async knob(id: string, value: string | number) {
-		if (id.startsWith("pencil-")) await openTab(this, TAB_OF[id] ?? "look");
-		else await this.tool(toolOf(id));
+		await this.tool(toolOf(id));
 		const root = this.page.locator(`[data-testid=${id}]`);
 		const range = root.locator("input[type=range]");
 		if ((await range.count()) > 0) {

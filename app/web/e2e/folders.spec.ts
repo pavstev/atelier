@@ -1,5 +1,5 @@
 // Folders in the photo list: make one from the plus menu, nest, move photos and folders (menu and
-// drag), the counts, open state, delete with a question, search and the tiles layout. Photos are
+// drag), the counts, open state, delete with a question, and search. Photos are
 // small synthetic ones, and one real photo for the restore after a reload.
 import type { Locator, Page } from "@playwright/test";
 import { expect, KEYS, MAIN_PHOTO, stored, test } from "./studio";
@@ -418,24 +418,6 @@ test("test_a_photo_in_a_closed_folder_opens_the_folders_around_it_after_a_reload
 	await expect(page.getByTestId("facts")).toContainText("mona-lisa-2400.jpg", {
 		timeout: 30_000,
 	});
-});
-
-test("test_tiles_show_a_grid_under_an_open_folder", async ({ studio }) => {
-	const { page } = studio;
-	await studio.openSynthetic(120, 160, "one.png");
-	await studio.openSynthetic(120, 160, "two.png");
-	await newFolder(page, "Art");
-	await moveTo(photo(page, "one.png"), "photo-move", "Art");
-	const inside = page.getByTestId("folder-photos");
-	await expect(inside).toHaveAttribute("data-layout", "list");
-	await expect(inside).toHaveCSS("display", "flex");
-	await page.getByTestId("photo-layout").click();
-	await expect(inside).toHaveAttribute("data-layout", "tiles");
-	await expect(inside).toHaveCSS("display", "grid");
-	await expect(page.getByTestId("photos")).toHaveCSS("display", "grid");
-	// a tile still carries its hover buttons
-	await photo(page, "one.png").hover();
-	await expect(photo(page, "one.png").getByTestId("photo-move")).toBeVisible();
 });
 
 // After a menu closes with Esc, the focus goes back to the plus and its tip can stay open under it.

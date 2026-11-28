@@ -15,8 +15,8 @@
 //!    V2, 4, 6 and 8.
 //! 5. Mode filter 5x5. Merge regions under a share of the area. Keep a small region that is two
 //!    or more steps away from every neighbor.
-//! 6. Paint each step at the tone of the preset (the three preset: the Munsell value of the
-//!    step's mean). Every tone is gray, or umber with the tint.
+//! 6. Paint each step at the tone of the preset (the families preset: the Munsell value of the
+//!    step's mean). Every tone is gray.
 //!
 //! The same input gives the same bytes. There is no randomness, no clock and no hash map order
 //! (the region merge uses ordered maps). The cube roots and powers go through `libm`.
@@ -82,8 +82,6 @@ pub struct ValuesOpts {
     pub protect_steps: u8,
     /// Clamp of the Otsu cut for the notan preset, in L*.
     pub notan_clamp: (f32, f32),
-    /// Clamp of the Otsu cut for the family preset, in L*.
-    pub family_clamp: (f32, f32),
 }
 
 impl Default for ValuesOpts {
@@ -101,7 +99,6 @@ impl Default for ValuesOpts {
             mode_radius: 2,
             protect_steps: 2,
             notan_clamp: (35.0, 60.0),
-            family_clamp: (45.0, 65.0),
         }
     }
 }
@@ -459,38 +456,18 @@ fn absorb(parent: &mut [u32], size: &mut [u32], adj: &mut [BTreeMap<u32, u32>], 
 // Paint
 
 /// `OKLab` lightness of a neutral with CIE lightness `l`.
-pub(crate) fn ok_l(l: f32) -> f32 {
+fn ok_l(l: f32) -> f32 {
     libm::cbrtf(y_from_l(l))
 }
 
-/// A gray of CIE lightness `l`.
-fn neutral(l: f32) -> [u8; 3] {
+/// The byte color of a tone of CIE lightness `l`: a gray.
+fn tone_color(l: f32) -> [u8; 3] {
     oklab::to_srgb([ok_l(l), 0.0, 0.0])
-}
-
-/// Hue of the umber tint, in degrees.
-const UMBER_HUE: f32 = 55.0;
-/// Chroma of the umber tint at its strongest (mid lightness).
-const UMBER_CHROMA: f32 = 0.04;
-
-/// The byte color of a tone of CIE lightness `l`. Tint 0 is gray. Tint 1 is umber: the `OKLab` L
-/// of the gray tone, the hue 55 degrees and the chroma `0.04 * sqrt(sin(pi * L))`.
-fn tone_color(l: f32, tint: u8) -> [u8; 3] {
-    let gray = neutral(l);
-    if tint == 0 {
-        return gray;
-    }
-    let lightness = oklab::from_srgb(gray)[0];
-    let chroma = UMBER_CHROMA * (std::f32::consts::PI * lightness).sin().max(0.0).sqrt();
-    let hue = UMBER_HUE.to_radians();
-    oklab::to_srgb([lightness, chroma * hue.cos(), chroma * hue.sin()])
 }
 
 /// The L* of a photo before and after the smoothing, and the numbers read from it.
 struct Analysis {
-    /// L* of every pixel, as it is in the photo.
-    raw: Vec<f32>,
-    /// `raw` after the shadow lift only.
+    /// L* of every pixel after the shadow lift only.
     lifted: Vec<f32>,
     /// L* after the shadow lift, the median and the guided filter.
     smooth: Vec<f32>,
@@ -521,7 +498,6 @@ fn analyze(img: &Rgb, o: &ValuesOpts) -> Analysis {
     let smooth = guided(&med, w, h, radius, o.guide_eps, o.guide_passes);
     let otsu = otsu(&smooth);
     Analysis {
-        raw,
         lifted,
         smooth,
         otsu,
@@ -736,31 +712,9 @@ fn clean_labels(
     mode_filter(&labels, w, h, SMOOTH_RADIUS, steps)
 }
 
-/// The cuts of a family preset. The `side` mass is cut in thirds of its own L* range, the other
-/// mass stays one step. `shadow_side` picks the shadow mass (preset 3) or the light mass (4).
-/// Labels: the shadow family gives 0 to 2 for the shadows and 3 for the light, the light family
-/// gives 0 for the shadow and 1 to 3 for the lights.
-fn family_cuts(smooth: &[f32], cut: f32, shadow_side: bool) -> Vec<f32> {
-    let mass: Vec<f32> = smooth
-        .iter()
-        .copied()
-        .filter(|&v| (v < cut) == shadow_side)
-        .collect();
-    if mass.is_empty() {
-        return vec![cut];
-    }
-    if shadow_side {
-        let step = (cut - percentile(&mass, 0.02)) / 3.0;
-        vec![cut - 2.0 * step, cut - step, cut]
-    } else {
-        let step = (percentile(&mass, 0.98) - cut) / 3.0;
-        vec![cut, cut + step, cut + 2.0 * step]
-    }
-}
-
 /// Paints a label map with a gray of each tone, and lists the tones in the picture, darkest first.
-fn paint_tones(labels: &[u8], tones: &[f32], tint: u8, w: usize, h: usize) -> (Rgb, Vec<[u8; 3]>) {
-    let colors: Vec<[u8; 3]> = tones.iter().map(|&l| tone_color(l, tint)).collect();
+fn paint_tones(labels: &[u8], tones: &[f32], w: usize, h: usize) -> (Rgb, Vec<[u8; 3]>) {
+    let colors: Vec<[u8; 3]> = tones.iter().map(|&l| tone_color(l)).collect();
     let mut image = Rgb::new(w, h, 3);
     let mut used = vec![false; tones.len()];
     for (px, &s) in image.data.chunks_exact_mut(3).zip(labels) {
@@ -774,38 +728,10 @@ fn paint_tones(labels: &[u8], tones: &[f32], tint: u8, w: usize, h: usize) -> (R
     (image, order.into_iter().map(|i| colors[i]).collect())
 }
 
-/// What the Pencil view reads from a photo: two lightness fields (L*).
-pub(crate) struct Fields {
-    /// L* after the shadow lift, the median and the guided filter: the simplified photo.
-    pub smooth: Vec<f32>,
-    /// L* after the shadow lift and a 3x3 median: the photo with its fine detail.
-    pub fine: Vec<f32>,
-}
-
-/// The run of a Pencil draw, after the checks of its numbers and its picture.
-fn pencil_run(work: &Rgb, detail: f32) -> Result<ViewRun> {
-    unit(detail, "pencil detail is not 0 to 1")?;
-    Ok(ViewRun::new(work, detail, 0))
-}
-
-/// The fields of a photo for the Pencil view, smoothed as for the presets (shadow lift, median,
-/// guided filter), with no label map: Tone, Drawing, Hatch and By pencil do not need one.
-/// `detail` 0 to 1 as in [`view`].
-pub(crate) fn fields(work: &Rgb, detail: f32) -> Result<Fields> {
-    Ok(pencil_run(work, detail)?.into_fields())
-}
-
-/// Only the simplified photo (L* after the shadow lift, the median and the guided filter), for the
-/// calls that read the photo and draw nothing: Auto and Suggest.
-pub(crate) fn smooth_of(work: &Rgb) -> Vec<f32> {
-    analyze(work, &ValuesOpts::default()).smooth
-}
-
 /// The view of the Values tool: flat tones made of whole shapes.
 ///
-/// `preset`: 0 notan (2 tones), 1 three, 2 five, 3 shadow family (the shadow mass in three steps,
-/// the light mass one flat tone at its mean), 4 light family (the mirror), 5 families (three
-/// steps that follow the light and shadow families). `detail` is 0 to 1 and
+/// `preset`: 0 notan (2 tones), 1 three, 2 five, 3 families (three steps that follow the light and
+/// shadow families). `detail` is 0 to 1 and
 /// sets the smallest shape that survives: 0 keeps the most (0.05 percent of the area), 1 the
 /// least (1 percent).
 ///
@@ -820,55 +746,30 @@ pub(crate) fn smooth_of(work: &Rgb) -> Vec<f32> {
 ///
 /// The Key rule: a photo whose Otsu cut is over 75 or under 25 (blown out, very dark) can leave
 /// the five preset with fewer than 3 steps. Then the cuts move to the photo's own 33 and 66
-/// percentiles of L* and the three tones are used. The notan, the families preset and the family
-/// presets cut at the median of L* on such a photo, so both masses exist.
+/// percentiles of L* and the three tones are used. The notan and the families preset cut at the
+/// median of L* on such a photo, so both masses exist.
 ///
-/// It returns the picture and its tones as painted bytes, darkest first. `tint` 0 paints grays,
-/// 1 paints umber (see [`tone_color`]).
+/// It returns the picture and its tones as painted bytes (grays), darkest first.
 ///
 /// # Errors
-/// `BadInput` for a `tint` above 1, a `preset` of 6 or more, a `detail` outside 0 to 1.
-pub fn view(work: &Rgb, preset: u8, detail: f32, tint: u8) -> Result<(Rgb, Vec<[u8; 3]>)> {
-    check_view_args(preset, detail, tint)?;
-    let run = ViewRun::new(work, detail, tint);
+/// `BadInput` for a `preset` of 4 or more, a `detail` outside 0 to 1.
+pub fn view(work: &Rgb, preset: u8, detail: f32) -> Result<(Rgb, Vec<[u8; 3]>)> {
+    check_view_args(preset, detail)?;
+    let run = ViewRun::new(work, detail);
     Ok(match preset {
         0 => run.notan(),
         1 => run.three(),
         2 => run.five(),
-        5 => run.families(),
-        _ => run.family_side(preset == 3),
+        _ => run.families(),
     })
 }
 
-/// The range checks of [`view`] on its three numbers.
-fn check_view_args(preset: u8, detail: f32, tint: u8) -> Result<()> {
-    if tint > 1 {
-        return Err(Error::bad("tint must be 0 or 1"));
-    }
-    if preset > 5 {
-        return Err(Error::bad(format!("values preset {preset} is not 0 to 5")));
+/// The range checks of [`view`] on its two numbers.
+fn check_view_args(preset: u8, detail: f32) -> Result<()> {
+    if preset > 3 {
+        return Err(Error::bad(format!("values preset {preset} is not 0 to 3")));
     }
     unit(detail, "values detail is not 0 to 1")
-}
-
-/// The mean of `raw` over each of the `steps` steps of `labels` (50 for a step with no pixel).
-fn step_means(labels: &[u8], raw: &[f32], steps: usize) -> Vec<f32> {
-    let mut sum = vec![0f64; steps];
-    let mut count = vec![0u32; steps];
-    for (&s, &l) in labels.iter().zip(raw) {
-        sum[usize::from(s)] += f64::from(l);
-        count[usize::from(s)] += 1;
-    }
-    sum.iter()
-        .zip(&count)
-        .map(|(&s, &n)| {
-            if n == 0 {
-                50.0
-            } else {
-                (s / f64::from(n)) as f32
-            }
-        })
-        .collect()
 }
 
 /// A painted view and its tones, darkest first (see [`paint_tones`]).
@@ -882,14 +783,13 @@ struct ViewRun {
     h: usize,
     /// The smallest shape that survives, in px.
     min_px: u32,
-    tint: u8,
     /// The photo is blown out or very dark (the Otsu cut is outside `KEY_DARK` to `KEY_LIGHT`).
     extreme: bool,
 }
 
 impl ViewRun {
     /// Analyzes `work`.
-    fn new(work: &Rgb, detail: f32, tint: u8) -> Self {
+    fn new(work: &Rgb, detail: f32) -> Self {
         let o = ValuesOpts::default();
         let (w, h) = (work.width, work.height);
         let a = analyze(work, &o);
@@ -901,18 +801,7 @@ impl ViewRun {
             w,
             h,
             min_px,
-            tint,
             extreme,
-        }
-    }
-
-    /// The two Pencil fields of this run: the simplified photo and the photo with its fine detail
-    /// (a 3x3 median of the lifted L*).
-    fn into_fields(self) -> Fields {
-        let fine = median(&self.a.lifted, self.w, self.h, 1);
-        Fields {
-            smooth: self.a.smooth,
-            fine,
         }
     }
 
@@ -923,7 +812,7 @@ impl ViewRun {
 
     /// Paints `labels` at `tones`.
     fn paint(&self, labels: &[u8], tones: &[f32]) -> Painted {
-        paint_tones(labels, tones, self.tint, self.w, self.h)
+        paint_tones(labels, tones, self.w, self.h)
     }
 
     /// The Key rule: the labels cut at the photo's own 33 and 66 percentiles, painted with the
@@ -967,7 +856,7 @@ impl ViewRun {
         self.paint(&labels, &FIVE_TONES)
     }
 
-    /// Preset 5: three steps that follow the light and shadow families, painted at Munsell values.
+    /// Preset 3: three steps that follow the light and shadow families, painted at Munsell values.
     fn families(&self) -> Painted {
         let a = &self.a;
         // the light/shadow break first, then the family that needs a second step most
@@ -975,17 +864,6 @@ impl ViewRun {
         let labels = self.labels_for(&cuts);
         let reach = REACH.map(|q| percentile(&a.lifted, q));
         let tones = munsell_tones(&labels, &a.lifted, cuts.len() + 1, THREE_GAP, reach);
-        self.paint(&labels, &tones)
-    }
-
-    /// Presets 3 and 4: the shadow (or the light) mass in three steps, the other mass flat.
-    fn family_side(&self, shadow_side: bool) -> Painted {
-        let a = &self.a;
-        let cut = family_break(a, self.o.family_clamp);
-        let cuts = family_cuts(&a.smooth, cut, shadow_side);
-        let labels = self.labels_for(&cuts);
-        // Every step is painted at the mean L* of its pixels.
-        let tones = step_means(&labels, &a.raw, cuts.len() + 1);
         self.paint(&labels, &tones)
     }
 }

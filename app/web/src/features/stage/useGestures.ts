@@ -1,8 +1,6 @@
 // What the hand does on the stage. The wheel zooms around the pointer. One finger or the mouse drags
 // the picture. Two fingers pinch (zoom around their middle) and move it. A double tap or a double
-// click toggles Fit and 100%. While locked, the wheel, a pinch and a double tap do nothing to the
-// zoom (a drag or two fingers still move the picture), and a pinch anywhere on the page must not
-// zoom the page either: Chrome sends it as a wheel turn with Ctrl, Safari as gesture events.
+// click toggles Fit and 100%.
 import {
 	type PointerEvent as ReactPointerEvent,
 	type RefObject,
@@ -19,7 +17,6 @@ type Ctl = {
 	view: View;
 	/** The zoom that fits the photo. */
 	fit: number;
-	locked: boolean;
 	/** Sets the view the user made; null goes back to Fit. */
 	put: (v: View | null) => void;
 };
@@ -37,8 +34,6 @@ const PINCH_STEP = 0.01;
 const DOUBLE_MS = 350;
 const DOUBLE_PX = 30;
 
-const GESTURES = ["gesturestart", "gesturechange", "gestureend"];
-
 export function useGestures(c: Ctl) {
 	const fingers = useRef(new Map<number, Point>());
 	const hold = useRef<Hold | null>(null);
@@ -48,7 +43,6 @@ export function useGestures(c: Ctl) {
 	// The wheel needs a non-passive listener to stop the page from scrolling.
 	const onWheel = useEffectEvent((e: WheelEvent, el: HTMLElement) => {
 		e.preventDefault();
-		if (c.locked) return;
 		const r = el.getBoundingClientRect();
 		const factor = Math.exp(-e.deltaY * (e.ctrlKey ? PINCH_STEP : WHEEL_STEP));
 		const zoom = clampZoom(c.view.zoom * factor, c.fit);
@@ -61,21 +55,6 @@ export function useGestures(c: Ctl) {
 		el.addEventListener("wheel", on, { passive: false });
 		return () => el.removeEventListener("wheel", on);
 	}, [c.box]);
-
-	useEffect(() => {
-		if (!c.locked) return;
-		const stop = (e: Event) => e.preventDefault();
-		const onPageWheel = (e: WheelEvent) => {
-			if (e.ctrlKey) e.preventDefault();
-		};
-		window.addEventListener("wheel", onPageWheel, { passive: false });
-		for (const g of GESTURES)
-			document.addEventListener(g, stop, { passive: false });
-		return () => {
-			window.removeEventListener("wheel", onPageWheel);
-			for (const g of GESTURES) document.removeEventListener(g, stop);
-		};
-	}, [c.locked]);
 
 	/** Starts a new hold from the fingers now down (after one goes down or up). */
 	const rebase = (el: HTMLElement) => {
@@ -97,7 +76,6 @@ export function useGestures(c: Ctl) {
 
 	/** Double tap: back to Fit when the photo is at 100%, else to 100% around the point. */
 	const toggleActual = (px: number, py: number) => {
-		if (c.locked) return;
 		if (Math.abs(c.view.zoom - 1) < 0.001) c.put(null);
 		else c.put(zoomAround(c.view, 1, px, py));
 	};
@@ -156,9 +134,7 @@ export function useGestures(c: Ctl) {
 			const mx = (first.x + second.x) / 2 - r.left;
 			const my = (first.y + second.y) / 2 - r.top;
 			const d = Math.hypot(second.x - first.x, second.y - first.y);
-			const zoom = c.locked
-				? h.from.zoom
-				: clampZoom(h.from.zoom * (d / h.d), c.fit);
+			const zoom = clampZoom(h.from.zoom * (d / h.d), c.fit);
 			c.put(zoomAround(h.from, zoom, h.mx, h.my, mx, my));
 		},
 		onPointerUp: (e: ReactPointerEvent) => lift(e, true),

@@ -3,9 +3,9 @@
 use super::*;
 use crate::test_support::{assert_same_at_2048, gray_picture};
 
-/// The view, picture only (no tint).
+/// The view, picture only.
 fn view(work: &Rgb, preset: u8, detail: f32) -> Result<Rgb> {
-    super::view(work, preset, detail, 0).map(|v| v.0)
+    super::view(work, preset, detail).map(|v| v.0)
 }
 
 /// A flat photo of L* `bg` with a square dot of L* `dot`.
@@ -93,7 +93,7 @@ fn ramp(w: usize, h: usize, lo: f32, hi: f32) -> Rgb {
 #[test]
 fn test_view_presets_give_their_step_counts() {
     let img = ramp(320, 64, 3.0, 97.0);
-    for (preset, tones) in [(0u8, 2usize), (1, 3), (2, 5), (3, 4), (4, 4), (5, 3)] {
+    for (preset, tones) in [(0u8, 2usize), (1, 3), (2, 5), (3, 3)] {
         let out = view(&img, preset, 0.5).expect("view");
         assert_eq!((out.width, out.height), (320, 64));
         assert_eq!(tone_count(&out), tones, "preset {preset}");
@@ -130,7 +130,7 @@ fn test_view_key_rule_adds_steps() {
 #[test]
 fn test_view_bad_preset() {
     let img = ramp(32, 32, 10.0, 90.0);
-    for preset in [6u8, 7, 255] {
+    for preset in [4u8, 5, 255] {
         assert!(
             matches!(
                 view(&img, preset, 0.5),
@@ -157,7 +157,7 @@ fn test_view_min_area_hits_its_marks() {
 #[test]
 fn test_view_same_input_same_bytes() {
     let img = ramp(128, 48, 5.0, 95.0);
-    for preset in 0..5u8 {
+    for preset in 0..4u8 {
         assert_eq!(view(&img, preset, 0.3), view(&img, preset, 0.3));
     }
 }
@@ -169,7 +169,7 @@ fn pixel(img: &Rgb, x: usize, y: usize) -> [u8; 3] {
 
 #[test]
 fn test_values_same_at_2048() {
-    assert_same_at_2048(&[0u8, 1, 2, 3, 4], 6.0, |img, &preset| {
+    assert_same_at_2048(&[0u8, 1, 2, 3], 6.0, |img, &preset| {
         view(img, preset, 0.5).unwrap()
     });
 }
@@ -241,7 +241,7 @@ fn test_three_keeps_a_light_or_a_dark_key() {
     let out = view(&img, 1, 0.5).unwrap();
     assert_eq!(
         pixel(&out, 200, 50),
-        pixel(&paint_tones(&plain, &THREE_TONES, 0, w, h).0, 200, 50)
+        pixel(&paint_tones(&plain, &THREE_TONES, w, h).0, 200, 50)
     );
     // the same photo upside down in value: 85 percent L* 8 (the darkest step)
     let mut dark_img = img.clone();
@@ -258,7 +258,7 @@ fn test_three_keeps_a_light_or_a_dark_key() {
     let out = view(&dark_img, 1, 0.5).unwrap();
     assert_eq!(
         pixel(&out, 200, 50),
-        pixel(&paint_tones(&plain, &THREE_TONES, 0, w, h).0, 200, 50)
+        pixel(&paint_tones(&plain, &THREE_TONES, w, h).0, 200, 50)
     );
 }
 
@@ -331,22 +331,7 @@ fn test_families_keeps_two_flat_tones_apart() {
     // half L* 40, half L* 60: no family has a second step, the break still splits the two
     let (w, h) = (800usize, 100usize);
     let img = gray_picture(w, h, |x, _| if x < w / 2 { 40.0 } else { 60.0 });
-    let out = view(&img, 5, 0.5).unwrap();
+    let out = view(&img, 3, 0.5).unwrap();
     assert!(pixel(&out, 20, 50)[0] < pixel(&out, 780, 50)[0]);
     assert_eq!(tone_count(&out), 2);
-}
-
-#[test]
-fn test_the_pencil_fields_agree_with_the_smooth_of_the_photo() {
-    let (w, h) = (96usize, 64usize);
-    let img = gray_picture(w, h, |x, y| 20.0 + (x * 60 / w + y * 10 / h) as f64);
-    let plain = fields(&img, 0.5).unwrap();
-    assert_eq!(plain.smooth, smooth_of(&img));
-}
-
-#[test]
-fn test_the_pencil_fields_refuse_a_bad_detail() {
-    let img = gray_picture(16, 16, |_, _| 50.0);
-    assert!(fields(&img, 1.5).is_err());
-    assert!(fields(&img, -0.1).is_err());
 }

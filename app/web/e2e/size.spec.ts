@@ -1,5 +1,5 @@
 // The Paper tool (`tool-size` in the bar): a paper or canvas is picked, the photo can be cut to its
-// shape, the choice is kept per photo, and the Real size switch turns the zoom lock on.
+// shape, the choice is kept per photo, and the fact line names the Grid step in cm.
 import type { Page } from "@playwright/test";
 import { expect, test } from "./studio";
 
@@ -100,7 +100,7 @@ test("test_size_custom_and_grid_cell_fact", async ({ studio }) => {
 	await studio.openSynthetic(480, 640, "custom.png");
 	await studio.layer("grid", true);
 	await openSize(page);
-	// 30 cm width over the 6 cells of the Grid (the core counts the cells across the width)
+	// the Grid starts at 5 cm squares; the fact line names the step
 	await expect(page.getByTestId("size-fact")).toHaveText(
 		"30 × 40 cm. Grid cell: about 5 cm.",
 	);
@@ -129,46 +129,13 @@ test("test_size_custom_and_grid_cell_fact", async ({ studio }) => {
 	).toBeDisabled();
 });
 
-test("test_size_real_switch_turns_the_zoom_lock_on_and_off", async ({
-	studio,
-}) => {
+test("test_size_card_has_no_real_size_switch", async ({ studio }) => {
 	const { page } = studio;
 	await studio.openSynthetic(480, 640, "real.png");
-	await expect(page.getByTestId("zoom-menu")).toHaveAttribute(
-		"data-locked",
-		"false",
-	);
 	await openSize(page);
-	await preset(page, "a4").click();
-	await page.getByTestId("size-fit").getByRole("radio").nth(1).click();
-	await page.getByTestId("paper-real").click();
-	await expect(page.getByTestId("zoom-menu")).toHaveAttribute(
+	await expect(page.getByTestId("paper-real")).toHaveCount(0);
+	await expect(page.getByTestId("screen-width")).toHaveCount(0);
+	await expect(page.getByTestId("zoom-menu")).not.toHaveAttribute(
 		"data-locked",
-		"true",
 	);
-	// the switch turns it off again
-	await openSize(page);
-	await page.getByTestId("paper-real").click();
-	await expect(page.getByTestId("zoom-menu")).toHaveAttribute(
-		"data-locked",
-		"false",
-	);
-});
-
-test("test_size_real_switch_needs_screen", async ({ studio }) => {
-	const { page } = studio;
-	await studio.openSynthetic(480, 640, "screen.png");
-	await openSize(page);
-	await page.getByTestId("paper-real").click();
-	// the switch is on, the screen width is not known: the box asks for it
-	await expect(page.getByTestId("zoom-menu")).toHaveAttribute(
-		"data-locked",
-		"true",
-	);
-	const screen = page.getByTestId("screen-width");
-	await expect(screen).toBeVisible();
-	await expect(screen.locator("input")).toHaveAttribute("placeholder", "ruler");
-	await expect(opened(page)).toContainText("measure the lit part");
-	await screen.locator("input").fill("30.4");
-	await expect(screen.locator("input")).toHaveValue("30.4");
 });

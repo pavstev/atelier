@@ -9,26 +9,14 @@ export class Photo {
     free(): void;
     [Symbol.dispose](): void;
     /**
-     * The Edges layer: ink lines, transfer, mass borders or graphite strokes, see-through. `mode`
-     * 0 lines, 1 transfer, 2 masses, 3 sketch; `amount` 0 to 100; `line` the line width, 1 to 10 (3 is the width
-     * before the knob); `even` 0 to 100, how far the Lines widths go to one width.
+     * The Grid layer: Contrast lines on a clear layer, squares from the top left corner. `milli`
+     * counts the squares across the width in thousandths (7500 is 7.5, for a grid of whole cm on
+     * a paper; 100 to 500000).
      *
      * # Errors
-     * A `long`, `mode`, `amount`, `line` or `even` out of range.
+     * A `long` or `milli` out of range.
      */
-    edges(long: number, mode: number, amount: number, line: number, even: number): Uint8Array;
-    /**
-     * The Grid layer: lines on a clear layer. `line` is the line width (1 to 16 px at a long
-     * side of 2048), `group` the cells each way between two heavy lines (2 or 4) and `color`
-     * one color as `0xRRGGBB`, or `1 << 24` for Contrast lines. `cells` squares fit the width
-     * exactly; `center` 1 puts the rows in the middle, 0 at the top. A `milli` above 0 counts
-     * the squares across the width in thousandths instead (7500 is 7.5, for a grid of whole cm
-     * on a paper; 100 to 500000) and `cells` is then not used; 0 counts `cells`.
-     *
-     * # Errors
-     * A `long`, `mode`, `cells`, `line`, `group`, `color`, `center` or `milli` out of range.
-     */
-    grid(long: number, mode: number, cells: number, line: number, group: number, color: number, center: number, milli: number): Uint8Array;
+    grid(long: number, milli: number): Uint8Array;
     /**
      * Keeps the photo of these RGBA bytes.
      *
@@ -36,38 +24,6 @@ export class Photo {
      * A length that does not fit the size.
      */
     constructor(rgba: Uint8Array | number[], width: number, height: number);
-    /**
-     * The Pencil layer: the photo as a graphite study, opaque. `look` 0 is the smooth tone picture, 1
-     * the drawing, 3 hatch, 4 by pencil (2 is refused). `mask` is the pencils, bit 0 the 9B up to
-     * bit 7 the 4H (255 is all). `numbers` is a `Float64Array` of 14 numbers, in the order
-     * `detail`, `key`, `contrast`, `highlights`, `darks`, `local`, `grain`, `paper`, `angle`,
-     * `density`, `step`, `smudge`, `lift`, `cross` (their ranges are in `atelier_core::render`;
-     * the last three are effects, 0 off). After the layer come one byte
-     * with the level count (the pencils of the set, then paper, darkest first), 3 bytes (RGB) per
-     * level, one byte per level with the share of the picture in percent, and one byte with the
-     * marked level (255 for none).
-     *
-     * # Errors
-     * A `long`, `look`, `mask` or number out of range, or `numbers` of the wrong length.
-     */
-    pencil(long: number, look: number, mask: number, numbers: Float64Array | number[]): Uint8Array;
-    /**
-     * What Auto reads from the photo, as 9 numbers: `key`, `contrast`, `highlights` (the knobs it
-     * sets), the median L*, the key class (0 low, 1 mid, 2 high), the IQR, eta, bimodal (0 or 1)
-     * and spike (0 or 1).
-     *
-     * # Errors
-     * A `long` out of range.
-     */
-    pencil_auto(long: number): Float64Array;
-    /**
-     * The pencil `mask` (bit 0 the 9B up to bit 7 the 4H) of the best `count` pencils, 3 to 6, of
-     * the eight for the photo.
-     *
-     * # Errors
-     * A `long` or `count` out of range.
-     */
-    pencil_suggest(long: number, count: number): number;
     /**
      * The Shapes layer: flat shapes in a paint order, opaque. `step` is 0 to 3 (Shadows,
      * Halftones, Lights, Accents); each step adds to the ones before. After the layer come one
@@ -78,13 +34,14 @@ export class Photo {
      */
     shapes(long: number, step: number, detail: number): Uint8Array;
     /**
-     * The Values layer: the photo in a few tones, opaque. `tint` 0 gray, 1 umber. After the layer
-     * come one byte with the tone count and 3 bytes (RGB) per tone, darkest first.
+     * The Values layer: the photo in a few gray tones, opaque. `preset` is 0 to 3 (Notan, Three,
+     * Five, Families). After the layer come one byte with the tone count and 3 bytes (RGB) per
+     * tone, darkest first.
      *
      * # Errors
-     * A `long`, `preset`, `detail` or `tint` out of range.
+     * A `long`, `preset` or `detail` out of range.
      */
-    values(long: number, preset: number, detail: number, tint: number): Uint8Array;
+    values(long: number, preset: number, detail: number): Uint8Array;
 }
 
 export type InitInput = RequestInfo | URL | Response | BufferSource | WebAssembly.Module;
@@ -92,14 +49,10 @@ export type InitInput = RequestInfo | URL | Response | BufferSource | WebAssembl
 export interface InitOutput {
     readonly memory: WebAssembly.Memory;
     readonly __wbg_photo_free: (a: number, b: number) => void;
-    readonly photo_edges: (a: number, b: number, c: number, d: number, e: number, f: number, g: number) => void;
-    readonly photo_grid: (a: number, b: number, c: number, d: number, e: number, f: number, g: number, h: number, i: number, j: number) => void;
+    readonly photo_grid: (a: number, b: number, c: number, d: number) => void;
     readonly photo_new: (a: number, b: number, c: number, d: number, e: number) => void;
-    readonly photo_pencil: (a: number, b: number, c: number, d: number, e: number, f: number, g: number) => void;
-    readonly photo_pencil_auto: (a: number, b: number, c: number) => void;
-    readonly photo_pencil_suggest: (a: number, b: number, c: number, d: number) => void;
     readonly photo_shapes: (a: number, b: number, c: number, d: number, e: number) => void;
-    readonly photo_values: (a: number, b: number, c: number, d: number, e: number, f: number) => void;
+    readonly photo_values: (a: number, b: number, c: number, d: number, e: number) => void;
     readonly __wbindgen_externrefs: WebAssembly.Table;
     readonly __wbindgen_add_to_stack_pointer: (a: number) => number;
     readonly __wbindgen_export: (a: number) => void;

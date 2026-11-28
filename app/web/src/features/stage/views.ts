@@ -53,9 +53,3 @@ export function keepView(id: string, s: Saved | null) {
 export function forgetView(id: string) {
 	if (all().delete(id)) later();
 }
-
-/** A new lock width starts every photo centered again. */
-export function forgetAllViews() {
-	all().clear();
-	later();
-}

@@ -1,14 +1,11 @@
-//! Reference check of the study tools (values, shapes, pencil, edges, grid): each view of the synthetic fixture at 128 px must stay
+//! Reference check of the study tools (values, shapes, grid): each view of the synthetic fixture at 128 px must stay
 //! within a small mean difference of a PNG in `tests/reference`. `ATELIER_BLESS=1` writes the PNGs.
 
 mod common;
 
 use atelier_core::img::Rgb;
 use atelier_core::render;
-use common::support::{EDGES_EVEN, EDGES_WIDTH, PENCIL_START};
-use common::{check, mean_diff, over, rgb_of, work};
-/// The Grid width that draws 1 px lines on the 128 px fixture (16 px at a long side of 2048).
-const GRID_WIDTH: u32 = 16;
+use common::{check, mean_diff, over, work};
 
 #[test]
 fn test_mean_diff_of_black_and_white_is_255() {
@@ -23,8 +20,8 @@ fn test_mean_diff_of_black_and_white_is_255() {
 #[test]
 fn test_values_reference() {
     let w = work();
-    for preset in 0..6 {
-        let got = render::values_view(&w, preset, 50.0, 0).unwrap().0;
+    for preset in 0..4 {
+        let got = render::values_view(&w, preset, 50.0).unwrap().0;
         assert_eq!((got.width, got.height), (w.width, w.height));
         assert!(
             got.data.chunks(3).all(|p| p[0] == p[1] && p[1] == p[2]),
@@ -45,50 +42,14 @@ fn test_shapes_reference() {
 }
 
 #[test]
-fn test_pencil_reference() {
-    let w = work();
-    // the tone, the drawing and the hatch with all eight pencils, the tone with a set of
-    // three, and By pencil at the fourth step (the HB, level 4 of 0 to 7 counted from the 9B)
-    for (look, mask, step, name) in [
-        (0, 255, 1.0, "tone"),
-        (1, 255, 1.0, "drawing"),
-        (3, 255, 1.0, "hatch"),
-        (0, 0b1001_0100, 1.0, "tone_three"),
-        (4, 255, 4.0, "by_pencil"),
-    ] {
-        let mut numbers = PENCIL_START;
-        numbers[10] = step;
-        let p = render::pencil_layer(&w, look, mask, &numbers).unwrap();
-        assert_eq!(p.tones.len(), mask.count_ones() as usize + 1);
-        assert_eq!(p.shares.len(), p.tones.len());
-        assert_eq!(p.mark, (look == 4).then_some(4));
-        check(&format!("pencil_{name}"), &rgb_of(&p.layer));
-    }
-}
-
-#[test]
-fn test_lines_reference() {
-    let w = work();
-    // Lines at 0, 33 and 67, and Transfer at 50
-    for (preset, (mode, amount)) in [(0, 0.0), (0, 33.0), (0, 67.0), (1, 50.0)]
-        .into_iter()
-        .enumerate()
-    {
-        let plain = render::edges_view(&w, mode, amount, EDGES_WIDTH, EDGES_EVEN).unwrap();
-        check(&format!("lines_{preset}_edges"), &plain);
-    }
-}
-
-#[test]
 fn test_grid_reference() {
     let w = work();
-    for mode in 0..3 {
-        let got = over(
-            &w,
-            &render::grid_layer(&w, mode, 8, GRID_WIDTH, 2, render::GRID_CONTRAST, 0).unwrap(),
-        );
+    // 8 whole squares across, and 7.5 squares (a grid of cm on a paper): the part square at the
+    // right and the bottom
+    for (name, milli) in [("grid_8", 8000), ("grid_7500", 7500)] {
+        let got = over(&w, &render::grid_layer(&w, milli).unwrap());
         // the lines cover the whole photo: no crop
         assert_eq!((got.width, got.height), (w.width, w.height));
-        check(&format!("grid_{mode}"), &got);
+        check(name, &got);
     }
 }

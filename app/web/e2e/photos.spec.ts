@@ -92,10 +92,10 @@ test("test_five_big_photos_keep_one_photo_in_the_worker", async ({
 	test.setTimeout(300_000);
 	const { page } = studio;
 	await studio.openSynthetic(3840, 5723, "big1.png");
-	await studio.layer("edges", true);
+	await studio.layer("grid", true);
 	for (let i = 2; i <= 5; i++) {
 		await studio.openSynthetic(3840, 5723, `big${i}.png`);
-		await expect(page.getByTestId("layer-canvas-edges")).toBeVisible({
+		await expect(page.getByTestId("layer-canvas-grid")).toBeVisible({
 			timeout: 60_000,
 		});
 		// only the photo on screen is in the layers worker
@@ -108,7 +108,7 @@ test("test_five_big_photos_keep_one_photo_in_the_worker", async ({
 		const t0 = Date.now();
 		await row(page).nth(i).getByTestId("photo-open").click();
 		await expect(page.getByTestId("facts")).toContainText(name);
-		await expect(page.getByTestId("layer-canvas-edges")).toBeVisible({
+		await expect(page.getByTestId("layer-canvas-grid")).toBeVisible({
 			timeout: 60_000,
 		});
 		await expect(page.getByTestId("facts")).toHaveAttribute("data-held", "1");

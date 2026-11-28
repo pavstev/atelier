@@ -1,5 +1,5 @@
-//! Shared helpers of the examples (`bench`, `edge_score`) and the reference tests: the photo folder
-//! scan, the PNG decoder and encoder, the `over` rule and the start values of the app. It is a
+//! Shared helpers of the examples (`bench`) and the reference tests: the photo folder
+//! scan, the PNG decoder and encoder and the `over` rule. It is a
 //! module of each of them (`mod support;`), not an example of its own.
 
 #![allow(dead_code, reason = "each user takes a part of these helpers")]
@@ -11,18 +11,6 @@ use atelier_core::render::Layer;
 use std::error::Error;
 use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
-
-/// The Edges width of the app at start (`DEFAULTS` in `app/web/src/features/tools/settings.ts`).
-pub const EDGES_WIDTH: u32 = 5;
-/// The start Even of the app (`DEFAULTS.edges.even` in `app/web/src/features/tools/settings.ts`).
-pub const EDGES_EVEN: f64 = 50.0;
-
-/// The Pencil numbers at their start, in the order of `render::pencil_layer`: detail, key,
-/// contrast, highlights, darks, local, grain, paper, angle, density, step, smudge, lift, cross (the
-/// start of every knob of the core: the picture it draws before the knobs existed).
-pub const PENCIL_START: [f64; atelier_core::render::PENCIL_NUMBERS] = [
-    50.0, 50.0, 50.0, 1.0, 20.0, 0.0, 50.0, 1.0, 45.0, 50.0, 1.0, 0.0, 0.0, 0.0,
-];
 
 /// The result type of the examples.
 pub type Res<T> = Result<T, Box<dyn Error>>;

@@ -26,8 +26,6 @@ type ButtonProps = {
 	testid: string;
 	/** The part is on: the button looks pressed. */
 	on?: boolean;
-	/** The part is off for now: the button stays in the bar, dimmed, and its tip says why. */
-	disabled?: boolean;
 	onPress?: () => void;
 	/** Makes a split button: the main part calls this, the chevron opens the card. */
 	onToggle?: () => void;
@@ -43,8 +41,6 @@ function BarButton(p: ButtonProps) {
 			<IconButton
 				icon="down"
 				label={`${p.label} options`}
-				tip={p.disabled ? p.tip : undefined}
-				disabled={p.disabled}
 				testid={p.testid}
 				variant="ghost"
 				size="row"
@@ -66,7 +62,6 @@ function BarButton(p: ButtonProps) {
 					tip={p.tip}
 					testid={`toggle-${p.testid.replace(/^tool-/, "")}`}
 					pressed={!!p.on}
-					disabled={p.disabled}
 					placement="top"
 					className="touch-none rounded-full select-none"
 					data-bar-button
@@ -83,7 +78,6 @@ function BarButton(p: ButtonProps) {
 			tip={p.tip}
 			testid={p.testid}
 			pressed={p.on}
-			disabled={p.disabled}
 			placement="top"
 			className="touch-none rounded-full select-none"
 			data-bar-button

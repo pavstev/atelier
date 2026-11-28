@@ -1,4 +1,4 @@
-// Draws the base, Edges and Grid that are on: one draw per layer, after the knobs settle for 250 ms. An answer
+// Draws the base and Grid that are on: one draw per layer, after the knobs settle for 250 ms. An answer
 // for old knobs or an old photo is dropped; the last picture of this photo stays until the new one lands.
 import { useEffect, useEffectEvent, useRef, useState } from "react";
 import { errText } from "@/lib/util";
@@ -9,25 +9,12 @@ import type { DrawExtras } from "./messages";
 const SETTLE_MS = 250;
 
 /** The three see-through slots of the stage, bottom first. */
-type Slot = "base" | "edges" | "grid";
-
-/** What a legend belongs to: the layer, and for Pencil also its set of pencils (a legend row is a
- * pencil, so the rows of an old set must not be read as the rows of a new one). The look and the
- * step are not part of it: the pencils and their tones are the same in every look, so the legend
- * stays up while a new look or step draws. */
-const legendOf = (c: Call) =>
-	c.layer === "pencil" ? `pencil:${c.mask}` : c.layer;
-
-/** What a marked level belongs to: the look and the step (the marked level of By pencil moves with
- * both, so an old mark never shows next to a new picture). */
-const markOf = (c: Call) => (c.layer === "pencil" ? `${c.look}:${c.step}` : "");
+type Slot = "base" | "grid";
 
 type One = (DrawExtras & { image: ImageData }) | null;
 type Drawn = NonNullable<One> & {
 	photo: ImageData;
 	layer: Call["layer"];
-	legend: string;
-	markKey: string;
 };
 
 /** The picture of one layer, or null while it is off or not drawn yet. */
@@ -59,18 +46,9 @@ function useOne(
 		const timer = setTimeout(
 			() => {
 				draw(photo, c, WORK_LONG_SIDE, () => live)
-					.then(({ layer: image, tones, shares, mark }) => {
+					.then(({ layer: image, tones }) => {
 						if (!live) return;
-						setDone({
-							photo,
-							layer: c.layer,
-							legend: legendOf(c),
-							markKey: markOf(c),
-							image,
-							tones,
-							shares,
-							mark,
-						});
+						setDone({ photo, layer: c.layer, image, tones });
 						drawn();
 					})
 					.catch((e: unknown) => {
@@ -89,22 +67,15 @@ function useOne(
 	// legend tones of another kind of base (Values after Shapes) do not: they would be read as the
 	// new kind's tones or piles.
 	if (key === "" || done?.photo !== photo) return null;
-	const same = call !== null && done.legend === legendOf(call);
-	const marked = same && call !== null && done.markKey === markOf(call);
-	return {
-		image: done.image,
-		tones: same ? done.tones : undefined,
-		shares: same ? done.shares : undefined,
-		mark: marked ? done.mark : undefined,
-	};
+	const same = call !== null && done.layer === call.layer;
+	return { image: done.image, tones: same ? done.tones : undefined };
 }
 
 type Pictures = Record<Slot, ImageData | null>;
 
 /**
- * The pictures of the base, Edges and Grid; a null call is off. `tones` are the Values tones
- * or the Shapes piles, darkest first, when the base is drawn. Pencil adds `shares`, the percent of
- * the photo at each tone, and `mark` the level By pencil is drawn up to.
+ * The pictures of the base and Grid; a null call is off. `tones` are the Values tones
+ * or the Shapes piles, darkest first, when the base is drawn.
  */
 export function useLayers(
 	photo: ImageData | null,
@@ -114,20 +85,14 @@ export function useLayers(
 ): {
 	pictures: Pictures;
 	tones: Rgb[] | null;
-	shares: number[] | null;
-	mark: number | null;
 } {
 	const base = useOne(photo, calls.base, onDone, onError);
-	const edges = useOne(photo, calls.edges, onDone, onError);
 	const grid = useOne(photo, calls.grid, onDone, onError);
 	return {
 		pictures: {
 			base: base?.image ?? null,
-			edges: edges?.image ?? null,
 			grid: grid?.image ?? null,
 		},
 		tones: base?.tones ?? null,
-		shares: base?.shares ?? null,
-		mark: base?.mark ?? null,
 	};
 }

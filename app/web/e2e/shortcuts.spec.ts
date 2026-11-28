@@ -1,21 +1,15 @@
-// The small keyboard set (Space, arrows, [), the Real size item of the zoom menu that locks the
-// zoom, Fit and 100% that stay off while the lock is on, the single top row of icon buttons with tips, the
-// logo outline, the hover card, the saved zoom and the list that fills the panel.
+// The small keyboard set (Space, arrows, [), the zoom menu (Fit, 100%, 200%), the single top row of
+// icon buttons with tips, the logo outline, the hover card, the saved zoom and the list that fills the panel.
 import type { Page } from "@playwright/test";
 import { box, expect, KEYS, stored, test } from "./studio";
 
 const canvasX = (page: Page) => box(page, "photo-canvas");
 
-test("test_the_logo_and_the_four_icon_buttons_share_one_row_and_each_has_a_tip", async ({
+test("test_the_logo_and_the_three_icon_buttons_share_one_row_and_each_has_a_tip", async ({
 	studio,
 }) => {
 	const { page } = studio;
-	const rows = [
-		"photo-add",
-		"photo-search-toggle",
-		"photo-sort",
-		"photo-layout",
-	];
+	const rows = ["photo-add", "photo-search-toggle", "photo-sort"];
 	const logo = await box(page, "logo");
 	let right = 0;
 	for (const id of rows) {
@@ -28,16 +22,13 @@ test("test_the_logo_and_the_four_icon_buttons_share_one_row_and_each_has_a_tip",
 	}
 	// the buttons sit at the right edge of the panel
 	const files = await box(page, "files");
-	const layoutBtn = await box(page, "photo-layout");
-	expect(files.x + files.width - (layoutBtn.x + layoutBtn.width)).toBeLessThan(
-		20,
-	);
+	const lastBtn = await box(page, "photo-sort");
+	expect(files.x + files.width - (lastBtn.x + lastBtn.width)).toBeLessThan(20);
 	// each icon-only button has a tip (text on hover) and no visible label
 	for (const [id, tip] of [
 		["photo-add", "Add photos"],
 		["photo-search-toggle", "Search photos"],
 		["photo-sort", "Sort photos"],
-		["photo-layout", "Show as tiles"],
 	]) {
 		await expect(page.getByTestId(id)).toHaveText("");
 		// the pointer comes from inside the page, as a real one does (a jump from the corner of
@@ -135,62 +126,23 @@ test("test_keys_are_left_to_the_search_box", async ({ studio }) => {
 	expect((await canvasX(page)).x).toBeCloseTo(before.x, 0);
 });
 
-test("test_real_size_locks_the_zoom_and_fit_is_off_while_locked", async ({
-	studio,
-}) => {
+test("test_the_zoom_menu_has_fit_100_and_200_only", async ({ studio }) => {
 	const { page } = studio;
 	await studio.openSynthetic(480, 640, "one.png");
-	// the menu items are there while the zoom is free
-	await page.getByTestId("zoom-menu").click();
-	await expect(page.getByTestId("zoom-fit")).toBeEnabled();
+	const menu = page.getByTestId("zoom-menu");
+	await menu.click();
+	await expect(page.getByRole("menuitem")).toHaveCount(3);
+	for (const id of ["zoom-fit", "zoom-actual", "zoom-200"])
+		await expect(page.getByTestId(id)).toBeEnabled();
+	await expect(page.getByTestId("zoom-real")).toHaveCount(0);
 	await expect(page.getByTestId("zoom-unlock")).toHaveCount(0);
-	await page.getByTestId("zoom-real").click();
-	const card = page.getByTestId("tool-popup");
-	await expect(card).toBeVisible();
-	await expect(card).toHaveAttribute("data-tool", "size");
-	// locked: the button shows a lock, Fit, 100% and 200% are off, the menu has Unlock
-	await expect(page.getByTestId("zoom-menu")).toHaveAttribute(
-		"data-locked",
-		"true",
-	);
-	await page.getByTestId("zoom-menu").click();
-	await expect(page.getByTestId("zoom-fit")).toBeDisabled();
-	await expect(page.getByTestId("zoom-actual")).toBeDisabled();
-	await expect(page.getByTestId("zoom-200")).toBeDisabled();
-	await expect(page.getByTestId("zoom-unlock")).toBeVisible();
-	await page.keyboard.press("Escape");
-	// a press inside the card keeps it
-	await expect(card).toBeVisible();
-	await card.click({ position: { x: 4, y: 4 }, force: true });
-	await expect(card).toBeVisible();
-	// a press outside closes it; the lock stays on
-	await page.getByTestId("files").click({ position: { x: 20, y: 400 } });
-	await expect(card).toHaveCount(0);
-	await expect(page.getByTestId("zoom-menu")).toHaveAttribute(
-		"data-locked",
-		"true",
-	);
-	// Esc closes it too (Real size toggles, so unlock first)
-	await studio.zoom("unlock");
-	await studio.zoom("real");
-	await expect(card).toBeVisible();
-	// the menu has left (it takes the first Esc while it is still closing)
-	await expect(page.getByRole("menu")).toHaveCount(0);
-	await page.keyboard.press("Escape");
-	await expect(card).toHaveCount(0);
-	await expect(page.getByTestId("zoom-menu")).toHaveAttribute(
-		"data-locked",
-		"true",
-	);
-	// Unlock turns the lock off
-	await studio.zoom("unlock");
-	await expect(card).toHaveCount(0);
-	await expect(page.getByTestId("zoom-menu")).toHaveAttribute(
-		"data-locked",
-		"false",
-	);
-	await page.getByTestId("zoom-menu").click();
-	await expect(page.getByTestId("zoom-fit")).toBeEnabled();
+	await expect(menu).not.toHaveAttribute("data-locked");
+	await page.getByTestId("zoom-actual").click();
+	await expect(page.getByTestId("zoom-percent")).toHaveText("100%");
+	await studio.zoom("200");
+	await expect(page.getByTestId("zoom-percent")).toHaveText("200%");
+	await studio.zoom("fit");
+	await expect(page.getByTestId("zoom-percent")).not.toHaveText("200%");
 });
 
 test("test_the_logo_gets_a_thin_outline_only_with_the_left_panel_hidden", async ({

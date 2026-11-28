@@ -24,16 +24,15 @@ test("test_base_is_one_choice", async ({ studio }) => {
 		"Photo",
 		"Values",
 		"Shapes",
-		"Paper",
-		"Pencil",
 	]);
-	await expect(page.getByTestId("values-tint")).toHaveCount(0);
+	await expect(page.getByTestId("values-preset")).toHaveCount(0);
 	await studio.base("values");
-	await expect(page.getByTestId("values-tint")).toBeVisible();
+	await expect(page.getByTestId("values-preset")).toBeVisible();
+	await expect(page.getByTestId("values-tint")).toHaveCount(0);
 	await expect(page.getByTestId("shapes-step")).toHaveCount(0);
 	await studio.base("shapes");
 	await expect(page.getByTestId("shapes-step")).toBeVisible();
-	await expect(page.getByTestId("values-tint")).toHaveCount(0);
+	await expect(page.getByTestId("values-preset")).toHaveCount(0);
 	await expect(page.locator("[data-testid^=layer-canvas-]")).toHaveCount(1);
 });
 
@@ -104,9 +103,9 @@ test("test_legend_color_is_held_in_the_paint_mix_card", async ({ studio }) => {
 test("test_opacity_changes_the_canvas_style", async ({ studio }) => {
 	const { page } = studio;
 	await studio.open(MAIN_PHOTO);
-	await studio.layer("edges", true);
-	await studio.opacity("edges", 40);
-	await expect(page.getByTestId("layer-canvas-edges")).toHaveCSS(
+	await studio.layer("grid", true);
+	await studio.opacity("grid", 40);
+	await expect(page.getByTestId("layer-canvas-grid")).toHaveCSS(
 		"opacity",
 		"0.4",
 	);
@@ -114,14 +113,14 @@ test("test_opacity_changes_the_canvas_style", async ({ studio }) => {
 
 test("test_knob_redraws_its_layer_only", async ({ studio }) => {
 	await studio.open(MAIN_PHOTO);
-	await studio.layer("edges", true);
+	await studio.base("values");
 	await studio.layer("grid", true);
-	const edges = await studio.stats("layer-canvas-edges");
+	const base = await studio.stats("layer-canvas-base");
 	const grid = await studio.stats("layer-canvas-grid");
-	await studio.knob("edges-amount", 5);
-	const edges2 = await studio.stats("layer-canvas-edges");
+	await studio.knob("values-preset", 3);
+	const base2 = await studio.stats("layer-canvas-base");
 	const grid2 = await studio.stats("layer-canvas-grid");
-	expect(edges2.hash).not.toBe(edges.hash);
+	expect(base2.hash).not.toBe(base.hash);
 	expect(grid2.hash).toBe(grid.hash);
 });
 
@@ -199,39 +198,13 @@ test("the Photo base takes the base canvas away", async ({ studio }) => {
 	await expect(page.getByTestId("layer-canvas-base")).toHaveCount(0);
 });
 
-test("test_paper_base_hides_the_photo", async ({ studio }) => {
-	const { page } = studio;
-	await studio.open(MAIN_PHOTO);
-	await studio.base("shapes");
-	await studio.base("paper");
-	const photo = page.getByTestId("photo-canvas");
-	await expect(page.getByTestId("layer-canvas-base")).toHaveCount(0);
-	await expect(page.getByTestId("opacity-base")).toHaveCount(0);
-	await expect(photo).toBeHidden();
-	await studio.layer("edges", true);
-	await expect(page.getByTestId("layer-canvas-edges")).toBeVisible();
-	// The Photo button still shows the bare photo while it is held.
-	const hold = page.getByTestId("photo-hold");
-	await hold.hover();
-	await page.mouse.down();
-	await expect(photo).toBeVisible();
-	await page.waitForTimeout(350);
-	await page.mouse.up();
-	await expect(photo).toBeHidden();
-	await studio.base("photo");
-	await expect(photo).toBeVisible();
-});
-
 test("a layer stays on screen while a knob redraws it", async ({ studio }) => {
 	const { page } = studio;
 	await studio.openSynthetic();
-	await studio.layer("edges", true);
+	await studio.layer("grid", true);
 	const prev = await studio.stamp();
-	await setRange(
-		page.locator("[data-testid=edges-amount] input[type=range]"),
-		10,
-	);
-	await expect(page.getByTestId("layer-canvas-edges")).toHaveCount(1);
+	await setRange(page.locator("[data-testid=grid-step] input[type=range]"), 7);
+	await expect(page.getByTestId("layer-canvas-grid")).toHaveCount(1);
 	await studio.waitDraw(prev);
-	await expect(page.getByTestId("layer-canvas-edges")).toHaveCount(1);
+	await expect(page.getByTestId("layer-canvas-grid")).toHaveCount(1);
 });

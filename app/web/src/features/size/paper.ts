@@ -158,11 +158,6 @@ export function shownWidthCm(
 	return (photoW / Math.max(photoW, photoH, 1)) * long;
 }
 
-/** The side of one Grid cell in cm: the shown width over the cells across it (the core counts the
- * cells across the width). */
-export const cellCm = (widthCm: number, cells: number): number =>
-	widthCm / Math.max(1, cells);
-
 /** A number of cm for the eye: one decimal at most, no trailing zero (21, 29.7, 6.7). */
 export const fmtCm = (n: number): string => String(Math.round(n * 10) / 10);
 
@@ -187,25 +182,20 @@ export function gridMilli(widthCm: number, stepCm: number): number {
 }
 
 /**
- * The one line under the chips. It names the paper, and the Grid cell when a Grid is on: with
- * cells (`cells` is null otherwise) the shown width over the cells, and with a Grid in cm
- * (`stepCm`, else null) the step itself. With Whole photo the cell is "about", because the photo
- * and the paper need not have the same shape.
+ * The one line under the chips. It names the paper, and the Grid step in cm (`stepCm`, else null)
+ * when a Grid is on. With Whole photo the cell is "about", because the photo and the paper need
+ * not have the same shape.
  */
 export function factText(
 	c: Choice,
 	photoW: number,
 	photoH: number,
-	cells: number | null,
 	stepCm: number | null = null,
 ): string {
 	const cm = paperCm(c, photoW, photoH);
 	const head = `${fmtCm(cm.w)} × ${fmtCm(cm.h)} cm.`;
-	if (stepCm === null && cells === null) return head;
-	const cell = fmtCm(
-		stepCm ?? cellCm(shownWidthCm(c, photoW, photoH), cells ?? 1),
-	);
-	return `${head} Grid cell: ${c.fit ? "" : "about "}${cell} cm.`;
+	if (stepCm === null) return head;
+	return `${head} Grid cell: ${c.fit ? "" : "about "}${fmtCm(stepCm)} cm.`;
 }
 
 /**

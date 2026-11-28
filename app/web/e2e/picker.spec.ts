@@ -373,22 +373,19 @@ test("test_sample_reads_the_photo_then_layers_over_it_and_stops_at_the_edge", ()
 		[200, 0, 0, 255],
 		[0, 200, 0, 255],
 	]);
-	const none = { base: null, edges: null, grid: null };
-	expect(colorAt(photo, none, false, false, 0.5, 0.5)).toEqual([200, 0, 0]);
-	expect(colorAt(photo, none, false, false, 1.5, 0.5)).toEqual([0, 200, 0]);
-	expect(colorAt(photo, none, false, false, 2, 0.5)).toBeNull();
-	expect(colorAt(photo, none, false, false, -0.1, 0.5)).toBeNull();
+	const none = { base: null, grid: null };
+	expect(colorAt(photo, none, false, 0.5, 0.5)).toEqual([200, 0, 0]);
+	expect(colorAt(photo, none, false, 1.5, 0.5)).toEqual([0, 200, 0]);
+	expect(colorAt(photo, none, false, 2, 0.5)).toBeNull();
+	expect(colorAt(photo, none, false, -0.1, 0.5)).toBeNull();
 	// a half see-through white layer, drawn at another size, lies over the photo
 	const over = {
 		...none,
-		edges: { image: picture(1, 1, [[255, 255, 255, 255]]), opacity: 50 },
+		grid: { image: picture(1, 1, [[255, 255, 255, 255]]), opacity: 50 },
 	};
-	expect(colorAt(photo, over, false, false, 0.5, 0.5)).toEqual([228, 128, 128]);
+	expect(colorAt(photo, over, false, 0.5, 0.5)).toEqual([228, 128, 128]);
 	// the held photo button hides the layers
-	expect(colorAt(photo, over, false, true, 0.5, 0.5)).toEqual([200, 0, 0]);
-	// Paper is white until the photo button is held
-	expect(colorAt(photo, none, true, false, 0.5, 0.5)).toEqual([255, 255, 255]);
-	expect(colorAt(photo, none, true, true, 0.5, 0.5)).toEqual([200, 0, 0]);
+	expect(colorAt(photo, over, true, 0.5, 0.5)).toEqual([200, 0, 0]);
 });
 
 test("test_picker_card_follows_the_mouse_pins_on_click_and_goes_on_esc", async ({
@@ -454,16 +451,13 @@ test("test_an_area_is_the_average_in_linear_light_and_a_point_is_the_pixel", () 
 		i < 10 ? [0, 0, 0, 255] : [255, 255, 255, 255],
 	);
 	const photo = picture(20, 1, px);
-	const none = { base: null, edges: null, grid: null };
+	const none = { base: null, grid: null };
 	// a point is the pixel
-	expect(colorAround(photo, none, false, false, 3.5, 0.5, 0)).toEqual([
-		0, 0, 0,
-	]);
+	expect(colorAround(photo, none, false, 3.5, 0.5, 0)).toEqual([0, 0, 0]);
 	// an area on the edge is half the light, which is sRGB 188 and not 128
 	const mid = colorAround(
 		photo,
 		none,
-		false,
 		false,
 		10,
 		0.5,
@@ -471,8 +465,8 @@ test("test_an_area_is_the_average_in_linear_light_and_a_point_is_the_pixel", () 
 	) as unknown as number[];
 	for (const c of mid) expect(Math.abs(c - 188)).toBeLessThanOrEqual(12);
 	// a flat area is its color; off the photo it is null
-	expect(colorAround(photo, none, false, false, 3, 0.5, 2)).toEqual([0, 0, 0]);
-	expect(colorAround(photo, none, false, false, 25, 0.5, 2)).toBeNull();
+	expect(colorAround(photo, none, false, 3, 0.5, 2)).toEqual([0, 0, 0]);
+	expect(colorAround(photo, none, false, 25, 0.5, 2)).toBeNull();
 });
 
 /** The middle of the shown photo, in page px. */
@@ -659,9 +653,7 @@ test("test_shapes_legend_swatch_holds_a_pile_color", async ({ studio }) => {
 	);
 });
 
-test("test_a_strip_swatch_holds_its_color_and_a_pencil_swatch_holds_its_grade", async ({
-	studio,
-}) => {
+test("test_a_strip_swatch_holds_its_color", async ({ studio }) => {
 	const { page } = studio;
 	await studio.openSynthetic(480, 640, "strip.png");
 	await studio.base("values");
@@ -673,12 +665,4 @@ test("test_a_strip_swatch_holds_its_color_and_a_pencil_swatch_holds_its_grade", 
 	await expect(page.getByTestId("picker-card").getByRole("heading")).toHaveText(
 		/^Paint mix · V\d+$/,
 	);
-	await page.keyboard.press("Escape");
-	await studio.base("pencil");
-	await page.keyboard.press("Escape");
-	const row = page.getByTestId("legend-strip").getByTestId("legend-swatch");
-	await expect(row.first()).toBeVisible();
-	const grade = await row.first().getAttribute("data-grade");
-	await row.first().getByRole("button").click();
-	await expect(page.getByTestId("picker-card")).toContainText(grade ?? "");
 });

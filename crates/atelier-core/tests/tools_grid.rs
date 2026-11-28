@@ -1,7 +1,7 @@
 //! The Grid Contrast lines: one tone along a segment, a hold against a wobble in the photo.
 
 use atelier_core::img::Rgb;
-use atelier_core::render::{GRID_CONTRAST, grid_layer};
+use atelier_core::render::grid_layer;
 
 /// Gray stripes 30 px wide, 88 and 111: an `OKLab` lightness of 0.46 and 0.54, a wobble about the
 /// split between a dark and a light line.
@@ -17,9 +17,9 @@ fn wobble() -> Rgb {
 #[test]
 fn test_contrast_line_keeps_one_tone_along_a_segment() {
     let w = wobble();
-    // 6 squares of 80 px, a 2 px line: the horizontal line at y 80 runs between the vertical
-    // lines at x 80 and 160
-    let l = grid_layer(&w, 1, 6, 8, 2, GRID_CONTRAST, 0).unwrap();
+    // 6 squares of 80 px: the horizontal line at y 80 runs between the vertical lines at x 80
+    // and 160
+    let l = grid_layer(&w, 6000).unwrap();
     let at = |x: usize| &l.rgba[(80 * w.width + x) * 4..][..4];
     for x in 90..150 {
         assert!(at(x)[3] > 0, "line at {x}");
@@ -36,7 +36,7 @@ fn test_contrast_line_turns_where_the_photo_changes() {
             p.copy_from_slice(&[235; 3]);
         }
     }
-    let l = grid_layer(&w, 1, 6, 8, 2, GRID_CONTRAST, 0).unwrap();
+    let l = grid_layer(&w, 6000).unwrap();
     let at = |x: usize| &l.rgba[(80 * w.width + x) * 4..][..4];
     assert!(at(100)[0] > 200, "light on dark: {:?}", at(100));
     assert!(at(300)[0] < 60, "dark on light: {:?}", at(300));

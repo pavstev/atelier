@@ -1,10 +1,7 @@
-// The legends of the legend strip. Values and Shapes: one swatch per tone or pile, with its Munsell
+// The legend of the legend strip. Values and Shapes: one swatch per tone or pile, with its Munsell
 // value; a press holds that color in the paint mix card of the color picker (`features/picker`).
-// Pencil: one swatch per level with its grade; the hint and the share are in the tooltip. A press
-// holds that grade in the picker card.
 import type { ComponentProps, ReactNode } from "react";
 import type { Rgb } from "@/draw/calls";
-import type { Level } from "@/features/pencil/grades";
 import { css, hex, ink, munsellValue } from "@/features/picker/color";
 import type { Fixed } from "@/features/picker/Picker";
 
@@ -85,47 +82,6 @@ export function Legend(p: {
 						onPick={p.onPick}
 						className="size-9 border-separator"
 						button="size-full"
-					/>
-				);
-			})}
-		</Strip>
-	);
-}
-
-/** The share of a level as the legend says it. A level the photo does not use is "not used". */
-const shareWords = (share: number) => (share > 0 ? `${share}%` : "not used");
-
-/**
- * The Pencil legend: one compact swatch per level, darkest first and Paper last (the order of the
- * answer), with the grade on it. The hint and the share are in the tooltip and the accessible name.
- * A press holds that grade in the picker card. In By pencil `mark` is the level the picture is
- * drawn up to: its swatch has `data-step="true"` and `aria-current="step"`.
- */
-export function PencilLegend(p: {
-	levels: Level[];
-	mark?: number | null;
-	onPick?: (f: Fixed) => void;
-}) {
-	return (
-		<Strip label="Pencil legend">
-			{p.levels.map(({ grade, tone, share }, i) => {
-				const step = p.mark === i;
-				const name = `${grade.id}: ${grade.hint}, ${shareWords(share)}`;
-				return (
-					<Swatch
-						key={grade.id}
-						tone={tone}
-						text={grade.id}
-						label={grade.id}
-						aria={name}
-						onPick={p.onPick}
-						data-grade={grade.id}
-						data-share={share}
-						data-step={step ? "true" : undefined}
-						aria-current={step ? "step" : undefined}
-						title={name}
-						className={`shrink-0 ${step ? "border-accent ring-2 ring-accent" : "border-separator"} ${share > 0 ? "" : "opacity-60"}`}
-						button="h-9 min-w-9 px-1 font-medium"
 					/>
 				);
 			})}

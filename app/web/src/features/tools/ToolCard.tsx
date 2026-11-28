@@ -1,4 +1,4 @@
-// The tool cards of the bottom bar as lazy chunks: the body of Base, Edges and Grid (`Panel.tsx`) and
+// The tool cards of the bottom bar as lazy chunks: the body of Base and Grid (`Panel.tsx`) and
 // the Paper card (`features/size`) load the first time a card opens, not with the first paint. The
 // fallback holds the card's width and a floor of its height, so the card does not jump much.
 import { lazy, Suspense } from "react";
@@ -16,11 +16,11 @@ const Hold = (p: { rows: number }) => (
 	/>
 );
 
-/** The head and body of one of the tools Base, Edges and Grid. */
+/** The head and body of one of the tools Base and Grid. */
 export function ToolCard(p: ToolCardProps) {
 	return (
 		<LoadBoundary>
-			<Suspense fallback={<Hold rows={p.id === "base" ? 3 : 6} />}>
+			<Suspense fallback={<Hold rows={3} />}>
 				<Panel {...p} />
 			</Suspense>
 		</LoadBoundary>

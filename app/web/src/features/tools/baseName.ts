@@ -9,5 +9,5 @@ export const BASE_NAMES = BASES.map((b) => b.label);
 export const baseIndex = (kind: string) =>
 	BASES.findIndex((b) => b.id === kind);
 
-/** The name of the base now on show (Photo, Values, Shapes, Paper or Pencil). */
+/** The name of the base now on show (Photo, Values or Shapes). */
 export const baseName = (look: Look) => BASE_NAMES[baseIndex(look.base.kind)];

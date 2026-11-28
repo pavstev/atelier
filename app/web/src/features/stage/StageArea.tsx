@@ -1,10 +1,9 @@
 // The middle of the screen: the stage with the photo, the bottom bar, the handle on the panel edge,
-// the error banner and the color picker. It owns the zoom and pan (`useViewport`) and the Lock, so a
-// drag or a wheel turn draws this part only and not the whole page.
+// the error banner and the color picker. It owns the zoom and pan (`useViewport`), so a drag or a
+// wheel turn draws this part only and not the whole page.
 import { Button } from "@heroui/react";
 import { type ReactNode, type RefObject, useEffect, useState } from "react";
 import { useFacts } from "@/draw/facts";
-import type { Level } from "@/features/pencil/grades";
 import { AREA_START } from "@/features/picker/area";
 import type { Fixed } from "@/features/picker/Picker";
 import PickerLazy, { preloadPicker } from "@/features/picker/PickerLazy";
@@ -19,10 +18,10 @@ import {
 	type SetLayout,
 	type SetLook,
 } from "@/features/tools/settings";
+import { KEYS, loadJson, usePersisted } from "@/lib/storage";
 import { ICON_BUTTON, IconButton, Tip } from "@/ui/icons";
 import EdgeHandle from "./EdgeHandle";
 import LegendStrip from "./LegendStrip";
-import { lockedWidth, useLock } from "./lockZoom";
 import ResizeHandle from "./ResizeHandle";
 import Stage from "./Stage";
 import StageBar from "./StageBar";
@@ -46,11 +45,7 @@ export default function StageArea(p: {
 	layers: Layers;
 	look: Look;
 	onLook: SetLook;
-	/** The Pencil levels once drawn; the picker names the grade of a spot from them. */
-	levels?: Level[] | null;
-	/** The level By pencil is drawn up to (an index into `levels`), or none. */
-	mark?: number | null;
-	/** The legend of Values, Shapes or Pencil, shown in the strip at the top of the stage. */
+	/** The legend of Values or Shapes, shown in the strip at the top of the stage. */
 	legend?: ReactNode;
 	layout: Layout;
 	onLayout: SetLayout;
@@ -65,7 +60,6 @@ export default function StageArea(p: {
 }) {
 	const { look, layout, photo } = p;
 	const drawn = useFacts();
-	const [lock, setLock] = useLock();
 	const see = useSeePhoto();
 	const hold = see.on;
 	const onHold = (down: boolean, completed = true) =>
@@ -85,7 +79,14 @@ export default function StageArea(p: {
 	const [picking, setPicking] = useState(false);
 	// the Mac app keeps the legend out of the way until the bar button shows it
 	const mac = document.documentElement.dataset.shell === "mac";
-	const [legendOn, setLegendOn] = useState(false);
+	// and remembers whether it was shown (a wrong type in the save gives off)
+	const [legendOn, setLegendOn] = usePersisted(KEYS.legend, () =>
+		loadJson(
+			KEYS.legend,
+			(raw) => raw === true,
+			() => false,
+		),
+	);
 	const [area, setArea] = useState(AREA_START);
 	// a color held from the legend turns the picker on
 	const [seen, setSeen] = useState<Fixed | null>(null);
@@ -93,7 +94,7 @@ export default function StageArea(p: {
 		setSeen(p.picked);
 		if (p.picked) setPicking(true);
 	}
-	const viewport = useViewport(photo, p.photoId, lock.on, lockedWidth(lock));
+	const viewport = useViewport(photo, p.photoId);
 	const toggle = () =>
 		p.onLayout((l) => ({ ...l, panels: { left: !l.panels.left } }));
 	useShortcuts({
@@ -143,7 +144,6 @@ export default function StageArea(p: {
 				<Stage
 					photo={photo}
 					layers={p.layers}
-					paper={look.base.kind === "paper"}
 					hold={hold}
 					viewport={viewport}
 					onOpen={p.onOpen}
@@ -154,12 +154,8 @@ export default function StageArea(p: {
 						box={viewport.box}
 						photo={photo}
 						layers={p.layers}
-						paper={look.base.kind === "paper"}
 						hold={hold}
 						view={viewport.view}
-						pencil={look.base.kind === "pencil"}
-						levels={p.levels ?? null}
-						mark={p.mark ?? null}
 						fixed={p.picked}
 						onFixed={p.onPicked}
 						area={area}
@@ -196,8 +192,6 @@ export default function StageArea(p: {
 				)}
 				{photo && (
 					<StageBar
-						lock={lock}
-						onLock={setLock}
 						zoom={viewport.view.zoom}
 						onHold={onHold}
 						seeLatched={see.latched}
@@ -205,7 +199,6 @@ export default function StageArea(p: {
 						onZoomTo={viewport.zoomTo}
 						look={look}
 						onLook={p.onLook}
-						photo={photo}
 						size={p.size}
 						picking={picking}
 						picked={p.picked}

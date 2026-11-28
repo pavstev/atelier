@@ -1,7 +1,7 @@
 // Unit tests of `routeOf`: which way the service worker answers a request.
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { routeOf, shareOutcome } from "./routes.ts";
+import { routeOf } from "./routes.ts";
 
 const o = "https://a.b";
 
@@ -23,8 +23,8 @@ test("navigate gives shell", () => {
 		"shell",
 	);
 });
-test("share", () => {
-	assert.equal(routeOf("POST", `${o}/share`, "navigate", o, []), "share");
+test("a POST to /share is not the worker's", () => {
+	assert.equal(routeOf("POST", `${o}/share`, "navigate", o, []), "pass");
 });
 test("test_cross_origin", () => {
 	assert.equal(
@@ -43,13 +43,6 @@ test("navigate to a file passes", () => {
 	assert.equal(routeOf("GET", `${o}/og.png`, "navigate", o, ["/"]), "pass");
 	assert.equal(routeOf("GET", `${o}/sw.js`, "navigate", o, ["/"]), "pass");
 	assert.equal(routeOf("GET", `${o}/studio`, "navigate", o, ["/"]), "shell");
-});
-test("shareOutcome clears old keys and picks the redirect", () => {
-	assert.deepEqual(shareOutcome(["/shared/0", "/shared/1"], true), {
-		del: ["/shared/0", "/shared/1"],
-		to: "/?shared=1",
-	});
-	assert.deepEqual(shareOutcome([], false), { del: [], to: "/" });
 });
 test("unlisted non-navigate GET passes", () => {
 	assert.equal(routeOf("GET", `${o}/other.png`, "cors", o, ["/"]), "pass");

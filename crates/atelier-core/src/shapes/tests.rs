@@ -129,109 +129,56 @@ fn cells() -> Rgb {
     Rgb::from_vec(w, h, 3, data)
 }
 
-fn sv(level: u8) -> ShapesView {
-    ShapesView {
+/// The settings the tests cut with: the level (0 big, 1 mid, 2 small, 3 auto), the detail, the
+/// mode filter radius and the guide weight.
+#[derive(Clone, Copy)]
+struct Cut {
+    level: u8,
+    detail: f32,
+    smooth: u8,
+    guide: f32,
+}
+
+fn sv(level: u8) -> Cut {
+    Cut {
         level,
         detail: 0.5,
         smooth: 0,
         guide: 0.5,
-        outline: 1.0,
     }
 }
 
-/// The pixels of an outline view that sit on a boundary.
-fn boundary(img: &Rgb) -> Vec<bool> {
-    img.data
-        .chunks_exact(3)
-        .map(|p| p == OUTLINE_INK.as_slice())
-        .collect()
+/// Cuts `work` and returns the shapes and the index of the level that `v.level` names.
+fn cut(work: &Rgb, v: &Cut) -> (Shapes, usize) {
+    let mut opts = ShapesOpts {
+        smooth: usize::from(v.smooth),
+        guide: v.guide,
+        ..ShapesOpts::default()
+    };
+    let scale = 0.5 + v.detail;
+    opts.counts = opts
+        .counts
+        .map(|c| ((c as f32 * scale).round() as usize).max(1));
+    let shapes = decompose(work, &opts);
+    let level = match v.level {
+        0 => BIG,
+        1 => MID,
+        2 => SMALL,
+        _ => shapes.auto,
+    };
+    (shapes, level)
 }
 
 #[test]
-fn test_view_levels_nest() {
-    for img in [cells(), ramps()] {
-        for smooth in [0, 2] {
-            let at = |level| ShapesView {
-                smooth,
-                ..sv(level)
-            };
-            let (big, mid, small) = (
-                boundary(&view(&img, &at(0)).unwrap()),
-                boundary(&view(&img, &at(1)).unwrap()),
-                boundary(&view(&img, &at(2)).unwrap()),
-            );
-            assert!(big.iter().any(|&b| b), "smooth {smooth}: no boundary");
-            for i in 0..big.len() {
-                assert!(!big[i] || mid[i], "big not in mid at {i}, smooth {smooth}");
-                assert!(
-                    !mid[i] || small[i],
-                    "mid not in small at {i}, smooth {smooth}"
-                );
-            }
-            let (s, _) = cut(&img, &at(2)).unwrap();
-            assert!(s.is_nested(), "smooth {smooth}");
-        }
-    }
-}
-
-#[test]
-fn test_view_auto_picks_a_level() {
+fn test_auto_picks_a_level() {
     for img in [cells(), ramps(), four_rects()] {
-        let (s, level) = cut(&img, &sv(3)).unwrap();
+        let (s, level) = cut(&img, &sv(3));
         assert!([BIG, MID, SMALL].contains(&level));
         assert_eq!(level, s.auto);
-        let auto = view(&img, &sv(3)).unwrap();
-        let named = view(&img, &sv(level as u8)).unwrap();
-        assert_eq!(auto, named);
     }
     // a flat image has no jump, so the pick is the medium level
     let flat = Rgb::filled(48, 32, &[90, 120, 150]);
-    assert_eq!(cut(&flat, &sv(3)).unwrap().1, MID);
-}
-
-#[test]
-fn test_view_draws_outlines_on_paper() {
-    let img = cells();
-    let outline = view(&img, &sv(1)).unwrap();
-    assert_eq!(
-        (outline.width, outline.height, outline.channels),
-        (160, 120, 3)
-    );
-    let marks = boundary(&outline);
-    assert!(marks.iter().any(|&b| b));
-    for (p, &on) in outline.data.chunks_exact(3).zip(&marks) {
-        assert!(on || p == OUTLINE_PAPER.as_slice());
-    }
-}
-
-#[test]
-fn test_view_outline_is_dark_ink_on_light_paper() {
-    let out = view(&cells(), &sv(1)).unwrap();
-    let luma = |p: &[u8]| (u32::from(p[0]) + u32::from(p[1]) + u32::from(p[2])) / 3;
-    let marks = boundary(&out);
-    for (p, &on) in out.data.chunks_exact(3).zip(&marks) {
-        if on {
-            assert!(luma(p) <= 40, "ink {p:?}");
-        } else {
-            assert!(luma(p) >= 240, "paper {p:?}");
-        }
-    }
-    let ink = marks.iter().filter(|&&b| b).count();
-    assert!(ink > 0 && ink * 5 < marks.len(), "{ink} ink pixels");
-}
-
-#[test]
-fn test_outline_width_follows_the_long_side() {
-    assert_eq!(line_width(512, 1.0), 1.0);
-    assert_eq!(line_width(1024, 1.0), 1.0);
-    assert_eq!(line_width(2048, 1.0), 2.0);
-    assert_eq!(line_width(4096, 1.0), 4.0);
-    let mut mask = vec![false; 10 * 10];
-    mask[5 * 10 + 5] = true;
-    let wide = widen(&mask, 10, 10, 2);
-    assert_eq!(wide.iter().filter(|&&b| b).count(), 4);
-    assert!(wide[5 * 10 + 5] && wide[6 * 10 + 6]);
-    assert_eq!(widen(&mask, 10, 10, 3).iter().filter(|&&b| b).count(), 9);
+    assert_eq!(cut(&flat, &sv(3)).1, MID);
 }
 
 /// The biggest jump of the border between label 0 (left) and 1 (right) from one row to the
@@ -390,9 +337,9 @@ fn test_snap_keeps_a_thin_shape_with_real_edges() {
 #[test]
 fn test_smooth_keeps_levels_nested_and_deterministic() {
     let img = ramps();
-    let v = ShapesView { smooth: 3, ..sv(2) };
-    let (a, _) = cut(&img, &v).unwrap();
-    let (b, _) = cut(&img, &v).unwrap();
+    let v = Cut { smooth: 3, ..sv(2) };
+    let (a, _) = cut(&img, &v);
+    let (b, _) = cut(&img, &v);
     assert!(a.is_nested());
     assert_eq!(a, b);
 }
@@ -402,11 +349,11 @@ fn test_view_detail_moves_the_count() {
     let img = cells();
     for level in [0, 1, 2] {
         let count = |detail| {
-            let v = ShapesView {
+            let v = Cut {
                 detail,
                 ..sv(level)
             };
-            let (s, l) = cut(&img, &v).unwrap();
+            let (s, l) = cut(&img, &v);
             s.levels[l].shapes.len()
         };
         let (few, many) = (count(0.0), count(1.0));
@@ -420,36 +367,13 @@ fn test_view_tiny_images_do_not_panic() {
         let data = (0..w * h).flat_map(|i| [(i * 37) as u8, 90, (i * 11) as u8]);
         let img = Rgb::from_vec(w, h, 3, data.collect());
         for level in 0..4 {
-            let v = ShapesView {
+            let v = Cut {
                 smooth: 3,
                 ..sv(level)
             };
-            let out = view(&img, &v).unwrap();
-            assert_eq!((out.width, out.height), (w, h));
+            let (s, _) = cut(&img, &v);
+            assert_eq!((s.width, s.height), (w, h));
         }
-    }
-}
-
-#[test]
-fn test_view_bad_args() {
-    let img = cells();
-    for v in [
-        ShapesView { level: 4, ..sv(0) },
-        ShapesView { smooth: 4, ..sv(0) },
-        ShapesView {
-            detail: 1.5,
-            ..sv(0)
-        },
-        ShapesView {
-            guide: -0.1,
-            ..sv(0)
-        },
-        ShapesView {
-            detail: f32::NAN,
-            ..sv(0)
-        },
-    ] {
-        assert!(view(&img, &v).is_err(), "{v:?}");
     }
 }
 
@@ -483,7 +407,7 @@ fn blob_on_fields() -> Rgb {
 #[test]
 fn test_auto_keeps_a_small_clear_subject() {
     let img = blob_on_fields();
-    let (shapes, level) = cut(&img, &sv(3)).unwrap();
+    let (shapes, level) = cut(&img, &sv(3));
     let blob_at = |lv: usize| {
         let l = &shapes.levels[lv];
         let w = shapes.width;
@@ -500,7 +424,7 @@ fn test_auto_keeps_a_small_clear_subject() {
 
 #[test]
 fn test_auto_does_not_split_a_calm_picture() {
-    let (shapes, level) = cut(&four_rects(), &sv(3)).unwrap();
+    let (shapes, level) = cut(&four_rects(), &sv(3));
     assert_eq!(level, jump_pick(&shapes.merge_ratio));
 }
 
@@ -509,47 +433,6 @@ fn test_shapes_same_at_2048() {
     crate::test_support::assert_same_at_2048(&[0u32, 1, 2, 3], 6.0, |img, &level| {
         crate::render::shapes_view(img, level, 0.5).unwrap().0
     });
-}
-
-#[test]
-fn test_outline_skips_a_border_between_alike_shapes() {
-    // a gentle ramp of 6 grey steps: every cut is under 4 L*, so no ink is drawn
-    let (w, h) = (160, 48);
-    let mut data = Vec::with_capacity(w * h * 3);
-    for _ in 0..h {
-        for x in 0..w {
-            data.extend_from_slice(&[128 + (x * 6 / w) as u8; 3]);
-        }
-    }
-    let ramp = Rgb::from_vec(w, h, 3, data);
-    let out = view(&ramp, &sv(2)).unwrap();
-    assert!(boundary(&out).iter().all(|&b| !b), "a band of a gradient");
-    // a real step keeps its line
-    let out = view(&cells(), &sv(2)).unwrap();
-    assert!(boundary(&out).iter().any(|&b| b));
-    let (a, b) = (shape_of([0.60, 0.0, 0.0]), shape_of([0.62, 0.01, 0.0]));
-    assert!(same_paint(&a, &b));
-    assert!(!same_paint(&a, &shape_of([0.70, 0.0, 0.0])));
-    assert!(!same_paint(&a, &shape_of([0.60, 0.05, 0.0])));
-}
-
-fn shape_of(color: [f32; 3]) -> Shape {
-    Shape {
-        area: 1,
-        color,
-        rgb: [0; 3],
-        value: 0,
-        parent: None,
-    }
-}
-
-#[test]
-fn test_outline_width_follows_the_scale() {
-    // the start width at the start scale, then every step of the Edges width knob in fractions of a px
-    assert_eq!(line_width(1024, 1.0), 1.0);
-    assert_eq!(line_width(1024, 0.5), 0.5);
-    assert_eq!(line_width(1024, 1.5), 1.5);
-    assert_eq!(line_width(2048, 1.5), 3.0);
 }
 
 #[test]

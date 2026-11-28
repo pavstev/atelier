@@ -1,35 +1,19 @@
 // The bar at the bottom center of the stage, left to right: See photo (a tap keeps the bare photo on
-// and lights the button, a press over 300 ms peeks while held) | Base, Edges and Grid (Edges and Grid
-// are split buttons: the main part switches the layer, the chevron opens its card) | Paper and the
-// zoom button | the color picker toggle | the grip. Paper (`features/size`) frames the photo to a paper
-// and holds the Real size switch with the screen width. A tool button opens its controls in a card
-// over the bar (a bottom sheet on a phone), one card at a time. The picker has no card: it is a
-// toggle, and its mix card follows the mouse over the photo (`features/picker`). The zoom button
-// shows the zoom now; its menu has Fit, 100%, 200% and "Real size", a toggle that locks the zoom to
-// the photo width on the paper (it opens the Paper card when the screen width is not known yet).
-// While locked, the button shows a lock and Fit, 100% and 200% are off.
-// The grip at the right end drags the bar along the stage; the place is saved (`BarHandle.tsx`).
+// and lights the button, a press over 300 ms peeks while held) | Base and Grid (Grid
+// is a split button: the main part switches the layer, the chevron opens its card) | Paper and the
+// zoom button | the color picker toggle. Paper (`features/size`) frames the photo to a paper. A tool
+// button opens its controls in a card over the bar (a bottom sheet on a phone), one card at a time.
+// The picker has no card: it is a toggle, and its mix card follows the mouse over the photo
+// (`features/picker`). The zoom button shows the zoom now; its menu has Fit, 100% and 200%.
+// The bar is fixed at the bottom center of the free stage (the stage right of the open panel).
 import { Button, Dropdown, Label } from "@heroui/react";
-import { useEffect, useRef, useState } from "react";
-import { usePencilAuto } from "@/features/pencil/usePencilAuto";
-import { usePencilExtras } from "@/features/pencil/usePencilExtras";
-import { shownWidthCm } from "@/features/size/paper";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { SizeState } from "@/features/size/useSize";
 import { baseName } from "@/features/tools/baseName";
-import {
-	GRID_MODE,
-	GRID_UNIT,
-	type Look,
-	type StageId,
-} from "@/features/tools/settings";
+import { type Look, STAGE_IDS, type StageId } from "@/features/tools/settings";
 import { SizeCardLazy, ToolCard } from "@/features/tools/ToolCard";
-import { KEYS, loadJson, useSaved } from "@/lib/storage";
 import { Icon, IconButton, type IconName, Tip } from "@/ui/icons";
-import BarHandle, { barLeft } from "./BarHandle";
-import { BAR_START, cleanBar } from "./barPlace";
-import type { Lock } from "./lockZoom";
 import Popup from "./Popup";
-import { guessScreen } from "./screens";
 
 type Open = StageId | "size" | null;
 
@@ -38,17 +22,11 @@ const BASE_ICON: Record<Look["base"]["kind"], IconName> = {
 	photo: "image",
 	values: "tones",
 	shapes: "shapes",
-	paper: "paper",
-	pencil: "pen",
 };
-
-const STAGE_IDS_IN_BAR: readonly StageId[] = ["base", "edges", "grid"];
 
 export default function StageBar(p: {
 	/** Zoom as a factor; 1 is actual pixels. */
 	zoom: number;
-	lock: Lock;
-	onLock: (l: Lock) => void;
 	/** See photo goes down (true) or up (false); `seePhoto.ts` tells a tap from a hold. */
 	onHold: (down: boolean, completed?: boolean) => void;
 	/** The bare photo is kept on after a tap. */
@@ -58,8 +36,6 @@ export default function StageBar(p: {
 	onZoomTo: (zoom: number) => void;
 	look: Look;
 	onLook: (f: (s: Look) => Look) => void;
-	/** The photo on screen: Auto and Suggest of the Pencil card read it. */
-	photo: ImageData | null;
 	/** The paper or canvas of the photo (the Size card). */
 	size: SizeState;
 	/** The color picker is on. */
@@ -71,26 +47,25 @@ export default function StageBar(p: {
 	legend?: { on: boolean; onToggle: () => void };
 }) {
 	const [open, setOpen] = useState<Open>(null);
-	const { lock } = p;
-	// the Auto note and the suggested pencils live here, so a closed card keeps them
-	const extras = usePencilExtras(p.photo);
-	usePencilAuto(p.photo, p.look, p.onLook, extras);
-	const found = guessScreen();
 	// the See photo press finished on the button (not left or cancelled)
 	const pressed = useRef(false);
-	// the bar place along the stage, saved so a refresh keeps it
 	const frame = useRef<HTMLDivElement>(null);
-	const [place, setPlace] = useState(() => ({
-		x: loadJson(KEYS.bar, cleanBar, () => BAR_START),
-	}));
-	useSaved(KEYS.bar, place, 150);
-	// the bar's own width, for the keep-inside rule of the place
-	useEffect(() => {
-		const el = frame.current;
-		if (!el) return;
-		const ro = new ResizeObserver(() =>
-			el.style.setProperty("--bar-w", `${el.offsetWidth}px`),
-		);
+	const bar = useRef<HTMLDivElement>(null);
+	// The bar's width, rounded up to a whole pixel, so its left and right edges are both whole pixels
+	// (the left edge is rounded in `style` below). The bar gets that width as its min-width; it is
+	// cleared before each measure, so the bar can also get narrower.
+	useLayoutEffect(() => {
+		const el = bar.current;
+		const outer = frame.current;
+		if (!el || !outer) return;
+		const fit = () => {
+			el.style.minWidth = "";
+			const w = Math.ceil(el.getBoundingClientRect().width - 0.01);
+			el.style.minWidth = `${w}px`;
+			outer.style.setProperty("--bar-w", `${w}px`);
+		};
+		fit();
+		const ro = new ResizeObserver(fit);
 		ro.observe(el);
 		return () => ro.disconnect();
 	}, []);
@@ -99,46 +74,18 @@ export default function StageBar(p: {
 		if (p.picked) setOpen(null);
 	}, [p.picked]);
 
-	/** The photo width on the paper in cm, or the lock's own width before a photo is open. */
-	const paperW = p.size.whole
-		? shownWidthCm(p.size.choice, p.size.whole.width, p.size.whole.height)
-		: lock.cm;
-	// While the real size is on, the zoom follows the paper: a new paper or cut changes the width
-	useEffect(() => {
-		if (lock.on && p.size.whole && Math.abs(lock.cm - paperW) > 0.005)
-			p.onLock({ ...lock, cm: paperW });
-	}, [lock, paperW, p.size.whole, p.onLock]);
-
-	/** The Real size switch of the Paper card and of the zoom menu. Without a screen width the zoom
-	 * cannot be real yet, so the Paper card opens to ask for it. */
-	const setReal = (on: boolean, cm: number = paperW) => {
-		p.onLock({ ...lock, on, cm: on ? cm : lock.cm });
-		if (on && lock.screenCm <= 0) setOpen("size");
-	};
-
 	const act = (key: string) => {
 		if (key === "fit") p.onFit();
 		else if (key === "actual") p.onZoomTo(1);
 		else if (key === "double") p.onZoomTo(2);
-		else if (key === "real") setReal(!lock.on);
-		else if (key === "unlock") setReal(false);
 	};
 
-	// Pencil is a drawing of its own: Edges is off while it is the base (its saved switch stays)
-	const noEdges = p.look.base.kind === "pencil";
-	// a Grid with squares (not Thirds) is on: the Paper line tells its cell
-	const gridOn = p.look.grid.on && p.look.grid.mode !== GRID_MODE.thirds;
 	const info: Record<StageId, { label: string; icon: IconName; tip: string }> =
 		{
 			base: {
 				label: "Base",
 				icon: BASE_ICON[p.look.base.kind],
 				tip: `Base: ${baseName(p.look)}`,
-			},
-			edges: {
-				label: "Edges",
-				icon: "edges",
-				tip: noEdges ? "Off in Pencil mode" : "Edges",
 			},
 			grid: { label: "Grid", icon: "grid", tip: "Grid" },
 		};
@@ -147,11 +94,16 @@ export default function StageBar(p: {
 		<div
 			ref={frame}
 			data-testid="stage-bar-frame"
-			style={{ "--bar-left": barLeft(place.x) } as React.CSSProperties}
-			// the left edge is a whole pixel (the centre rounded, half the width rounded down), so the 1 px edge stays crisp
-			className="absolute bottom-5 left-[round(50%,1px)] z-(--z-bar) max-w-[calc(100%-1rem)] -translate-x-[round(down,calc(var(--bar-w,0px)/2),1px)] md:left-[round(var(--bar-left),1px)]"
+			// centered on the free stage (right of the open panel, `--free-left` from `StageArea`), kept inside
+			// the stage and, when it fits, off the panel (8 px of room); the left edge is a whole pixel (the
+			// centre rounded, half the width rounded down), so the 1 px edge stays crisp
+			style={{
+				left: "round(min(calc(100% - var(--bar-w, 0px) / 2 - 8px), max(calc(var(--free-left, 0px) + var(--bar-w, 0px) / 2 + 8px), calc(var(--free-left, 0px) + (100% - var(--free-left, 0px)) / 2))), 1px)",
+			}}
+			className="absolute bottom-5 z-(--z-bar) max-w-[calc(100%-1rem)] -translate-x-[round(down,calc(var(--bar-w,0px)/2),1px)]"
 		>
 			<div
+				ref={bar}
 				data-testid="stage-bar"
 				className="floating-card flex items-center gap-1 rounded-full p-1"
 			>
@@ -185,14 +137,13 @@ export default function StageBar(p: {
 					</Button>
 				</Tip>
 				<span className="h-5 w-px bg-separator" />
-				{STAGE_IDS_IN_BAR.map((id) => (
+				{STAGE_IDS.map((id) => (
 					<Popup
 						key={id}
 						id={id}
 						title={info[id].label}
-						open={open === id && !(id === "edges" && noEdges)}
+						open={open === id}
 						onOpenChange={(o) => {
-							if (id === "edges" && noEdges) return;
 							setOpen(o ? id : open === id ? null : open);
 						}}
 						button={{
@@ -200,11 +151,7 @@ export default function StageBar(p: {
 							label: info[id].label,
 							tip: info[id].tip,
 							testid: `tool-${id}`,
-							on:
-								id === "base"
-									? p.look.base.kind !== "photo"
-									: p.look[id].on && !(id === "edges" && noEdges),
-							disabled: id === "edges" && noEdges,
+							on: id === "base" ? p.look.base.kind !== "photo" : p.look[id].on,
 							onToggle:
 								id === "base"
 									? undefined
@@ -215,13 +162,7 @@ export default function StageBar(p: {
 											})),
 						}}
 					>
-						<ToolCard
-							id={id}
-							look={p.look}
-							onLook={p.onLook}
-							extras={extras}
-							paper={p.size.whole !== null}
-						/>
+						<ToolCard id={id} look={p.look} onLook={p.onLook} />
 					</Popup>
 				))}
 				<span className="h-5 w-px bg-separator" />
@@ -235,7 +176,7 @@ export default function StageBar(p: {
 					button={{
 						icon: "size",
 						label: "Paper",
-						tip: "Paper: size and real size",
+						tip: "Paper: size and shape",
 						testid: "tool-size",
 						on: p.size.choice.fit,
 					}}
@@ -246,38 +187,19 @@ export default function StageBar(p: {
 							onChange={p.size.set}
 							photoW={p.size.whole.width}
 							photoH={p.size.whole.height}
-							cells={
-								gridOn && p.look.grid.unit === GRID_UNIT.cells
-									? p.look.grid.cells
-									: null
-							}
-							stepCm={
-								gridOn && p.look.grid.unit === GRID_UNIT.cm
-									? p.look.grid.cm
-									: null
-							}
-							real={lock.on}
-							screenCm={lock.screenCm}
-							found={
-								found && Math.abs(lock.screenCm - found.cm) < 0.005
-									? found.name
-									: null
-							}
-							onReal={(on, cm) => setReal(on, cm)}
-							onScreen={(screenCm) => p.onLock({ ...lock, screenCm })}
+							stepCm={p.look.grid.on ? p.look.grid.cm : null}
 						/>
 					)}
 				</Popup>
 				<Dropdown onOpenChange={(o) => o && setOpen(null)}>
-					<Tip text={lock.on ? "Zoom (locked)" : "Zoom"} placement="top">
+					<Tip text="Zoom" placement="top">
 						<Button
 							size="sm"
-							variant={lock.on ? "secondary" : "ghost"}
+							variant="ghost"
 							className="touch-none gap-1 rounded-full px-2.5 select-none"
 							aria-label="Zoom"
 							data-testid="zoom-menu"
 							data-bar-button
-							data-locked={lock.on}
 						>
 							<span
 								data-testid="zoom-percent"
@@ -285,16 +207,14 @@ export default function StageBar(p: {
 							>
 								{Math.round(p.zoom * 100)}%
 							</span>
-							<Icon name={lock.on ? "lock" : "down"} size="row" />
+							<Icon name="down" size="row" />
 						</Button>
 					</Tip>
 					<Dropdown.Popover placement="top">
 						<Dropdown.Menu
 							aria-label="Zoom"
-							// Real size is a check item; the menu still closes after it, as after Fit.
 							shouldCloseOnSelect
 							onAction={(key) => act(String(key))}
-							disabledKeys={lock.on ? ["fit", "actual", "double"] : []}
 						>
 							<Dropdown.Item id="fit" textValue="Fit" data-testid="zoom-fit">
 								<Label>Fit</Label>
@@ -313,28 +233,6 @@ export default function StageBar(p: {
 							>
 								<Label>200%</Label>
 							</Dropdown.Item>
-							<Dropdown.Section
-								selectionMode="multiple"
-								selectedKeys={lock.on ? ["real"] : []}
-							>
-								<Dropdown.Item
-									id="real"
-									textValue="Real size"
-									data-testid="zoom-real"
-								>
-									<Label>Real size</Label>
-									<Dropdown.ItemIndicator />
-								</Dropdown.Item>
-							</Dropdown.Section>
-							{lock.on ? (
-								<Dropdown.Item
-									id="unlock"
-									textValue="Unlock"
-									data-testid="zoom-unlock"
-								>
-									<Label>Unlock</Label>
-								</Dropdown.Item>
-							) : null}
 						</Dropdown.Menu>
 					</Dropdown.Popover>
 				</Dropdown>
@@ -366,13 +264,6 @@ export default function StageBar(p: {
 						onPress={p.legend.onToggle}
 					/>
 				)}
-				<span className="h-5 w-px bg-separator max-md:hidden" />
-				<BarHandle
-					frame={frame}
-					x={place.x}
-					onCommit={(x) => setPlace({ x })}
-					onStart={() => setOpen(null)}
-				/>
 			</div>
 		</div>
 	);

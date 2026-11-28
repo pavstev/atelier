@@ -11,22 +11,13 @@ test("test_open_and_every_layer_draws", async ({ studio }) => {
 		await expect(page.getByTestId("layer-canvas-base")).toBeVisible();
 		await expect(page.getByTestId("error")).toHaveCount(0);
 	}
-	for (const id of ["edges", "grid"] as const) {
-		await studio.layer(id, true);
-		await expect(page.getByTestId(`layer-canvas-${id}`)).toBeVisible();
-		await expect(page.getByTestId("error")).toHaveCount(0);
-	}
-	// Walk the new controls once: Values tint and legend, Edges mode and amount.
+	await studio.layer("grid", true);
+	await expect(page.getByTestId("layer-canvas-grid")).toBeVisible();
+	await expect(page.getByTestId("error")).toHaveCount(0);
+	// Walk the controls once: the Values legend and the Grid step.
 	await studio.base("values");
-	await studio.knob("values-tint", 1);
 	await expect(page.getByTestId("legend")).toBeVisible();
-	// The start amount 67 shows as 67, not as the nearest step of 5. Its card is open first.
-	await studio.tool("edges");
-	await expect(
-		page.locator("[data-testid=edges-amount] input[type=range]"),
-	).toHaveValue("67");
-	await studio.knob("edges-mode", 1);
-	await studio.knob("edges-amount", 50);
+	await studio.knob("grid-step", 7);
 });
 
 test("the icons and the share images are served", async ({ page }) => {

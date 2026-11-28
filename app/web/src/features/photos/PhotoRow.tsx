@@ -1,4 +1,4 @@
-// One photo of the list: a small preview and the name, or a tile. A hover shows the bigger preview
+// One photo of the list: a small preview and the name. A hover shows the bigger preview
 // with the facts (`PhotoCard`). A click shows the photo, the pen renames it, the bin deletes it. The
 // pen and the bin float over the right end of the row on hover or focus (always, on a touch screen).
 import { Tooltip } from "@heroui/react";
@@ -11,14 +11,13 @@ import { DELETE_ACTION, RenameInput, ROW_ACTION, useRename } from "./rename";
 import { highlight } from "./search";
 import type { Doc, Folder } from "./store";
 
-/** The little preview of a photo, or a plain box until it is made. A small square in the list, the
- * whole width of its tile in tiles. */
-function Thumb(p: { src: string; tile?: boolean }) {
+/** The little preview of a photo, or a plain box until it is made. */
+function Thumb(p: { src: string }) {
 	return (
 		<span
-			className={`grid shrink-0 grid-cols-[100%] grid-rows-[100%] place-items-center overflow-hidden rounded-(--radius-chip) ${
+			className={`grid size-7 shrink-0 grid-cols-[100%] grid-rows-[100%] place-items-center overflow-hidden rounded-(--radius-chip) ${
 				p.src ? "" : "bg-default"
-			} ${p.tile ? "aspect-square w-full" : "size-7"}`}
+			}`}
 		>
 			{p.src && (
 				<img
@@ -53,8 +52,6 @@ function Name(p: { name: string; terms: string[] }) {
 
 type RowProps = {
 	d: Doc;
-	/** Shown as a tile, not a row. */
-	tile: boolean;
 	active: boolean;
 	terms: string[];
 	/** All folders, for the move menu. */
@@ -77,16 +74,13 @@ const PhotoRow = memo(function PhotoRow(p: RowProps) {
 		(name) => p.onRename(d.id, name),
 		() => setEditing(false),
 	);
-	const { tile } = p;
 	return (
 		<li
 			data-testid="photo-row"
 			data-active={p.active}
 			draggable={!editing}
 			onDragStart={(e) => startDrag(e, { kind: "photo", id: d.id })}
-			className={`group relative flex rounded-field bg-(--ovl-bg) transition-colors duration-100 ${
-				tile ? "flex-col gap-1 p-1" : "items-center gap-2 px-1 py-0.5"
-			} ${
+			className={`group relative flex items-center gap-2 rounded-field bg-(--ovl-bg) px-1 py-0.5 transition-colors duration-100 ${
 				p.active
 					? "[--ovl-bg:var(--default-hover)] shadow-[inset_2px_0_0_var(--accent)]"
 					: "[--ovl-bg:transparent] hover:[--ovl-bg:var(--default)] has-[:focus-visible]:[--ovl-bg:var(--default)]"
@@ -94,7 +88,7 @@ const PhotoRow = memo(function PhotoRow(p: RowProps) {
 		>
 			{editing ? (
 				<>
-					<Thumb src={d.thumb} tile={tile} />
+					<Thumb src={d.thumb} />
 					<RenameInput label="Photo name" testid="photo-name" rename={rename} />
 				</>
 			) : (
@@ -108,12 +102,10 @@ const PhotoRow = memo(function PhotoRow(p: RowProps) {
 							type="button"
 							data-testid="photo-open"
 							aria-current={p.active ? "true" : undefined}
-							className={`atelier-focus flex min-w-0 flex-1 cursor-pointer rounded-(--radius-chip) text-start text-sm ${
-								tile ? "flex-col gap-1" : "items-center gap-2"
-							}`}
+							className="atelier-focus flex min-w-0 flex-1 cursor-pointer items-center gap-2 rounded-(--radius-chip) text-start text-sm"
 							onClick={() => p.onSelect(d.id)}
 						>
-							<Thumb src={d.thumb} tile={tile} />
+							<Thumb src={d.thumb} />
 							{p.where ? (
 								<span className="flex min-w-0 flex-col">
 									<Name name={d.name} terms={p.terms} />
@@ -135,13 +127,7 @@ const PhotoRow = memo(function PhotoRow(p: RowProps) {
 				</Tooltip>
 			)}
 			{!editing && (
-				<span
-					className={`pointer-coarse:pointer-events-auto pointer-coarse:opacity-100 pointer-events-none absolute flex items-center gap-1 opacity-0 group-has-[:focus-visible]:opacity-100 group-hover:opacity-100 group-has-[:focus-visible]:[&>button]:pointer-events-auto group-hover:[&>button]:pointer-events-auto ${
-						tile
-							? "top-2 right-2 rounded-[6px] bg-default/90 p-0.5 backdrop-blur-sm"
-							: "inset-y-0 right-0 rounded-e-field bg-[linear-gradient(to_left,var(--ovl-bg)_75%,transparent)] ps-6 pe-1"
-					}`}
-				>
+				<span className="pointer-coarse:pointer-events-auto pointer-coarse:opacity-100 pointer-events-none absolute inset-y-0 right-0 flex items-center gap-1 rounded-e-field bg-[linear-gradient(to_left,var(--ovl-bg)_75%,transparent)] ps-6 pe-1 opacity-0 group-has-[:focus-visible]:opacity-100 group-hover:opacity-100 group-has-[:focus-visible]:[&>button]:pointer-events-auto group-hover:[&>button]:pointer-events-auto">
 					<IconButton
 						label={`Rename ${d.name}`}
 						tip="Rename"

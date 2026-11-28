@@ -29,12 +29,33 @@ if ("__TAURI_INTERNALS__" in window) {
 	const root = document.documentElement;
 	root.dataset.shell = "mac";
 	// Full screen hides the window buttons, so the logo moves to the left (index.css). The window is
-	// a notch shorter than the screen, hence the 40 px.
-	const syncFull = () =>
-		root.toggleAttribute(
-			"data-full",
-			innerWidth === screen.width && innerHeight >= screen.height - 40,
+	// a notch shorter than the screen, hence the 40 px. That size guess is only the fallback: the real
+	// state comes from Tauri (`app.withGlobalTauri`, permission `core:window:allow-is-fullscreen`).
+	const guessFull = () =>
+		innerWidth === screen.width && innerHeight >= screen.height - 40;
+	const setFull = (on: boolean) => root.toggleAttribute("data-full", on);
+	const syncFull = () => {
+		const tauri = (
+			window as unknown as {
+				__TAURI__?: {
+					window?: {
+						getCurrentWindow?: () => { isFullscreen?: () => Promise<boolean> };
+					};
+				};
+			}
+		).__TAURI__;
+		let asked: Promise<boolean> | undefined;
+		try {
+			asked = tauri?.window?.getCurrentWindow?.().isFullscreen?.();
+		} catch {
+			asked = undefined;
+		}
+		if (!asked) return setFull(guessFull());
+		asked.then(
+			(full) => setFull(typeof full === "boolean" ? full : guessFull()),
+			() => setFull(guessFull()),
 		);
+	};
 	addEventListener("resize", syncFull);
 	syncFull();
 }

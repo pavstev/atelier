@@ -16,61 +16,20 @@ export class Photo {
         wasm.__wbg_photo_free(ptr, 0);
     }
     /**
-     * The Edges layer: ink lines, transfer, mass borders or graphite strokes, see-through. `mode`
-     * 0 lines, 1 transfer, 2 masses, 3 sketch; `amount` 0 to 100; `line` the line width, 1 to 10 (3 is the width
-     * before the knob); `even` 0 to 100, how far the Lines widths go to one width.
+     * The Grid layer: Contrast lines on a clear layer, squares from the top left corner. `milli`
+     * counts the squares across the width in thousandths (7500 is 7.5, for a grid of whole cm on
+     * a paper; 100 to 500000).
      *
      * # Errors
-     * A `long`, `mode`, `amount`, `line` or `even` out of range.
+     * A `long` or `milli` out of range.
      * @param {number} long
-     * @param {number} mode
-     * @param {number} amount
-     * @param {number} line
-     * @param {number} even
-     * @returns {Uint8Array}
-     */
-    edges(long, mode, amount, line, even) {
-        try {
-            const retptr = wasm.__wbindgen_add_to_stack_pointer(-16) >>> 0;
-            wasm.photo_edges(retptr, this.__wbg_ptr, long, mode, amount, line, even);
-            var r0 = getDataViewMemory0().getInt32(retptr + 4 * 0, true);
-            var r1 = getDataViewMemory0().getInt32(retptr + 4 * 1, true);
-            var r2 = getDataViewMemory0().getInt32(retptr + 4 * 2, true);
-            var r3 = getDataViewMemory0().getInt32(retptr + 4 * 3, true);
-            if (r3) {
-                throw takeFromExternrefTable0(r2);
-            }
-            var v1 = getArrayU8FromWasm0(r0, r1).slice();
-            wasm.__wbindgen_export2(r0, r1 * 1, 1);
-            return v1;
-        } finally {
-            wasm.__wbindgen_add_to_stack_pointer(16);
-        }
-    }
-    /**
-     * The Grid layer: lines on a clear layer. `line` is the line width (1 to 16 px at a long
-     * side of 2048), `group` the cells each way between two heavy lines (2 or 4) and `color`
-     * one color as `0xRRGGBB`, or `1 << 24` for Contrast lines. `cells` squares fit the width
-     * exactly; `center` 1 puts the rows in the middle, 0 at the top. A `milli` above 0 counts
-     * the squares across the width in thousandths instead (7500 is 7.5, for a grid of whole cm
-     * on a paper; 100 to 500000) and `cells` is then not used; 0 counts `cells`.
-     *
-     * # Errors
-     * A `long`, `mode`, `cells`, `line`, `group`, `color`, `center` or `milli` out of range.
-     * @param {number} long
-     * @param {number} mode
-     * @param {number} cells
-     * @param {number} line
-     * @param {number} group
-     * @param {number} color
-     * @param {number} center
      * @param {number} milli
      * @returns {Uint8Array}
      */
-    grid(long, mode, cells, line, group, color, center, milli) {
+    grid(long, milli) {
         try {
             const retptr = wasm.__wbindgen_add_to_stack_pointer(-16) >>> 0;
-            wasm.photo_grid(retptr, this.__wbg_ptr, long, mode, cells, line, group, color, center, milli);
+            wasm.photo_grid(retptr, this.__wbg_ptr, long, milli);
             var r0 = getDataViewMemory0().getInt32(retptr + 4 * 0, true);
             var r1 = getDataViewMemory0().getInt32(retptr + 4 * 1, true);
             var r2 = getDataViewMemory0().getInt32(retptr + 4 * 2, true);
@@ -116,101 +75,6 @@ export class Photo {
         }
     }
     /**
-     * The Pencil layer: the photo as a graphite study, opaque. `look` 0 is the smooth tone picture, 1
-     * the drawing, 3 hatch, 4 by pencil (2 is refused). `mask` is the pencils, bit 0 the 9B up to
-     * bit 7 the 4H (255 is all). `numbers` is a `Float64Array` of 14 numbers, in the order
-     * `detail`, `key`, `contrast`, `highlights`, `darks`, `local`, `grain`, `paper`, `angle`,
-     * `density`, `step`, `smudge`, `lift`, `cross` (their ranges are in `atelier_core::render`;
-     * the last three are effects, 0 off). After the layer come one byte
-     * with the level count (the pencils of the set, then paper, darkest first), 3 bytes (RGB) per
-     * level, one byte per level with the share of the picture in percent, and one byte with the
-     * marked level (255 for none).
-     *
-     * # Errors
-     * A `long`, `look`, `mask` or number out of range, or `numbers` of the wrong length.
-     * @param {number} long
-     * @param {number} look
-     * @param {number} mask
-     * @param {Float64Array | number[]} numbers
-     * @returns {Uint8Array}
-     */
-    pencil(long, look, mask, numbers) {
-        try {
-            const retptr = wasm.__wbindgen_add_to_stack_pointer(-16) >>> 0;
-            const val2 = +long;
-            const val3 = +look;
-            const val4 = +mask;
-            const ptr0 = passArrayF64ToWasm0(numbers, wasm.__wbindgen_export3);
-            const len0 = WASM_VECTOR_LEN;
-            wasm.photo_pencil(retptr, this.__wbg_ptr, val2, val3, val4, ptr0, len0);
-            var r0 = getDataViewMemory0().getInt32(retptr + 4 * 0, true);
-            var r1 = getDataViewMemory0().getInt32(retptr + 4 * 1, true);
-            var r2 = getDataViewMemory0().getInt32(retptr + 4 * 2, true);
-            var r3 = getDataViewMemory0().getInt32(retptr + 4 * 3, true);
-            if (r3) {
-                throw takeFromExternrefTable0(r2);
-            }
-            var v5 = getArrayU8FromWasm0(r0, r1).slice();
-            wasm.__wbindgen_export2(r0, r1 * 1, 1);
-            return v5;
-        } finally {
-            wasm.__wbindgen_add_to_stack_pointer(16);
-        }
-    }
-    /**
-     * What Auto reads from the photo, as 9 numbers: `key`, `contrast`, `highlights` (the knobs it
-     * sets), the median L*, the key class (0 low, 1 mid, 2 high), the IQR, eta, bimodal (0 or 1)
-     * and spike (0 or 1).
-     *
-     * # Errors
-     * A `long` out of range.
-     * @param {number} long
-     * @returns {Float64Array}
-     */
-    pencil_auto(long) {
-        try {
-            const retptr = wasm.__wbindgen_add_to_stack_pointer(-16) >>> 0;
-            wasm.photo_pencil_auto(retptr, this.__wbg_ptr, long);
-            var r0 = getDataViewMemory0().getInt32(retptr + 4 * 0, true);
-            var r1 = getDataViewMemory0().getInt32(retptr + 4 * 1, true);
-            var r2 = getDataViewMemory0().getInt32(retptr + 4 * 2, true);
-            var r3 = getDataViewMemory0().getInt32(retptr + 4 * 3, true);
-            if (r3) {
-                throw takeFromExternrefTable0(r2);
-            }
-            var v1 = getArrayF64FromWasm0(r0, r1).slice();
-            wasm.__wbindgen_export2(r0, r1 * 8, 8);
-            return v1;
-        } finally {
-            wasm.__wbindgen_add_to_stack_pointer(16);
-        }
-    }
-    /**
-     * The pencil `mask` (bit 0 the 9B up to bit 7 the 4H) of the best `count` pencils, 3 to 6, of
-     * the eight for the photo.
-     *
-     * # Errors
-     * A `long` or `count` out of range.
-     * @param {number} long
-     * @param {number} count
-     * @returns {number}
-     */
-    pencil_suggest(long, count) {
-        try {
-            const retptr = wasm.__wbindgen_add_to_stack_pointer(-16) >>> 0;
-            wasm.photo_pencil_suggest(retptr, this.__wbg_ptr, long, count);
-            var r0 = getDataViewMemory0().getInt32(retptr + 4 * 0, true);
-            var r1 = getDataViewMemory0().getInt32(retptr + 4 * 1, true);
-            var r2 = getDataViewMemory0().getInt32(retptr + 4 * 2, true);
-            if (r2) {
-                throw takeFromExternrefTable0(r1);
-            }
-            return r0 >>> 0;
-        } finally {
-            wasm.__wbindgen_add_to_stack_pointer(16);
-        }
-    }
-    /**
      * The Shapes layer: flat shapes in a paint order, opaque. `step` is 0 to 3 (Shadows,
      * Halftones, Lights, Accents); each step adds to the ones before. After the layer come one
      * byte with the pile count and 3 bytes (RGB) per pile to mix in that step, darkest first.
@@ -241,21 +105,21 @@ export class Photo {
         }
     }
     /**
-     * The Values layer: the photo in a few tones, opaque. `tint` 0 gray, 1 umber. After the layer
-     * come one byte with the tone count and 3 bytes (RGB) per tone, darkest first.
+     * The Values layer: the photo in a few gray tones, opaque. `preset` is 0 to 3 (Notan, Three,
+     * Five, Families). After the layer come one byte with the tone count and 3 bytes (RGB) per
+     * tone, darkest first.
      *
      * # Errors
-     * A `long`, `preset`, `detail` or `tint` out of range.
+     * A `long`, `preset` or `detail` out of range.
      * @param {number} long
      * @param {number} preset
      * @param {number} detail
-     * @param {number} tint
      * @returns {Uint8Array}
      */
-    values(long, preset, detail, tint) {
+    values(long, preset, detail) {
         try {
             const retptr = wasm.__wbindgen_add_to_stack_pointer(-16) >>> 0;
-            wasm.photo_values(retptr, this.__wbg_ptr, long, preset, detail, tint);
+            wasm.photo_values(retptr, this.__wbg_ptr, long, preset, detail);
             var r0 = getDataViewMemory0().getInt32(retptr + 4 * 0, true);
             var r1 = getDataViewMemory0().getInt32(retptr + 4 * 1, true);
             var r2 = getDataViewMemory0().getInt32(retptr + 4 * 2, true);
@@ -301,11 +165,6 @@ const PhotoFinalization = (typeof FinalizationRegistry === 'undefined')
     ? { register: () => {}, unregister: () => {} }
     : new FinalizationRegistry(ptr => wasm.__wbg_photo_free(ptr, 1));
 
-function getArrayF64FromWasm0(ptr, len) {
-    ptr = ptr >>> 0;
-    return getFloat64ArrayMemory0().subarray(ptr / 8, ptr / 8 + len);
-}
-
 function getArrayU8FromWasm0(ptr, len) {
     ptr = ptr >>> 0;
     return getUint8ArrayMemory0().subarray(ptr / 1, ptr / 1 + len);
@@ -317,14 +176,6 @@ function getDataViewMemory0() {
         cachedDataViewMemory0 = new DataView(wasm.memory.buffer);
     }
     return cachedDataViewMemory0;
-}
-
-let cachedFloat64ArrayMemory0 = null;
-function getFloat64ArrayMemory0() {
-    if (cachedFloat64ArrayMemory0 === null || cachedFloat64ArrayMemory0.byteLength === 0) {
-        cachedFloat64ArrayMemory0 = new Float64Array(wasm.memory.buffer);
-    }
-    return cachedFloat64ArrayMemory0;
 }
 
 function getStringFromWasm0(ptr, len) {
@@ -343,13 +194,6 @@ function getUint8ArrayMemory0() {
 function passArray8ToWasm0(arg, malloc) {
     const ptr = malloc(arg.length * 1, 1) >>> 0;
     getUint8ArrayMemory0().set(arg, ptr / 1);
-    WASM_VECTOR_LEN = arg.length;
-    return ptr;
-}
-
-function passArrayF64ToWasm0(arg, malloc) {
-    const ptr = malloc(arg.length * 8, 8) >>> 0;
-    getFloat64ArrayMemory0().set(arg, ptr / 8);
     WASM_VECTOR_LEN = arg.length;
     return ptr;
 }
@@ -382,7 +226,6 @@ function __wbg_finalize_init(instance, module) {
     wasm = instance.exports;
     wasmModule = module;
     cachedDataViewMemory0 = null;
-    cachedFloat64ArrayMemory0 = null;
     cachedUint8ArrayMemory0 = null;
     wasm.__wbindgen_start();
     return wasm;

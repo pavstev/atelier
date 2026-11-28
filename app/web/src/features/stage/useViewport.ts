@@ -3,11 +3,8 @@
 // double tap ends that. The picture never goes more than 500 px past an edge of the stage.
 // The view of each photo is saved (`views.ts`) as a share of the fit zoom and of the stage, so a
 // reload, even in a window of another size, shows the photo where it was left.
-// While `locked` is true the zoom is fixed: the wheel, a pinch and a double tap do nothing; a drag
-// still moves the picture. With `lockWidth` set too the photo is that many CSS pixels wide; without
-// it the zoom stays where it was. The sums are in `viewMath.ts`, the hand in `useGestures.ts`, the
-// size of the box in `useRoom.ts`.
-import { useEffect, useRef, useState } from "react";
+// The sums are in `viewMath.ts`, the hand in `useGestures.ts`, the size of the box in `useRoom.ts`.
+import { useState } from "react";
 import { useGestures } from "./useGestures";
 import { useRoom } from "./useRoom";
 import {
@@ -21,34 +18,19 @@ import {
 	type View,
 	zoomAround,
 } from "./viewMath";
-import { forgetAllViews, keepView, savedView } from "./views";
+import { keepView, savedView } from "./views";
 
 /** The views of this visit that stay in memory (the saved ones are kept by `views.ts`). */
 const KEEP_FREES = 50;
 
-export function useViewport(
-	photo: Size | null,
-	key: string | null,
-	locked = false,
-	lockWidth: number | null = null,
-) {
+export function useViewport(photo: Size | null, key: string | null) {
 	const { box, room } = useRoom();
 	// The view of each tab (by key), kept while the page is open; a tab never seen starts fitted.
 	const [frees, setFrees] = useState<Record<string, View | null>>({});
 	const at = key ?? "";
 
-	// A new lock width starts every tab centered. A tab not seen before starts centered anyway.
-	const lastLock = useRef(lockWidth);
-	useEffect(() => {
-		if (lastLock.current === lockWidth) return;
-		lastLock.current = lockWidth;
-		forgetAllViews();
-		setFrees({});
-	}, [lockWidth]);
-
 	const ready = photo !== null && room.w > 0;
 	const fit = fitZoomOf(photo, room);
-	const lockZoom = photo && lockWidth ? lockWidth / photo.width : null;
 	const near = (v: View): View =>
 		photo && ready ? keepNear(v, photo, room) : v;
 
@@ -58,12 +40,12 @@ export function useViewport(
 		at in frees
 			? (frees[at] ?? null)
 			: saved && photo && ready
-				? fromSaved(saved, photo, room, fit, lockZoom)
+				? fromSaved(saved, photo, room, fit)
 				: null;
 	const view: View = free
 		? near(free)
 		: photo
-			? centered(photo, room, lockZoom ?? fit)
+			? centered(photo, room, fit)
 			: { zoom: 1, x: 0, y: 0 };
 
 	/** Sets the view the user made (null: fitted again). It is kept near the stage and saved. */
@@ -95,7 +77,7 @@ export function useViewport(
 	const pan = (dx: number, dy: number) =>
 		put({ zoom: view.zoom, x: view.x + dx, y: view.y + dy });
 
-	const pointer = useGestures({ box, view, fit, locked, put });
+	const pointer = useGestures({ box, view, fit, put });
 
 	return {
 		box,
@@ -106,6 +88,5 @@ export function useViewport(
 		zoomBy,
 		pointer,
 		fitted: free === null,
-		locked,
 	};
 }

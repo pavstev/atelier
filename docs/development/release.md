@@ -1,8 +1,7 @@
 # Release
 
-The live site is static files in a Cloudflare Worker with static assets (`wrangler.jsonc`). A tiny
-Worker script (`app/web/src/edge/worker.ts`) runs only for `POST /share` that no service worker
-took, and redirects it to the app instead of a 405.
+The live site is static files in a Cloudflare Worker with static assets only (`wrangler.jsonc`).
+There is no Worker script: the config holds the asset folder and the not found rule.
 This page is for maintainers. A fork can deploy the same files to any static host.
 
 ## Build
@@ -35,7 +34,7 @@ A push to `main` starts a Cloudflare Workers Build:
   which commit is live.
 
 `bash scripts/live-check.sh <sha>` probes the live site for a commit: the home page, the wasm, the
-icons and the share images.
+icons and the social images.
 
 ## Manual release
 
@@ -54,10 +53,10 @@ the wasm in mind: the page needs `'wasm-unsafe-eval'` to compile the Rust core.
 the list of built files. The cache is named `atelier-shell-<version>`, where the version is the
 first 12 hex digits of a SHA-256 over the file list and bytes. So every release makes a new cache,
 and the old one is deleted when the new worker activates. `_headers` serves `/sw.js`, `/index.html` and the manifest with `no-cache`, so a
-release reaches users. The smoke test `PREVIEW=1 pnpm --dir app/web exec playwright test pwa-offline.spec.ts pwa-manifest.spec.ts pwa-share.spec.ts pwa-update.spec.ts`
-checks offline start, the automatic update and share on the built app.
+release reaches users. The smoke test `PREVIEW=1 pnpm --dir app/web exec playwright test pwa-offline.spec.ts pwa-manifest.spec.ts pwa-update.spec.ts`
+checks offline start and the automatic update on the built app.
 
-## Icons and share images
+## Icons and social images
 
 `mise run web:brand` makes every file in `app/web/public/` (favicons, the app icons, `og.png`, `og-square.png`)
 from the logo sources in `app/web/brand/`. Change the logo there, run it, and commit the files.

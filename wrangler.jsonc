@@ -8,14 +8,10 @@
   "account_id": "69c9873da4df01aef631792032a43539",
   "workers_dev": false,
   "preview_urls": false,
-  // A tiny Worker answers only POST /share (when no service worker took it); every other request
-  // is a static file and never runs it.
-  "main": "app/web/src/edge/worker.ts",
+  // Static assets only: there is no Worker script. A path with no file is answered with the app page.
   "assets": {
     "directory": "app/web/dist",
-    "binding": "ASSETS",
     "not_found_handling": "single-page-application",
-    "run_worker_first": ["/share"],
   },
   "routes": [{ "pattern": "atelier.stevanpavlovic.com", "custom_domain": true }],
 }

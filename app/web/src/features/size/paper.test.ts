@@ -89,9 +89,9 @@ test("a typed 0 or negative side is kept to the minimum, an empty box to the sta
 	// an empty box (NaN) is kept as 0, and `paperCm` shows it as the start side
 	assert.equal(sideTyped(Number.NaN), 0);
 	const a4 = { ...SIZE_START, paper: CUSTOM, w: sideTyped(0), h: 29.7 };
-	assert.equal(factText(a4, 100, 100, null), "1 × 29.7 cm.");
+	assert.equal(factText(a4, 100, 100), "1 × 29.7 cm.");
 	const empty = { ...a4, w: sideTyped(Number.NaN) };
-	assert.equal(factText(empty, 100, 100, null), "30 × 29.7 cm.");
+	assert.equal(factText(empty, 100, 100), "30 × 29.7 cm.");
 });
 
 test("a 3000 x 2000 photo cut to 30 x 40", () => {
@@ -186,32 +186,17 @@ test("a grid in cm counts the squares across the shown width, in thousandths", (
 
 test("the fact line names a grid step in cm", () => {
 	assert.equal(
-		factText(at("30x40", "portrait"), 3000, 2000, null, 5),
+		factText(at("30x40", "portrait"), 3000, 2000, 5),
 		"30 × 40 cm. Grid cell: 5 cm.",
 	);
 	assert.equal(
-		factText(at("30x40", "portrait", false), 3000, 2000, null, 5),
+		factText(at("30x40", "portrait", false), 3000, 2000, 5),
 		"30 × 40 cm. Grid cell: about 5 cm.",
 	);
 });
 
-test("the fact line names the paper and the grid cell", () => {
-	assert.equal(
-		factText(at("30x40", "portrait"), 3000, 2000, 8),
-		"30 × 40 cm. Grid cell: 3.8 cm.",
-	);
-	assert.equal(
-		factText(at("a4", "portrait"), 3000, 2000, 6),
-		"21 × 29.7 cm. Grid cell: 3.5 cm.",
-	);
-	assert.equal(
-		factText(at("a4", "portrait", false), 3000, 2000, 6),
-		"21 × 29.7 cm. Grid cell: about 5 cm.",
-	);
-	assert.equal(
-		factText(at("a4", "portrait"), 3000, 2000, null),
-		"21 × 29.7 cm.",
-	);
+test("the fact line names the paper alone when no grid is on", () => {
+	assert.equal(factText(at("a4", "portrait"), 3000, 2000), "21 × 29.7 cm.");
 });
 
 test("the preview rectangles stay inside the box and are centered", () => {

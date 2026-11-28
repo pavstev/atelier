@@ -13,8 +13,6 @@ import {
 	type ObjectEntries,
 	object,
 	pipe,
-	regex,
-	string,
 } from "valibot";
 
 /** A whole number from `lo` to `hi`; anything else (a string, NaN, Infinity, a fraction) gives `start`. */
@@ -33,10 +31,6 @@ export const oneOf = (list: readonly number[], start: number) =>
 
 /** A boolean; anything else gives `start`. */
 export const flag = (start: boolean) => fallback(boolean(), start);
-
-/** A `#rrggbb` color; anything else gives `start`. */
-export const hexColor = (start: string) =>
-	fallback(pipe(string(), regex(/^#[0-9a-f]{6}$/i)), start);
 
 /**
  * A group of settings: each key is read on its own, so a missing or bad one gives its start value;

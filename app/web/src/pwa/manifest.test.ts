@@ -1,5 +1,5 @@
-// Tests for the web app manifest and the head of index.html: the install, file handler, share
-// target and launch fields, and the colors against the stage color in atelier-theme.css.
+// Tests for the web app manifest and the head of index.html: the install, file handler
+// and launch fields, and the colors against the stage color in atelier-theme.css.
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { test } from "node:test";
@@ -83,12 +83,8 @@ test("test_file_handlers", () => {
 	]);
 });
 
-test("test_share_target", () => {
-	const t = manifest.share_target;
-	assert.equal(t.action, "/share");
-	assert.equal(t.method, "POST");
-	assert.equal(t.enctype, "multipart/form-data");
-	assert.deepEqual(t.params.files, [{ name: "photos", accept: ["image/*"] }]);
+test("test_no_share_target", () => {
+	assert.equal(manifest.share_target, undefined);
 });
 
 test("test_launch_handler", () => {

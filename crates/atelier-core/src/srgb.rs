@@ -38,7 +38,7 @@ pub(crate) fn linear_luma_of(img: &Rgb) -> Vec<f32> {
 }
 
 /// The Rec. 601 luma of every pixel of an RGB image, 0 to 255, on the sRGB bytes as they are (no
-/// linear light). Edges and the deblock finder use it.
+/// linear light). The deblock finder uses it.
 pub(crate) fn luma601(img: &Rgb) -> Vec<f32> {
     img.data
         .chunks_exact(3)

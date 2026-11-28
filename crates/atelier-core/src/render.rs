@@ -2,35 +2,27 @@
 //! (the web app). Each view is one function that takes the work picture and plain numbers and
 //! gives a picture back.
 //!
-//! Knobs (`detail`, `amount`, `even`, ...) are percent, 0.0 to 100.0, and reach the tool as 0.0 to
-//! 1.0 in steps of a tenth of a percent. `preset`, `step`, `tint`, `mode`, `cells`, `width`,
-//! `group`, `center` are plain counts (the Pencil counts must also be whole numbers). Every number
-//! out of its range or not a number, and every picture of the wrong shape, is an
-//! [`Error::BadInput`], never a panic.
+//! Knobs (`detail`) are percent, 0.0 to 100.0, and reach the tool as 0.0 to 1.0 in steps of a
+//! tenth of a percent. `preset`, `step` and `milli` are plain counts. Every number out of its
+//! range or not a number, and every picture of the wrong shape, is an [`Error::BadInput`], never a
+//! panic.
 //!
 //! | view | preset or step | other knobs |
 //! |---|---|---|
-//! | values | 0 notan, 1 three, 2 five, 3 shadow family, 4 light family, 5 families | `detail`, `tint` 0 gray 1 umber |
+//! | values | 0 notan, 1 three, 2 five, 3 families | `detail` |
 //! | shapes | step 0 shadows, 1 halftones, 2 lights, 3 accents | `detail` |
-//! | edges | mode 0 lines, 1 transfer, 2 masses | `amount`, `width`, `even` |
-//! | pencil | `look` 0 tone, 1 drawing, 3 hatch (2 is not a look), 4 by pencil; `mask` the pencils, bit 0 the 9B to bit 7 the 4H (255 all) | [`PENCIL_NUMBERS`] numbers in this order: `detail`, `key`, `contrast` (percent, 50 changes nothing), `highlights` 0 to 25 and `darks` 0 to 100 (whole percent), `local`, `grain` (percent), `paper` 0 smooth 1 medium 2 rough, `angle` 0 to 179 (whole degrees), `density` (percent), `step` 1 to 8 (by pencil; the lightest is 1), then `smudge`, `lift` and `cross` (percent, 0 off). The answer also has the level `mark`. `pencil_auto` reads the photo and gives the start of `key`, `contrast` and `highlights` with what it read; `pencil_suggest` gives the `mask` of the best 3 to 6 of the eight pencils |
-//! | layers | `edges_layer`, `values_layer`, `shapes_layer`, `pencil_layer`, `grid_layer`: RGBA | edges: alpha is 255 minus the largest channel (Sketch, `mode` 3: one gray, alpha is the stroke coverage); values, shapes and pencil: alpha 255; grid: alpha only on lines (`mode` 0 thirds, 1 grid, 2 both; `cells` one of the `CELL_STEPS` (3 to 50) across the width, or with `grid_layer_milli` a fine count in thousandths, 100 to 500000; `width` 1 to 16; `group` 2 or 4; `color`; `center` 0 or 1) |
+//! | layers | `values_layer`, `shapes_layer`, `grid_layer`: RGBA | values and shapes: alpha 255; grid: alpha only on lines, `milli` the squares across the width in thousandths (100 to 500000), Contrast lines, from the top left corner |
 //!
 //! The photo comes in as RGB, already decoded and turned upright by the page (the browser
 //! decoder). [`prepare_work`] brings it to the work size.
-//!
-//! Edges are traced from the core's own edge map: a 1 channel image of the work size, 0 to 255,
-//! big is edge (a blurred Sobel, `edges/map.rs`).
 
 use std::borrow::Cow;
 
-use crate::edges;
 use crate::error::{Error, Result};
 use crate::grid;
 use crate::img::Rgb;
-use crate::pencil;
 use crate::resize::resize_lanczos;
-use crate::shapes::{self, ShapesView};
+use crate::shapes;
 use crate::values;
 
 /// The long side range of the prepare view, in px.
@@ -102,22 +94,19 @@ pub fn prepare_work(photo: &Rgb, long: u32) -> Result<Rgb> {
     Ok(resize_lanczos(&src, fit(src.width), fit(src.height)))
 }
 
-/// Shapes are painted in the color of their pile, with the boundaries rounded one step and the
-/// color guide at half weight.
-const SHAPES_SMOOTH: u8 = 1;
+/// The color guide of the Shapes at half weight.
 const SHAPES_GUIDE: f32 = 0.5;
 
-/// Values. `preset` 0 to 5, `detail` in percent, `tint` 0 gray or 1 umber. Gives the picture and
-/// its tones as painted bytes, darkest first.
+/// Values. `preset` 0 to 3, `detail` in percent. Gives the picture and its tones as painted bytes
+/// (grays), darkest first.
 ///
 /// # Errors
 /// A number out of range.
-pub fn values_view(work: &Rgb, preset: u32, detail: f64, tint: u32) -> Result<(Rgb, Vec<[u8; 3]>)> {
+pub fn values_view(work: &Rgb, preset: u32, detail: f64) -> Result<(Rgb, Vec<[u8; 3]>)> {
     let work = image(work, 3, "work")?;
-    let preset = pick(preset, 0, 5, "values preset")?;
+    let preset = pick(preset, 0, 3, "values preset")?;
     let detail = knob(detail, "detail")?;
-    let tint = pick(tint, 0, 1, "tint")?;
-    values::view(work, preset, detail, tint)
+    values::view(work, preset, detail)
 }
 
 /// Shapes as a paint order (see [`shapes::steps_view`]). `step` 0 shadows, 1 halftones, 2 lights,
@@ -132,96 +121,6 @@ pub fn shapes_view(work: &Rgb, step: u32, detail: f64) -> Result<(Rgb, Vec<[u8; 
     let step = pick(step, 0, u32::from(shapes::STEP_MAX), "shapes step")?;
     shapes::steps_view(work, step, knob(detail, "detail")?, SHAPES_GUIDE)
 }
-
-/// Edges as a picture of ink on white paper. `mode` 0 lines, 1 transfer, 2 masses, 3 sketch (the
-/// Lines chains at this `amount`, drawn as graphite strokes of one dark gray; `even` does
-/// nothing there). `amount` is
-/// 0 to 100. Lines: 0 few, 33 some, 67 many, 100 many with twice the line budget, and in between
-/// a straight blend. Transfer: `amount` 50 is the middle. Masses: the borders of the Shapes
-/// level that `amount` picks (0 to 49 big, 50 to 84 mid, 85 to 100 small), so the start Amount 67 is
-/// mid. Lines and transfer
-/// are traced from the core's own edge strength map (a blurred Sobel gradient, `edges::map`).
-/// `width` is 1 to [`EDGES_WIDTH_MAX`]: 3 is the line width Edges had before the knob, and each
-/// step adds a quarter of it, in every mode. `even` is 0 to 100: how far the Lines widths are
-/// pulled toward one middle width (0 the widths as traced, 100 every line one width end to end);
-/// Transfer and Masses draw one width anyway. Every line is black.
-///
-/// # Errors
-/// A number out of range.
-pub fn edges_view(work: &Rgb, mode: u32, amount: f64, width: u32, even: f64) -> Result<Rgb> {
-    edges_view_kept(work, &mut None, mode, amount, width, even)
-}
-
-/// [`edges_view`] with the edge map of `work` kept by the caller. Lines and Transfer read the map
-/// from `kept`, or make it there when `kept` is empty; Masses never touches it. `kept` must hold
-/// the map of this very `work` picture (the caller drops it when the work picture changes); a map
-/// of another size is an [`Error::BadInput`]. The picture is byte for byte the one of
-/// [`edges_view`].
-///
-/// # Errors
-/// A number out of range, or a kept map that does not fit `work`.
-pub fn edges_view_kept(
-    work: &Rgb,
-    kept: &mut Option<Rgb>,
-    mode: u32,
-    amount: f64,
-    width: u32,
-    even: f64,
-) -> Result<Rgb> {
-    let work = image(work, 3, "work")?;
-    let mode = pick(mode, 0, 3, "edges mode")?;
-    knob(amount, "amount")?;
-    let scale = f32::from(pick(width, 1, EDGES_WIDTH_MAX, "edges width")? + 1) / 4.0;
-    let even = knob(even, "edges even")?;
-    if mode == 2 {
-        let v = ShapesView {
-            level: masses_level(amount),
-            detail: MASSES_DETAIL,
-            smooth: SHAPES_SMOOTH,
-            guide: SHAPES_GUIDE,
-            outline: scale,
-        };
-        return shapes::view(work, &v);
-    }
-    if kept
-        .as_ref()
-        .is_some_and(|m| m.width != work.width || m.height != work.height || !m.is_well_formed(1))
-    {
-        return Err(Error::bad("kept edge map does not fit the work picture"));
-    }
-    let edges = kept.get_or_insert_with(|| edges::map::strength(work));
-    if mode == 3 {
-        return edges::trace::view_sketch(work, amount as f32, scale, edges);
-    }
-    edges::trace::view_amount(work, mode == 1, amount as f32, scale, even, edges)
-}
-
-/// The Grid color that asks for Contrast lines (`GRID_CONTRAST` in
-/// `app/web/src/features/tools/settings.ts`).
-pub use crate::grid::CONTRAST as GRID_CONTRAST;
-
-/// The Edges width knob runs 1 to this (`EDGES_WIDTH_MAX` in
-/// `app/web/src/features/tools/settings.ts`).
-pub const EDGES_WIDTH_MAX: u32 = 10;
-
-/// The Amount at which Masses leaves the big level for the mid one, and the mid for the small.
-/// The start Amount 67 lands on mid: the small level is a maze of borders.
-const MASSES_MID_FROM: f64 = 50.0;
-const MASSES_SMALL_FROM: f64 = 85.0;
-
-/// The Shapes level (0 big, 1 mid, 2 small) that the Masses `amount` picks.
-fn masses_level(amount: f64) -> u8 {
-    if amount < MASSES_MID_FROM {
-        0
-    } else if amount < MASSES_SMALL_FROM {
-        1
-    } else {
-        2
-    }
-}
-
-/// The detail of the Shapes level that the Masses borders come from.
-const MASSES_DETAIL: f32 = 0.5;
 
 /// A see-through layer: RGBA, `rgba.len() == width * height * 4`, straight (not premultiplied)
 /// alpha.
@@ -253,58 +152,13 @@ fn opaque(img: &Rgb) -> Layer {
     layer_with(img, |_| 255)
 }
 
-/// Edges: the view as ink on clear. The alpha of a pixel is 255 minus its largest channel,
-/// so white paper is clear and black ink is solid. Same numbers as [`edges_view`].
+/// Values as an opaque layer, and its tones (RGB bytes, darkest first). Same numbers as
+/// [`values_view`].
 ///
 /// # Errors
 /// A number out of range.
-pub fn edges_layer(work: &Rgb, mode: u32, amount: f64, width: u32, even: f64) -> Result<Layer> {
-    edges_layer_kept(work, &mut None, mode, amount, width, even)
-}
-
-/// [`edges_layer`] with the edge map kept by the caller, see [`edges_view_kept`].
-///
-/// # Errors
-/// A number out of range, or a kept map that does not fit `work`.
-pub fn edges_layer_kept(
-    work: &Rgb,
-    kept: &mut Option<Rgb>,
-    mode: u32,
-    amount: f64,
-    width: u32,
-    even: f64,
-) -> Result<Layer> {
-    let v = edges_view_kept(work, kept, mode, amount, width, even)?;
-    if mode == 3 {
-        // Sketch: graphite of one gray, the alpha is the coverage of the stroke
-        let g = edges::trace::GRAPHITE;
-        let span = f32::from(255 - g);
-        let mut rgba = Vec::with_capacity(v.width * v.height * 4);
-        for p in v.data.chunks_exact(3) {
-            let c = f32::from(255 - p[0]) / span;
-            rgba.extend_from_slice(&[g, g, g, (c * 255.0).round().min(255.0) as u8]);
-        }
-        return Ok(Layer {
-            width: v.width,
-            height: v.height,
-            rgba,
-        });
-    }
-    Ok(layer_with(&v, |p| 255 - p[0].max(p[1]).max(p[2])))
-}
-
-/// Values as an opaque layer, and its tones (RGB bytes, darkest first). `tint` 0 gray, 1 umber.
-/// Same numbers as [`values_view`].
-///
-/// # Errors
-/// A number out of range.
-pub fn values_layer(
-    work: &Rgb,
-    preset: u32,
-    detail: f64,
-    tint: u32,
-) -> Result<(Layer, Vec<[u8; 3]>)> {
-    values_view(work, preset, detail, tint).map(|(v, tones)| (opaque(&v), tones))
+pub fn values_layer(work: &Rgb, preset: u32, detail: f64) -> Result<(Layer, Vec<[u8; 3]>)> {
+    values_view(work, preset, detail).map(|(v, tones)| (opaque(&v), tones))
 }
 
 /// Shapes as an opaque layer, and the piles mixed in the step (RGB bytes, darkest first). Same
@@ -316,212 +170,21 @@ pub fn shapes_layer(work: &Rgb, step: u32, detail: f64) -> Result<(Layer, Vec<[u
     shapes_view(work, step, detail).map(|(v, piles)| (opaque(&v), piles))
 }
 
-/// How many numbers [`pencil_layer`] takes besides `look` and `mask`.
-pub const PENCIL_NUMBERS: usize = 14;
-
-/// A plain count from `lo` to `hi`: a number that is finite, whole and in range. Anything else is
-/// a [`Error::BadInput`] that names it.
-pub(crate) fn count(v: f64, lo: u32, hi: u32, name: &str) -> Result<u32> {
-    if !v.is_finite() || v.fract() != 0.0 || v < f64::from(lo) || v > f64::from(hi) {
-        return Err(Error::bad(format!(
-            "{name} must be a whole number {lo} to {hi}"
-        )));
-    }
-    Ok(v as u32)
-}
-
-/// The Pencil layer, its levels and which level it is drawn up to.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct PencilLayer {
-    /// The picture, opaque.
-    pub layer: Layer,
-    /// The color of each level (the pencils of the set, then paper), darkest first.
-    pub tones: Vec<[u8; 3]>,
-    /// The share of the picture each level covers, in percent.
-    pub shares: Vec<u8>,
-    /// The level of the pencil the picture is drawn up to (By pencil), or none.
-    pub mark: Option<u8>,
-}
-
-/// Pencil as an opaque layer: the photo as a graphite study. `look` 0 is the smooth tone picture,
-/// 1 the drawing (grain and hatching on paper), 3 hatch, 4 by pencil (2 is not a look). `mask` has
-/// one bit per pencil, bit 0 the 9B, then 7B, 5B, 2B, HB, H, 3H, and bit 7 the 4H (255 is all
-/// eight), at least one set.
-///
-/// `numbers` has [`PENCIL_NUMBERS`] numbers, in this order: `detail`, `key`, `contrast` (percent,
-/// 50 changes nothing), `highlights` (the whole percent of the photo that may be bare paper, 0 to
-/// 25, 1 at the start), `darks` (the most whole percent of the picture the 9B and 7B may cover,
-/// 0 to 100, 20 at the start), `local` (percent, 0 off), `grain` (percent, 50 at the start),
-/// `paper` (0 smooth, 1 medium, 2 rough), `angle` (whole degrees 0 to 179), `density` (percent),
-/// `step`(the pencil of by pencil, 1 the lightest to 8), then the three effects, each a percent
-/// with 0 off: `smudge` (a stump drags the tone along the stroke), `lift` (a kneaded eraser lifts
-/// streaks out of the light tones) and `cross` (more crossed work in the darks). A `step` over the
-/// size of the set takes the darkest pencil of the set.
-///
-/// Gives the layer, the color of each level (the pencils of the set, then paper, darkest first),
-/// the share of the picture each level covers in percent, and the marked level.
+/// The grid lines alone, clear everywhere else: `milli` is the squares across the width in
+/// thousandths, 100 to 500000 (0.1 to 500 squares), so a square size that does not divide the
+/// width can be drawn: a grid of whole cm on a paper. 7500 is 7.5 squares, the last one a part
+/// square at the right and the bottom. The squares start at the top left corner, the lines are
+/// Contrast lines (the complement of the photo under them, 2 px wide at a long side of 2048), and
+/// all alike.
 ///
 /// # Errors
-/// A number out of range or not a number, or `numbers` of the wrong length.
-pub fn pencil_layer(work: &Rgb, look: u32, mask: u32, numbers: &[f64]) -> Result<PencilLayer> {
+/// A `milli` out of range, or a picture of the wrong shape.
+pub fn grid_layer(work: &Rgb, milli: u32) -> Result<Layer> {
     let work = image(work, 3, "work")?;
-    let knobs = pencil_knobs(look, mask, numbers)?;
-    let p = pencil::view(work, &knobs)?;
-    Ok(PencilLayer {
-        layer: opaque(&p.image),
-        tones: p.tones,
-        shares: p.shares,
-        mark: p.mark,
-    })
-}
-
-/// The fewest and the most pencils [`pencil_suggest`] picks.
-const SUGGEST_RANGE: (u32, u32) = (3, 6);
-
-/// What Auto reads from the photo: nine numbers, the knobs it sets first. In order: `key`,
-/// `contrast` (percent, whole), `highlights` (whole percent, 0 to 25), the median L* of the photo
-/// (0 to 100), the key class (0 low, 1 mid, 2 high), the interquartile range of the photo (0 to 1,
-/// its range normalized), Otsu's eta (0 to 1), `bimodal` (0 or 1: two humps of tones) and `spike`
-/// (0 or 1: a thin spike at the light end). The same photo always gives the same answer.
-///
-/// # Errors
-/// An image that is not RGB or is empty.
-pub fn pencil_auto(work: &Rgb) -> Result<[f64; 9]> {
-    let work = image(work, 3, "work")?;
-    Ok(pencil::read_auto(work).numbers())
-}
-
-/// The `mask` of the best `count` pencils (3 to 6) of the eight for the photo, found exactly by
-/// trying every set. The set is all eight pencils to choose from, not the set in use.
-///
-/// # Errors
-/// A `count` outside 3 to 6, or an image that is not RGB or is empty.
-pub fn pencil_suggest(work: &Rgb, count: u32) -> Result<u32> {
-    let work = image(work, 3, "work")?;
-    let count = pick(count, SUGGEST_RANGE.0, SUGGEST_RANGE.1, "pencil count")?;
-    pencil::suggest(work, u32::from(count))
-}
-
-/// The knobs of a Pencil call, each number checked against its range.
-fn pencil_knobs(look: u32, mask: u32, numbers: &[f64]) -> Result<pencil::Knobs> {
-    let &[
-        detail,
-        key,
-        contrast,
-        highlights,
-        darks,
-        local,
-        grain,
-        paper,
-        angle,
-        density,
-        step,
-        smudge,
-        lift,
-        cross,
-    ] = numbers
-    else {
-        return Err(Error::bad(format!(
-            "pencil takes {PENCIL_NUMBERS} numbers, got {}",
-            numbers.len()
-        )));
-    };
-    Ok(pencil::Knobs {
-        look: pencil::Look::from_number(pick(look, 0, 4, "pencil look")?)?,
-        mask: u32::from(pick(mask, 1, 255, "pencil set")?),
-        detail: knob(detail, "detail")?,
-        key: knob(key, "pencil key")?,
-        contrast: knob(contrast, "pencil contrast")?,
-        highlights: count(highlights, 0, 25, "pencil highlights")? as u8,
-        darks: count(darks, 0, 100, "pencil darks")? as u8,
-        local: knob(local, "pencil local")?,
-        grain: knob(grain, "pencil grain")?,
-        paper: pencil::Paper::from_index(count(paper, 0, 2, "pencil paper")? as u8)?,
-        angle: count(angle, 0, 179, "pencil angle")? as u16,
-        density: knob(density, "pencil density")?,
-        step: count(step, 1, 8, "pencil step")? as u8,
-        smudge: knob(smudge, "pencil smudge")?,
-        lift: knob(lift, "pencil lift")?,
-        cross: knob(cross, "pencil cross")?,
-    })
-}
-
-/// The grid (and thirds) lines alone, clear everywhere else. `width` is the line width, 1 to 16
-/// px at a long side of 2048; `group` is 2 or 4, the cells each way between two heavy lines;
-/// `color` is one sRGB color as `0xRRGGBB`, or [`GRID_CONTRAST`] for lines in the complement of
-/// the photo under them. `center` 1 puts the rows in the middle, 0 starts them at the top.
-///
-/// # Errors
-/// A number out of range.
-pub fn grid_layer(
-    work: &Rgb,
-    mode: u32,
-    cells: u32,
-    width: u32,
-    group: u32,
-    color: u32,
-    center: u32,
-) -> Result<Layer> {
-    grid_with(
-        work,
-        mode,
-        || Ok(grid::cells_of(cells)? * grid::MILLI),
-        (width, group, color, center),
-    )
-}
-
-/// [`grid_layer`] with the squares across the width counted in thousandths, 100 to 500000 (0.1 to
-/// 500 squares), so a square size that does not divide the width can be drawn: a grid of whole cm
-/// on a paper. 7500 is 7.5 squares, the last one a part square at the right and the bottom. A
-/// whole count `c` as `1000 c` draws the same bytes as [`grid_layer`]. `group` counts squares.
-///
-/// # Errors
-/// A number out of range, `milli` too.
-pub fn grid_layer_milli(
-    work: &Rgb,
-    mode: u32,
-    milli: u32,
-    width: u32,
-    group: u32,
-    color: u32,
-    center: u32,
-) -> Result<Layer> {
-    grid_with(
-        work,
-        mode,
-        || grid::milli_of(milli),
-        (width, group, color, center),
-    )
-}
-
-/// The checks and the drawing both grid calls share. `fine` checks the square count and gives it
-/// in thousandths; it runs after the mode check, so the first bad number named does not change.
-fn grid_with(
-    work: &Rgb,
-    mode: u32,
-    fine: impl FnOnce() -> Result<usize>,
-    (width, group, color, center): (u32, u32, u32, u32),
-) -> Result<Layer> {
-    let work = image(work, 3, "work")?;
-    let mode = pick(mode, 0, 2, "grid mode")?;
-    let milli = fine()?;
-    let width = usize::from(pick(width, 1, grid::MAX_WIDTH as u32, "grid width")?);
-    let group = grid::group_of(group)?;
-    let center = pick(center, 0, 1, "grid center")? == 1;
+    let milli = grid::milli_of(milli)?;
     Ok(Layer {
         width: work.width,
         height: work.height,
-        rgba: grid::layer_milli(work, mode, milli, width, group, color, center)?,
+        rgba: grid::layer(work, milli),
     })
-}
-
-#[cfg(test)]
-mod tests {
-    use super::masses_level;
-
-    #[test]
-    fn test_masses_start_amount_is_mid() {
-        let levels = [0.0, 49.0, 50.0, 67.0, 84.0, 85.0, 100.0].map(masses_level);
-        assert_eq!(levels, [0, 0, 1, 1, 1, 2, 2]);
-    }
 }

@@ -23,8 +23,25 @@ const SIZES: [(usize, usize); 10] = [
     (40, 1),
     (31, 33),
 ];
-/// The whole numbers: the small range, a few steps past it and the largest.
-const WHOLE: [u32; 12] = [0, 1, 2, 3, 4, 5, 6, 8, 9, 12, 13, u32::MAX];
+/// The whole numbers: the small range, a few steps past it, the ends and a middle of the Grid
+/// count (100 to 500000), and the largest.
+const WHOLE: [u32; 15] = [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    8,
+    9,
+    12,
+    13,
+    100,
+    7500,
+    500_000,
+    u32::MAX,
+];
 /// The knob numbers: both ends, one step past, and the ones that are not numbers.
 const KNOBS: [f64; 7] = [-1.0, 0.0, 50.0, 100.0, 100.1, f64::NAN, f64::INFINITY];
 
@@ -56,11 +73,9 @@ fn every_call(work: &Rgb, u: u32, k: f64, index: usize) -> Option<(&'static str,
     }
     calls! {
         "prepare_work" => render::prepare_work(work, u),
-        "values_view" => render::values_view(work, u, k, u),
+        "values_view" => render::values_view(work, u, k),
         "shapes_view" => render::shapes_view(work, u, k),
-        "edges_view" => render::edges_view(work, u, k, u, k),
-        "grid_layer" => render::grid_layer(work, u, u, u, u, u, u),
-        "grid_layer_milli" => render::grid_layer_milli(work, u, u, u, u, u, u),
+        "grid_layer" => render::grid_layer(work, u),
     }
 }
 

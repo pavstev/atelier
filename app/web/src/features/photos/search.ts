@@ -95,20 +95,14 @@ export function sorted(list: Doc[], sort: Sort): Doc[] {
 	return copy.sort((a, b) => b.size - a.size);
 }
 
-/** How the photos show: one row each, or tiles (a square picture with the name under it). */
-type ListLayout = "list" | "tiles";
-
-export type View = { sort: Sort; layout: ListLayout };
+export type View = { sort: Sort };
 
 const cleanView = (r: unknown): View => {
 	const v = isRecord(r) ? r : {};
-	return {
-		sort: SORTS.find((s) => s.id === v.sort)?.id ?? "newest",
-		layout: v.layout === "tiles" ? "tiles" : "list",
-	};
+	return { sort: SORTS.find((s) => s.id === v.sort)?.id ?? "newest" };
 };
 
-/** The saved sort and layout; a broken save gives the defaults. */
+/** The saved sort; a broken save gives the default. */
 export const readView = (): View => loadJson(KEYS.list, cleanView);
 
 export const writeView = (v: View) => saveJson(KEYS.list, v);

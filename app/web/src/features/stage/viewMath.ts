@@ -75,15 +75,14 @@ export function toSaved(v: View, photo: Size, room: Room, fit: number): Saved {
 	};
 }
 
-/** The view from a save. `lockZoom` (the zoom a cm lock asks for) wins over the saved zoom. */
+/** The view from a save. */
 export function fromSaved(
 	s: Saved,
 	photo: Size,
 	room: Room,
 	fit: number,
-	lockZoom: number | null,
 ): View {
-	const zoom = Math.min(MAX_ZOOM, lockZoom ?? fit * s.k);
+	const zoom = Math.min(MAX_ZOOM, fit * s.k);
 	return {
 		zoom,
 		x: s.cx * room.w - (photo.width * zoom) / 2,

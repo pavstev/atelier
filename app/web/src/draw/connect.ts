@@ -2,10 +2,8 @@
 // The types come from `messages.ts`, so a `load` request is answered with a `LoadAnswer` and a
 // `draw` request with a `DrawAnswer`. Once the worker died, every call rejects.
 import type {
-	AutoAnswer,
 	DrawAnswer,
 	LoadAnswer,
-	SuggestAnswer,
 	WorkerRequest,
 	WorkerResponse,
 } from "./messages";
@@ -20,8 +18,6 @@ type Body<K extends WorkerRequest["kind"]> = Omit<
 type Answers = {
 	load: LoadAnswer;
 	draw: DrawAnswer;
-	pencilAuto: AutoAnswer;
-	pencilSuggest: SuggestAnswer;
 };
 
 export type Link = <K extends WorkerRequest["kind"]>(

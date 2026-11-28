@@ -1,19 +1,18 @@
 // The whole screen: the photo list on the left; the photo takes the rest, with the tools in the
 // bar at the bottom of it.
-// A base (Photo, Values, Shapes, Paper or Pencil) with Edges and Grid over it; Pencil turns Edges off. The photos live in
+// A base (Photo, Values or Shapes) with a Grid over it. The photos live in
 // `usePhotos`, the layers in `useLayers`, the middle in `StageArea`. The Size tool cuts the photo to a paper
 // shape here (`useSize`), before the layers see its pixels.
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { Call } from "@/draw/calls";
 import { useLayers } from "@/draw/useLayers";
-import { levelsOf } from "@/features/pencil/grades";
 import Files from "@/features/photos/Files";
 import { usePhotos } from "@/features/photos/usePhotos";
 import type { Fixed } from "@/features/picker/Picker";
 import { shownWidthCm } from "@/features/size/paper";
 import { useSize } from "@/features/size/useSize";
 import StageArea from "@/features/stage/StageArea";
-import { Legend, PencilLegend } from "@/features/stage/Swatches";
+import { Legend } from "@/features/stage/Swatches";
 import {
 	callFor,
 	type Layers,
@@ -29,18 +28,13 @@ import { startIntake } from "@/pwa/intake";
 import { askPersist } from "@/pwa/persist";
 import Logo from "@/ui/Logo";
 
-/** The call of each stacked layer; null when it is off (a Photo or Paper base draws nothing).
- * `widthCm` is the width of the picture on the paper, for a Grid in cm (null with no photo). */
+/** The call of each stacked layer; null when it is off (a Photo base draws nothing).
+ * `widthCm` is the width of the picture on the paper, for the Grid (null with no photo). */
 const callsOf = (
 	s: Look,
 	widthCm: number | null,
 ): Record<StageId, Call | null> => ({
-	base:
-		s.base.kind === "photo" || s.base.kind === "paper"
-			? null
-			: callFor(s.base.kind, s),
-	// Edges is off in Pencil mode; its saved switch stays, so Photo brings it back
-	edges: s.edges.on && s.base.kind !== "pencil" ? callFor("edges", s) : null,
+	base: s.base.kind === "photo" ? null : callFor(s.base.kind, s),
 	grid: s.grid.on ? callFor("grid", s, widthCm) : null,
 });
 
@@ -75,12 +69,7 @@ export default function App() {
 		? shownWidthCm(size.choice, size.whole.width, size.whole.height)
 		: null;
 	const calls = useMemo(() => callsOf(look, widthCm), [look, widthCm]);
-	const { pictures, tones, shares, mark } = useLayers(
-		framed,
-		calls,
-		ph.bump,
-		ph.layerFailed,
-	);
+	const { pictures, tones } = useLayers(framed, calls, ph.bump, ph.layerFailed);
 
 	const shown = {} as Layers;
 	for (const id of STAGE_IDS) {
@@ -93,11 +82,6 @@ export default function App() {
 		(look.base.kind === "values" || look.base.kind === "shapes") &&
 		tones !== null &&
 		tones.length > 0;
-	// the Pencil levels (grade, tone, share), once a draw of the set of pencils on show has landed
-	const levels =
-		framed !== null && look.base.kind === "pencil"
-			? levelsOf(look.pencil.mask, tones, shares)
-			: null;
 	const openPicker = () => input.current?.click();
 	const closePanel = () => setLayout((l) => ({ ...l, panels: { left: true } }));
 
@@ -177,9 +161,7 @@ export default function App() {
 				look={look}
 				onLook={setLook}
 				legend={
-					levels ? (
-						<PencilLegend levels={levels} mark={mark} onPick={setPicked} />
-					) : toned && tones ? (
+					toned && tones ? (
 						<Legend
 							tones={tones}
 							label={look.base.kind === "values" ? "Value legend" : "Mix piles"}
@@ -187,8 +169,6 @@ export default function App() {
 						/>
 					) : undefined
 				}
-				levels={levels}
-				mark={mark}
 				layout={layout}
 				onLayout={setLayout}
 				facts={{

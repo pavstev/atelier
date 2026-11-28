@@ -27,14 +27,8 @@ test("test_the_drawer_starts_closed_opens_over_the_stage_and_closes_again", asyn
 	expect(drawer.x).toBeCloseTo(0, 0);
 	expect(drawer.width).toBeLessThanOrEqual(390 * 0.88 + 1);
 	expect((await box(page, "stage")).width).toBeCloseTo(390, 0);
-	// the logo and the four icon buttons fit inside the drawer, in one row
-	for (const id of [
-		"logo",
-		"photo-add",
-		"photo-search-toggle",
-		"photo-sort",
-		"photo-layout",
-	]) {
+	// the logo and the three icon buttons fit inside the drawer, in one row
+	for (const id of ["logo", "photo-add", "photo-search-toggle", "photo-sort"]) {
 		const b = await box(page, id);
 		expect(b.x + b.width).toBeLessThanOrEqual(drawer.width + 0.5);
 	}
@@ -72,7 +66,7 @@ test("test_every_control_is_inside_the_phone_window_and_the_tools_open_as_sheets
 	expect(sheet.x).toBeCloseTo(0, 0);
 	expect(sheet.width).toBeCloseTo(390, 0);
 	expect(sheet.y + sheet.height).toBeCloseTo(844, 0);
-	await studio.layer("edges", true);
+	await studio.layer("grid", true);
 	// Esc closes the sheet
 	await page.keyboard.press("Escape");
 	await expect(page.getByTestId("tool-popup")).toHaveCount(0);

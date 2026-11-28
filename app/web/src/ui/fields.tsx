@@ -1,5 +1,5 @@
 // The small controls of the tool cards: a row of buttons for a short choice, a list for a long one,
-// a slider, a color box and a number box. In a card each control is one line: the label in a fixed
+// a slider and a number box. In a card each control is one line: the label in a fixed
 // column on the left (`.atelier-row` in index.css), the control on the right.
 
 import {
@@ -11,7 +11,6 @@ import {
 	ToggleButton,
 	ToggleButtonGroup,
 } from "@heroui/react";
-import type { ReactNode } from "react";
 
 type ChoiceProps = {
 	label: string;
@@ -21,18 +20,6 @@ type ChoiceProps = {
 	disabled?: boolean;
 	testid?: string;
 };
-
-/** One line of a tool card: a label on the left, anything on the right. */
-export function Row(p: { label: string; children: ReactNode }) {
-	return (
-		<div className="atelier-row">
-			<span className="atelier-label">{p.label}</span>
-			<div className="flex min-w-0 items-center justify-end gap-1.5">
-				{p.children}
-			</div>
-		</div>
-	);
-}
 
 /** An on/off switch with no visible label (`label` is its accessible name). */
 export function Toggle(p: {
@@ -60,7 +47,7 @@ export function Toggle(p: {
 }
 
 /** A row of buttons for 2 to 4 short options: one is always picked. `bare` drops the visible
- * label (the card's main choice, full width); `after` sits at the end of the line. */
+ * label (the card's main choice, full width). */
 export function Segment({
 	label,
 	options,
@@ -69,9 +56,8 @@ export function Segment({
 	disabled,
 	testid,
 	bare,
-	after,
 	stacked,
-}: ChoiceProps & { bare?: boolean; after?: ReactNode; stacked?: boolean }) {
+}: ChoiceProps & { bare?: boolean; stacked?: boolean }) {
 	const group = (
 		<ToggleButtonGroup
 			aria-label={label}
@@ -107,7 +93,6 @@ export function Segment({
 			<span className="atelier-label">{label}</span>
 			<div className="flex min-w-0 items-center gap-1.5">
 				<div className="min-w-0 flex-1">{group}</div>
-				{after}
 			</div>
 		</div>
 	);
@@ -198,44 +183,6 @@ export function Knob({
 				<Slider.Thumb />
 			</Slider.Track>
 		</Slider>
-	);
-}
-
-type ColorProps = {
-	label: string;
-	/** One sRGB color as `#rrggbb`. */
-	value: string;
-	onChange: (v: string) => void;
-	testid?: string;
-};
-
-/** The browser's own color box, with its label on the left; `bare` shows the box alone (its label
- * stays for screen readers), to sit at the end of another line. */
-export function ColorField({
-	label,
-	value,
-	onChange,
-	testid,
-	bare,
-}: ColorProps & { bare?: boolean }) {
-	return (
-		<label
-			data-testid={testid}
-			className={
-				bare
-					? "flex shrink-0"
-					: "flex items-center justify-between gap-2 text-xs text-muted"
-			}
-		>
-			{!bare && label}
-			<input
-				type="color"
-				aria-label={label}
-				value={value}
-				onChange={(e) => onChange(e.target.value)}
-				className="h-(--icon-btn-bar) w-9 cursor-pointer rounded-field border-0 bg-transparent p-0"
-			/>
-		</label>
 	);
 }
 

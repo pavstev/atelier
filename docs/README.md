@@ -11,7 +11,7 @@ designs are deleted from main; `git log` keeps them.
 
 ## Current
 
-- [how-it-works/](how-it-works/README.md): how Values, Shapes, Pencil, Edges and Grid draw.
+- [how-it-works/](how-it-works/README.md): how Values, Shapes and Grid draw.
 - [web-app.md](web-app.md): what the app does, control by control, and how the web app is built.
 - [testing](development/testing.md), [release](development/release.md), the
   [bench](development/bench.md) and the [Mac app](development/mac-app.md).
@@ -24,11 +24,6 @@ designs are deleted from main; `git log` keeps them.
   [research/2026-11-04-value-eval-spec.md](research/2026-11-04-value-eval-spec.md): the science
   behind Values and Shapes for oil painting, and the deterministic metrics that judge them
   (`bench/value-eval/`).
-- [research/2026-11-14-graphite-pencil-grades.md](research/2026-11-14-graphite-pencil-grades.md): what
-  painters say about each graphite grade, for the Pencil view.
-- [research/2026-11-14-graphite-pencil-science.md](research/2026-11-14-graphite-pencil-science.md):
-  graphite on paper, the pencil rendering literature, tone mapping, pencil choice and the metrics
-  behind the Pencil looks and knobs, with a table of decisions.
 - [research/2026-11-13-acrylic-paint-spectra.md](research/2026-11-13-acrylic-paint-spectra.md): the
   model and the data limits behind the color picker's paint mix.
 
@@ -39,6 +34,12 @@ rewritten.
 
 - [research/2026-10-28-value-study-algorithm.md](research/2026-10-28-value-study-algorithm.md):
   the L* and Munsell choice for value studies.
+- [research/2026-11-14-graphite-pencil-grades.md](research/2026-11-14-graphite-pencil-grades.md) and
+  [research/2026-11-14-graphite-pencil-science.md](research/2026-11-14-graphite-pencil-science.md):
+  research for the Pencil base, which was cut on 2026-11-28. They are history. The code and the
+  rest of the docs no longer have a Pencil base.
+- Other research notes may still name Pencil, Edges, tints or the Paper base. Those parts are cut.
+  Read such a note as a record.
 
 ## For AI coding tools
 

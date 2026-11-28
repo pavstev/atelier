@@ -1,6 +1,6 @@
 # Graphite pencil science, 2026-11-14
 
-The research behind Pencil v2 ([how-it-works/pencil.md](../how-it-works/pencil.md)). It follows the
+The research behind Pencil v2 (the page how-it-works/pencil.md, removed 2026-11-28 with the Pencil base). It follows the
 first note on grades ([2026-11-14-graphite-pencil-grades.md](2026-11-14-graphite-pencil-grades.md)).
 A record: do not rewrite it.
 

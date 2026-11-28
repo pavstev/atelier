@@ -1,6 +1,6 @@
 # Graphite pencil grades, 2026-11-14
 
-Notes for the Pencil view ([how-it-works/pencil.md](../how-it-works/pencil.md)). A record: do not
+Notes for the Pencil view (the page how-it-works/pencil.md, removed 2026-11-28 with the Pencil base). A record: do not
 rewrite it.
 
 ## What the sources agree on

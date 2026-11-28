@@ -1,6 +1,5 @@
 //! Shared filters, one copy each: the Otsu cut of a histogram, the box mean, the guided
-//! filter, the percentile (and `Sorted`, one sort for many percentiles), the Sobel gradient and the
-//! mode (majority) filter. The Gaussian blur is `edges::field::blur`.
+//! filter, the percentile and the mode (majority) filter.
 
 /// The Otsu cut of a 256 bin histogram: the first bin whose split into a dark and a light group
 /// has the largest between class variance. `None` when the values fill one bin only.
@@ -151,8 +150,7 @@ fn rank(len: usize, q: f64) -> usize {
 }
 
 /// The value at the share `q` (0..1) of `v`: the one at rank `ceil(len * q)`, at least the first.
-/// 0 for an empty list. One select per call (O(n)): for one or two lookups. For many lookups on
-/// one list, sort it once with [`Sorted`].
+/// 0 for an empty list. One select per call (O(n)).
 pub(crate) fn percentile(v: &[f32], q: f64) -> f32 {
     if v.is_empty() {
         return 0.0;
@@ -161,46 +159,6 @@ pub(crate) fn percentile(v: &[f32], q: f64) -> f32 {
     *copy
         .select_nth_unstable_by(rank(v.len(), q) - 1, f32::total_cmp)
         .1
-}
-
-/// A list sorted once, for many [`percentile`] lookups with the same rank rule and the same values
-/// (the k-th order statistic does not depend on how it is found).
-pub(crate) struct Sorted(Vec<f32>);
-
-impl Sorted {
-    /// `v` sorted.
-    pub(crate) fn new(v: &[f32]) -> Self {
-        let mut sorted = v.to_vec();
-        sorted.sort_unstable_by(f32::total_cmp);
-        Self(sorted)
-    }
-
-    /// The value at the share `q` (0..1), as [`percentile`] gives it. 0 for an empty list.
-    pub(crate) fn at(&self, q: f64) -> f32 {
-        if self.0.is_empty() {
-            return 0.0;
-        }
-        self.0[rank(self.0.len(), q) - 1]
-    }
-}
-
-/// The 3x3 Sobel gradient `(gx, gy)` of a plane, unscaled, the border replicated.
-pub(crate) fn sobel(p: &[f32], w: usize, h: usize) -> (Vec<f32>, Vec<f32>) {
-    let mut gx = vec![0f32; w * h];
-    let mut gy = vec![0f32; w * h];
-    let at = |x: isize, y: isize| {
-        p[y.clamp(0, h as isize - 1) as usize * w + x.clamp(0, w as isize - 1) as usize]
-    };
-    for y in 0..h {
-        for x in 0..w {
-            let (xi, yi) = (x as isize, y as isize);
-            gx[y * w + x] = (at(xi + 1, yi - 1) + 2.0 * at(xi + 1, yi) + at(xi + 1, yi + 1))
-                - (at(xi - 1, yi - 1) + 2.0 * at(xi - 1, yi) + at(xi - 1, yi + 1));
-            gy[y * w + x] = (at(xi - 1, yi + 1) + 2.0 * at(xi, yi + 1) + at(xi + 1, yi + 1))
-                - (at(xi - 1, yi - 1) + 2.0 * at(xi, yi - 1) + at(xi + 1, yi - 1));
-        }
-    }
-    (gx, gy)
 }
 
 /// The label of the most pixels in the `(2r + 1)` square around each pixel, so a border steps no
@@ -308,17 +266,6 @@ mod tests {
         assert_eq!(otsu_bin(&flat), None);
         assert_eq!(otsu_bin(&[0u64; 256]), None);
     }
-    fn lcg(seed: u64, n: usize) -> Vec<f32> {
-        let mut s = seed;
-        (0..n)
-            .map(|_| {
-                s = s
-                    .wrapping_mul(6364136223846793005)
-                    .wrapping_add(1442695040888963407);
-                (s >> 40) as f32 / (1u64 << 24) as f32
-            })
-            .collect()
-    }
 
     #[test]
     fn test_guided_flat_is_flat() {
@@ -339,19 +286,6 @@ mod tests {
     }
 
     #[test]
-    fn test_gaussian_keeps_mean() {
-        let p = lcg(7, 32 * 32);
-        let q = crate::edges::field::blur(&p, 32, 32, 2.0);
-        let mean = |v: &[f32]| v.iter().map(|&x| f64::from(x)).sum::<f64>() / v.len() as f64;
-        assert!(
-            (mean(&p) - mean(&q)).abs() < 1e-3,
-            "{} {}",
-            mean(&p),
-            mean(&q)
-        );
-    }
-
-    #[test]
     fn test_box_mean_border() {
         let p = vec![5.0f32; 9 * 7];
         let out = box_mean(&p, 9, 7, 2);
@@ -364,16 +298,5 @@ mod tests {
         assert_eq!(percentile(&v, 0.5), 3.0);
         assert_eq!(percentile(&v, 0.0), 1.0);
         assert_eq!(percentile(&v, 1.0), 5.0);
-    }
-
-    #[test]
-    fn test_sorted_gives_the_values_percentile_gives() {
-        let v = lcg(11, 997);
-        let sorted = Sorted::new(&v);
-        for q in [0.0, 0.001, 0.01, 0.2, 0.333, 0.5, 0.99, 0.999, 1.0] {
-            assert_eq!(sorted.at(q), percentile(&v, q), "q {q}");
-        }
-        assert_eq!(Sorted::new(&[]).at(0.5), 0.0);
-        assert_eq!(Sorted::new(&[4.0]).at(0.0), 4.0);
     }
 }

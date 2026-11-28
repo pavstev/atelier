@@ -16,8 +16,7 @@ the files you staged. The pre-push hook runs `check`.
 
 ## Rust: one simple test per part
 
-`crates/atelier-core/tests/tools_reference.rs` has one test per part (Values, Shapes, Pencil, Edges,
-Grid). Each checks the size, the range and a loose match to a reference picture.
+`crates/atelier-core/tests/tools_reference.rs` has one test per part (Values, Shapes, Grid). Each checks the size, the range and a loose match to a reference picture.
 `tools_layers.rs` holds the other checks of how a layer behaves. A new part gets a simple test in
 `tools_*.rs`.
 
@@ -25,8 +24,7 @@ Grid). Each checks the size, the range and a loose match to a reference picture.
 compares it with `crates/atelier-core/tests/reference`. The size and range must match, and the mean
 difference must be 3.0 or less.
 
-`ts_ranges.rs` reads the knob ranges of the web app (`features/pencil/knobs.ts` and
-`features/tools/settings.ts`) as text and checks each one against the core: the least and the most
+`ts_ranges.rs` reads the knob ranges of the web app (`features/tools/settings.ts`) as text and checks each one against the core: the least and the most
 are accepted, one step outside is `Error::BadInput`. It fails when a range cannot be found.
 
 `robust_calls.rs` checks that a bad number gives `Error::BadInput` and never a panic.
@@ -46,8 +44,7 @@ times out.
 - A Hero UI select is a button that opens a list: click its first button, then click the `option`
   by index (`studio.knob` does this). A slider is set with `setRange` in `e2e/studio.ts` (the
   native value setter, then `input` and `change`). A row of buttons has buttons with the role
-  `radio`. Click one. `studio.knob(id, value)` picks the right way by itself, and opens the tab of
-  a `pencil-*` knob first.
+  `radio`. Click one. `studio.knob(id, value)` picks the right way by itself.
 - A page patch a test needs (a full storage, for example) goes in with `page.addInitScript` as
   well as on the open page, so a reload does not drop it. Vite reloads the page when it finds a
   new dependency, and on a full HMR reload.
